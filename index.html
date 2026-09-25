@@ -7,60 +7,119 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: Inter, Helvetica, Arial, sans-serif; color: #000; background: #fffaf2; }
-  main { max-width: 1180px; margin: 0 auto; padding: 32px 16px 64px; }
-  h1 { font-size: clamp(26px, 4vw, 40px); font-weight: 800; margin: 0 0 6px; }
-  .lead { margin: 0 0 28px; max-width: 70ch; line-height: 1.5; }
-  h2 { font-size: 20px; margin: 0; }
-  .card { background: #fff; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.08); margin: 0 0 28px; overflow: hidden; }
-  .card-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid #eceef0; }
-  .meta { font-size: 13px; color: #444; margin-top: 3px; }
-  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
-  .actions a, .actions button {
-    font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 6px; border: 1px solid #000;
-    background: #fff; color: #000; text-decoration: none; cursor: pointer;
+  :root {
+    --bg: #fffaf2;        /* warm white */
+    --panel: #ffffff;
+    --line: #eceef0;
+    --muted: #555;
+    --accent: #fef751;    /* BFF yellow */
+    --side: 280px;
   }
-  .actions .primary { background: #fef751; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: Inter, Helvetica, Arial, sans-serif; color: #000; background: var(--bg); }
+
+  /* ---------- layout: side panel + main area ---------- */
+  .app { display: grid; grid-template-columns: var(--side) 1fr; min-height: 100vh; }
+  aside {
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    background: var(--panel); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column;
+  }
+  .brand { padding: 20px 18px 12px; }
+  .brand h1 { font-size: 20px; font-weight: 800; margin: 0 0 2px; }
+  .brand p { margin: 0; font-size: 12px; color: var(--muted); }
+  .search { padding: 0 14px 10px; }
+  .search input {
+    width: 100%; font: inherit; font-size: 14px; padding: 8px 10px;
+    border: 1px solid #d0d3d6; border-radius: 8px; background: #fff;
+  }
+  nav { padding: 0 8px 16px; flex: 1; }
+  .group { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 14px 10px 6px; }
+  nav a {
+    display: block; padding: 8px 10px; margin: 1px 0; border-radius: 8px;
+    color: #000; text-decoration: none; font-size: 14px; line-height: 1.3;
+  }
+  nav a small { display: block; font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+  nav a:hover { background: #f5f5f5; }
+  nav a.active { background: var(--accent); font-weight: 600; }
+  nav .empty { padding: 10px; font-size: 13px; color: var(--muted); }
+  .side-foot { border-top: 1px solid var(--line); padding: 10px 8px; }
+
+  main { min-width: 0; padding: 24px clamp(16px, 3vw, 40px) 64px; }
+  .head { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+  .head h2 { font-size: clamp(20px, 2.4vw, 28px); font-weight: 800; margin: 0 0 4px; }
+  .meta { font-size: 13px; color: var(--muted); }
+  .meta code { background: #f1efe9; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  .actions, .widths { display: flex; flex-wrap: wrap; gap: 8px; }
+  button, .btn {
+    font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 8px; border: 1px solid #000;
+    background: #fff; color: #000; text-decoration: none; cursor: pointer; white-space: nowrap;
+  }
+  button.primary { background: var(--accent); }
+  .widths button { border-color: #c9ced4; font-size: 12px; padding: 5px 10px; }
+  .widths button.on { border-color: #000; background: #000; color: #fff; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin: 0 0 10px; }
+  .toolbar span { font-size: 12px; color: var(--muted); }
+
+  .stage { background: #e9e6df; border-radius: 12px; padding: 16px; overflow-x: auto; }
+  .frame { background: #fff; margin: 0 auto; box-shadow: 0 1px 4px rgba(0,0,0,.08); transition: max-width .2s; }
   iframe { display: block; width: 100%; border: 0; height: 600px; }
-  pre { background: #fff; border: 1px solid #eceef0; border-radius: 8px; padding: 12px; overflow-x: auto; font-size: 12px; line-height: 1.5; }
-  .note { font-size: 13px; color: #444; }
-  .copied { font-size: 12px; color: #1a7f37; align-self: center; }
+
+  h3 { font-size: 16px; margin: 28px 0 8px; }
+  pre {
+    background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 12px;
+    overflow-x: auto; font-size: 12px; line-height: 1.5; margin: 0 0 8px;
+  }
+  .note { font-size: 13px; color: var(--muted); max-width: 75ch; line-height: 1.5; }
+
+  /* ---------- narrow screens: the side panel becomes a dropdown ---------- */
+  .picker { display: none; }
+  @media (max-width: 800px) {
+    .app { grid-template-columns: 1fr; }
+    aside { display: none; }
+    .picker { display: block; background: var(--panel); border-bottom: 1px solid var(--line); padding: 12px 16px; }
+    .picker select { width: 100%; font: inherit; font-size: 15px; padding: 8px; border-radius: 8px; border: 1px solid #d0d3d6; }
+    main { padding-top: 16px; }
+  }
 </style>
 </head>
 <body>
-<main>
-  <h1>BFF data visuals</h1>
-  <p class="lead">Interactive graphics for the BFF website. Each one reads its numbers live from the public Google Sheet.
-    Use <b>Copy embed code</b> to put a graphic on a web page, or <b>Design mode</b> to restyle it.</p>
-
-  <div id="list"></div>
-
-  <h2>Sitewide auto-height script (add once)</h2>
-  <p class="note">This lets every embedded graphic grow or shrink to fit its content, with no scrollbars. Add it once to the website,
-    for example with a header/footer code plugin. It can also go in the same Custom HTML block as an iframe.</p>
-  <pre id="snippet"></pre>
-  <div class="actions"><button data-copy="snippet">Copy script</button></div>
-</main>
+<div class="picker"><select id="picker" aria-label="Choose a graphic"></select></div>
+<div class="app">
+  <aside>
+    <div class="brand">
+      <h1>BFF data visuals</h1>
+      <p id="count"></p>
+    </div>
+    <div class="search"><input id="search" type="search" placeholder="Search graphics…" aria-label="Search graphics"></div>
+    <nav id="nav" aria-label="Graphics"></nav>
+    <div class="side-foot"><nav><a href="#embedding" data-slug="embedding">How to embed<small>Auto-height script for the website</small></a></nav></div>
+  </aside>
+  <main id="main"></main>
+</div>
 
 <script>
   /* ------------------------------------------------------------------
    * THE LIST OF GRAPHICS: add one line per new graphic folder.
+   *   slug   = folder name (never rename once embedded)
+   *   tab    = name shown in the side panel (the Google Sheet tab name)
+   *   title  = the graphic's title
+   *   group  = heading it's listed under in the side panel
+   *   height = starting iframe height in px (the auto-height script adjusts it)
    * ------------------------------------------------------------------ */
   var GRAPHICS = [
-    { slug: "gas-tracker",          title: "Tracking number of new gas unit projects",  sheet: "Gas tracker",          height: 650 },
-    { slug: "gas-tracker-capacity", title: "Tracking the capacity of new gas projects", sheet: "Gas tracker capacity", height: 650 }
+    { slug: "gas-tracker",          tab: "Gas tracker",          title: "Tracking number of new gas unit projects",  group: "Gas", height: 650 },
+    { slug: "gas-tracker-capacity", tab: "Gas tracker capacity", title: "Tracking the capacity of new gas projects", group: "Gas", height: 650 }
   ];
 
   var base = location.href.replace(/[?#].*$/, "").replace(/index\.html$/, "");
-  var list = document.getElementById("list");
+  var nav = document.getElementById("nav"), main = document.getElementById("main");
+  var picker = document.getElementById("picker"), search = document.getElementById("search");
+  var width = "100%";
 
-  function embedCode(g) {
-    return '<iframe src="' + base + g.slug + '/" title="' + g.title + '"\n' +
-      '        style="width:100%;border:0;height:' + g.height + 'px" scrolling="no" loading="lazy"></iframe>';
-  }
   var SNIPPET = [
     "<script>",
     "  window.addEventListener(\"message\", function (e) {",
@@ -71,27 +130,104 @@
     "  });",
     "<\/script>"
   ].join("\n");
-  document.getElementById("snippet").textContent = SNIPPET;
 
-  GRAPHICS.forEach(function (g) {
-    var card = document.createElement("section");
-    card.className = "card";
-    card.innerHTML =
-      '<div class="card-head"><div><h2></h2><div class="meta"></div></div>' +
-      '<div class="actions">' +
-        '<button class="primary" data-embed>Copy embed code</button>' +
-        '<a href="' + g.slug + '/" target="_blank" rel="noopener">Open</a>' +
-        '<a href="' + g.slug + '/?design" target="_blank" rel="noopener">Design mode</a>' +
+  function embedCode(g) {
+    return '<iframe src="' + base + g.slug + '/" title="' + g.title + '"\n' +
+      '        style="width:100%;border:0;height:' + g.height + 'px" scrolling="no" loading="lazy"></iframe>';
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  document.getElementById("count").textContent =
+    GRAPHICS.length + " graphic" + (GRAPHICS.length === 1 ? "" : "s") + " · live data from Google Sheets";
+
+  /* ---------- side panel + dropdown ---------- */
+  function buildNav(filter) {
+    var q = (filter || "").trim().toLowerCase();
+    var shown = GRAPHICS.filter(function (g) {
+      return !q || (g.tab + " " + g.title + " " + g.slug + " " + (g.group || "")).toLowerCase().indexOf(q) > -1;
+    });
+    var html = "", lastGroup = null;
+    shown.forEach(function (g) {
+      var grp = g.group || "Other";
+      if (grp !== lastGroup) { html += '<div class="group">' + esc(grp) + "</div>"; lastGroup = grp; }
+      html += '<a href="#' + esc(g.slug) + '" data-slug="' + esc(g.slug) + '">' + esc(g.tab) + "<small>" + esc(g.title) + "</small></a>";
+    });
+    nav.innerHTML = html || '<div class="empty">No graphics match “' + esc(filter) + "”.</div>";
+    markActive();
+  }
+  function buildPicker() {
+    var html = "", lastGroup = null;
+    GRAPHICS.forEach(function (g) {
+      var grp = g.group || "Other";
+      if (grp !== lastGroup) { if (lastGroup !== null) html += "</optgroup>"; html += '<optgroup label="' + esc(grp) + '">'; lastGroup = grp; }
+      html += '<option value="' + esc(g.slug) + '">' + esc(g.tab) + "</option>";
+    });
+    html += '</optgroup><option value="embedding">How to embed</option>';
+    picker.innerHTML = html;
+    picker.addEventListener("change", function () { location.hash = picker.value; });
+  }
+  function markActive() {
+    var cur = current();
+    Array.prototype.forEach.call(document.querySelectorAll("aside a[data-slug]"), function (a) {
+      a.classList.toggle("active", a.getAttribute("data-slug") === cur);
+    });
+    picker.value = cur;
+  }
+  function current() {
+    var h = decodeURIComponent(location.hash.slice(1));
+    if (h === "embedding" || GRAPHICS.some(function (g) { return g.slug === h; })) return h;
+    return GRAPHICS.length ? GRAPHICS[0].slug : "embedding";
+  }
+
+  /* ---------- main area ---------- */
+  function show() {
+    var slug = current();
+    markActive();
+    if (slug === "embedding") { showEmbedding(); return; }
+    var g = GRAPHICS.filter(function (x) { return x.slug === slug; })[0];
+    document.title = g.tab + " · BFF data visuals";
+    main.innerHTML =
+      '<div class="head"><div><h2>' + esc(g.title) + "</h2>" +
+        '<div class="meta">Sheet tab <code>' + esc(g.tab) + "</code> · Folder <code>" + esc(g.slug) + "/</code></div></div>" +
+        '<div class="actions">' +
+          '<button class="primary" id="copy-embed">Copy embed code</button>' +
+          '<a class="btn" href="' + esc(g.slug) + '/" target="_blank" rel="noopener">Open</a>' +
+          '<a class="btn" href="' + esc(g.slug) + '/?design" target="_blank" rel="noopener">Design mode</a>' +
+        "</div></div>" +
+      '<div class="toolbar"><span>Preview width</span><div class="widths">' +
+        '<button data-w="100%">Full</button><button data-w="768px">Tablet</button><button data-w="375px">Phone</button>' +
       "</div></div>" +
-      '<iframe src="' + g.slug + '/" loading="lazy" scrolling="no"></iframe>';
-    card.querySelector("h2").textContent = g.title;
-    card.querySelector(".meta").textContent = "Folder: " + g.slug + "/  ·  Sheet tab: " + g.sheet;
-    card.querySelector("iframe").title = g.title;
-    card.querySelector("[data-embed]").addEventListener("click", function (ev) { copy(embedCode(g), ev.target); });
-    list.appendChild(card);
-  });
-
-  document.querySelector("[data-copy=snippet]").addEventListener("click", function (ev) { copy(SNIPPET, ev.target); });
+      '<div class="stage"><div class="frame" id="frame"><iframe src="' + esc(g.slug) + '/" scrolling="no" title="' + esc(g.title) + '"></iframe></div></div>' +
+      "<h3>Embed code</h3>" +
+      '<pre id="embed"></pre>' +
+      '<p class="note">Paste this into a <b>Custom HTML</b> block in WordPress. The site also needs the auto-height script once (see <a href="#embedding">How to embed</a>).</p>';
+    document.getElementById("embed").textContent = embedCode(g);
+    document.getElementById("copy-embed").addEventListener("click", function (ev) { copy(embedCode(g), ev.target); });
+    Array.prototype.forEach.call(main.querySelectorAll("[data-w]"), function (b) {
+      b.addEventListener("click", function () { width = b.getAttribute("data-w"); applyWidth(); });
+    });
+    applyWidth();
+    main.scrollTop = 0; window.scrollTo(0, 0);
+  }
+  function applyWidth() {
+    var f = document.getElementById("frame");
+    if (f) f.style.maxWidth = width;
+    Array.prototype.forEach.call(main.querySelectorAll("[data-w]"), function (b) {
+      b.classList.toggle("on", b.getAttribute("data-w") === width);
+    });
+  }
+  function showEmbedding() {
+    document.title = "How to embed · BFF data visuals";
+    main.innerHTML =
+      '<div class="head"><div><h2>How to embed</h2><div class="meta">For the website (WordPress)</div></div></div>' +
+      '<p class="note"><b>1. Once for the whole site:</b> add this auto-height script, for example with a header/footer code plugin. ' +
+      "It lets every embedded graphic grow or shrink to fit, with no scrollbars, including several graphics on one page.</p>" +
+      '<pre id="snippet"></pre><div class="actions"><button class="primary" id="copy-snippet">Copy script</button></div>' +
+      '<p class="note" style="margin-top:20px"><b>2. For each graphic:</b> pick it in the side panel, click <b>Copy embed code</b>, ' +
+      "and paste it into a <b>Custom HTML</b> block where the graphic should appear.</p>";
+    document.getElementById("snippet").textContent = SNIPPET;
+    document.getElementById("copy-snippet").addEventListener("click", function (ev) { copy(SNIPPET, ev.target); });
+  }
 
   function copy(text, btn) {
     var done = function () {
@@ -105,13 +241,19 @@
     }
   }
 
-  // The same auto-height script the website uses, so the previews here fit too
+  // The same auto-height script the website uses, so previews here fit too
   window.addEventListener("message", function (e) {
     if (!e.data || e.data.type !== "dv-height") return;
     document.querySelectorAll("iframe").forEach(function (f) {
       if (f.contentWindow === e.source) f.style.height = e.data.height + "px";
     });
   });
+
+  search.addEventListener("input", function () { buildNav(search.value); });
+  window.addEventListener("hashchange", show);
+  buildNav("");
+  buildPicker();
+  show();
 </script>
 </body>
 </html>
