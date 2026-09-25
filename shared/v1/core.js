@@ -134,6 +134,14 @@
     }, 0);
   };
 
+  // Sorts column names by their position in the data (left to right); names not found go last.
+  // Convention: a sheet lists each chart's columns top of the stack first, which is also
+  // the legend and tooltip order. Stacks are drawn bottom first, so reverse for DV.stackedArea.
+  DV.byColumns = function (headers, keys) {
+    function pos(k) { var i = headers.indexOf(k); return i < 0 ? 1e9 : i; }
+    return keys.slice().sort(function (a, b) { return pos(a) - pos(b); });
+  };
+
   /* ------------------------------------------------------------------
    * DATA: Google Sheet (gviz CSV) with a built-in fallback
    * ------------------------------------------------------------------ */
