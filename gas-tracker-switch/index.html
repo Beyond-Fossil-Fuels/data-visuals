@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tracking new gas projects</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="../shared/v1/core.css">
+<style>
+  /* Units / capacity switch under the title */
+  .view-switch { display: flex; justify-content: var(--dv-title-align); margin: -6px 0 22px; }
+  .seg { display: inline-flex; gap: 3px; padding: 3px; border: 1.5px solid #000; border-radius: 999px; background: #fff; }
+  .seg button {
+    font: inherit; font-size: var(--dv-legend-size); font-weight: 600; color: #000;
+    border: 0; border-radius: 999px; padding: .5em 1.2em; background: transparent; cursor: pointer;
+    transition: background-color .15s;
+  }
+  .seg button:hover { background: #f3f3f3; }
+  .seg button[aria-pressed="true"] { background: var(--switch-on); }
+  .seg button:focus-visible { outline: 2px solid #000; outline-offset: 2px; }
+  /* Short fade when switching views */
+  .dv-row { transition: opacity .18s ease; }
+  .dv-row.fading { opacity: 0; }
+</style>
+</head>
+<body>
+<div class="dv" id="dv">
+  <h1 class="dv-title" id="dv-title"></h1>
+  <div class="view-switch">
+    <div class="seg" role="group" aria-label="Show the data as">
+      <button type="button" data-view="units" aria-pressed="true"></button>
+      <button type="button" data-view="capacity" aria-pressed="false"></button>
+    </div>
+  </div>
+  <div class="dv-row" id="row">
+    <div class="dv-chart" id="chart-left"></div>
+    <div class="dv-arrow-down" aria-hidden="true"><svg id="arrow-down" width="60" height="58"></svg></div>
+    <div class="dv-chart" id="chart-right"></div>
+    <svg class="dv-arrow" id="arrow" aria-hidden="true"></svg>
+  </div>
+  <p class="dv-footer" id="dv-footer"></p>
+</div>
+
+<script src="../shared/brand.js"></script>
+<script>
+// ==== SETTINGS START ====
+var SETTINGS = {};
+// ==== SETTINGS END ====
+</script>
+<script src="../shared/v1/core.js"></script>
+<script>
+(function () {
+  /* ------------------------------------------------------------------
+   * PROOF OF CONCEPT: one graphic, two views (number of units / capacity).
+   * Units come from the "Gas tracker" tab, capacity from "Gas tracker capacity".
+   * Open with ?view=capacity to start on the capacity view (e.g. in an embed).
+   * FALLBACK data is shown only if the sheet can't be reached.
+   * ------------------------------------------------------------------ */
+  var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
+  var FALLBACK_UNITS = [
+    "YQ\tAnnounced\tPre-construction\tConstruction\tShelved\tAlready left development since start of tracking\tOperating\tMothballed\tCancelled",
+    "2023\t40\t87\t85\t37\t0\t\t\t",
+    "24Q1\t36\t97\t58\t38\t45\t32\t8\t5",
+    "24Q2\t38\t100\t56\t38\t52\t39\t8\t5",
+    "24Q3\t34\t104\t59\t41\t53\t40\t8\t5",
+    "24Q4\t37\t110\t54\t40\t63\t48\t8\t7",
+    "25Q1\t36\t119\t58\t38\t67\t52\t8\t7",
+    "25Q2\t36\t123\t58\t43\t69\t54\t8\t7",
+    "25Q3\t33\t127\t53\t44\t78\t62\t8\t8",
+    "25Q4\t42\t128\t57\t30\t95\t65\t8\t22",
+    "26Q1\t40\t127\t61\t25\t99\t67\t8\t24",
+    "26Q2\t39\t128\t63\t24\t102\t69\t8\t25"
+  ].join("\n");
+  var FALLBACK_CAPACITY = [
+    "YQ\tAnnounced\tPre-construction\tConstruction\tShelved\tAlready left development since start of tracking\tOperating\tMothballed\tCancelled",
+    "2023\t15.4\t36.2\t14.6\t15.2\t10.4\t1.2\t\t9.2",
+    "24Q1\t14.4\t36.1\t16\t16.7\t18.3\t5.9\t0.2\t12.1",
+    "24Q2\t15.6\t37.2\t16.1\t16.6\t18.7\t6.3\t0.2\t12.1",
+    "24Q3\t14.8\t35.2\t17.2\t17.4\t20\t7.7\t0.2\t12.1",
+    "24Q4\t18.2\t36.7\t18.5\t15.2\t21.9\t9\t0.2\t12.6",
+    "25Q1\t18.5\t39.1\t18.3\t14.6\t22.9\t10.1\t0.2\t12.6",
+    "25Q2\t19.1\t40\t18\t15.6\t22.6\t10.4\t0.2\t11.9",
+    "25Q3\t15.4\t43.9\t16.2\t15.7\t25.3\t12.8\t0.2\t12.2",
+    "25Q4\t20\t44.3\t16.6\t11.7\t30.2\t13.8\t0.2\t16.2",
+    "26Q1\t18.6\t43.2\t19.4\t9.2\t31.9\t13.8\t0.2\t17.9",
+    "26Q2\t19.2\t43.2\t19.1\t8.9\t33.4\t15\t0.2\t18.2"
+  ].join("\n");
+
+  var LEFT = "Already left development since start of tracking";
+
+  // Which columns go in which chart. Their ORDER comes from the sheet: each chart's columns are
+  // listed top of the stack first, which is also the legend and tooltip order.
+  var LEFT_KEYS = [LEFT, "Shelved", "Construction", "Pre-construction", "Announced"];
+  var RIGHT_KEYS = ["Cancelled", "Mothballed", "Operating"];
+  var PALETTE_KEY = { Announced: "gasAnnounced", "Pre-construction": "gasPreConstruction", Construction: "gasConstruction",
+    Shelved: "gasShelved", Operating: "gasOperating", Mothballed: "gasMothballed", Cancelled: "gasCancelled" };
+
+  // How each view formats its numbers
+  var VIEWS = {
+    units:    { unit: "",   decimals: 0 },
+    capacity: { unit: "GW", decimals: 1 }
+  };
+  var view = /[?&]view=capacity\b/.test(location.search) ? "capacity" : "units";
+
+  function series(S, headers, keys) {
+    return DV.byColumns(headers, keys).reverse().map(function (k) {
+      return k === LEFT
+        ? { key: k, label: "Already left development", color: S.colorAlreadyLeftDots, fill: S.colorAlreadyLeft, lineOpacity: 0.6 }
+        : { key: k, color: S[PALETTE_KEY[k]] };
+    });
+  }
+  function legend(S, headers, keys) {
+    return DV.byColumns(headers, keys)
+      .filter(function (k) { return k !== LEFT; })
+      .map(function (k) { return { label: k, color: S[PALETTE_KEY[k]] }; });
+  }
+
+  var charts = {}, switchReady = false;
+
+  DV.create({
+    sheetId: SHEET_ID,
+    sheetTab: "Gas tracker",
+    fallback: FALLBACK_UNITS,
+    datasets: { capacity: { sheetTab: "Gas tracker capacity", fallback: FALLBACK_CAPACITY } },
+    columns: [LEFT, "Shelved", "Construction", "Pre-construction", "Announced", "Cancelled", "Mothballed", "Operating"],
+
+    groups: [
+      { name: "Text", fields: [
+        { key: "title",         type: "text", def: "Tracking new gas projects", help: "Main title" },
+        { key: "unitsLabel",    type: "text", def: "Number of units", help: "Switch button: units view" },
+        { key: "capacityLabel", type: "text", def: "Capacity (GW)", help: "Switch button: capacity view" },
+        { key: "leftTitle",     type: "text", def: "In development", help: "Heading above the left chart" },
+        { key: "rightTitle",    type: "text", def: "Already left development since start of tracking", help: "Heading above the right chart" },
+        { key: "footer",        type: "text", def: "Power plants tracked since {first} | Last update: {last}", help: "Footer; {first} and {last} are filled in from the data. Leave empty to hide" }
+      ]},
+      { name: "Colours", fields: [
+        { key: "switchColor",          type: "color", def: "#fef751", help: "Background of the selected switch button" },
+        { key: "colorAlreadyLeft",     type: "color", def: "#333333", help: "Dark area: already left development" },
+        { key: "colorAlreadyLeftDots", type: "color", def: "#000000", help: "Line and dots on the dark area" }
+      ]},
+      { name: "Layout", fields: [
+        { key: "chartGap",    type: "range", min: 40, max: 260, step: 2, def: 150, help: "Space between the two charts (where the arrow sits), in px" },
+        { key: "chartHeight", type: "range", min: 0.5, max: 1.4, step: 0.02, def: 0.88, help: "Chart height as a share of its width" }
+      ]},
+      { name: "Arrow position", fields: [
+        { key: "arrowShow",     type: "check", def: true, help: "Show the arrow" },
+        { key: "arrowCurve",    type: "range", min: -150, max: 150, step: 1, def: 0, help: "Bend: 0 = straight, + curves up, - curves down" },
+        { key: "arrowLevel",    type: "range", min: 0, max: 1, step: 0.05, def: 0.5, help: "Start height on the dark area (0 = bottom, 1 = top)" },
+        { key: "arrowOffsetY",  type: "range", min: -200, max: 200, step: 1, def: 0, help: "Nudge the whole arrow up (-) or down (+), in px" },
+        { key: "arrowStartGap", type: "range", min: -40, max: 120, step: 1, def: 10, help: "Space between the left chart and the arrow start, in px" },
+        { key: "arrowEndGap",   type: "range", min: -40, max: 120, step: 1, def: 4, help: "Space between the arrow tip and the right chart, in px" }
+      ]}
+    ],
+
+    build: function (ctx) {
+      var S = ctx.S;
+      document.documentElement.style.setProperty("--switch-on", S.switchColor);
+      charts.left = DV.chartBox(document.getElementById("chart-left"), S.leftTitle, legend(S, ctx.headers, LEFT_KEYS));
+      charts.right = DV.chartBox(document.getElementById("chart-right"), S.rightTitle, legend(S, ctx.headers, RIGHT_KEYS));
+
+      var buttons = document.querySelectorAll(".seg button");
+      buttons[0].textContent = S.unitsLabel;
+      buttons[1].textContent = S.capacityLabel;
+      if (switchReady) return;
+      switchReady = true;
+      var row = document.getElementById("row");
+      function mark() {
+        Array.prototype.forEach.call(buttons, function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-view") === view)); });
+      }
+      Array.prototype.forEach.call(buttons, function (b) {
+        b.addEventListener("click", function () {
+          var next = b.getAttribute("data-view");
+          if (next === view) return;
+          view = next;
+          mark();
+          row.classList.add("fading");
+          setTimeout(function () { ctx.rerender(); row.classList.remove("fading"); }, 180);
+        });
+      });
+      mark();
+    },
+
+    render: function (ctx) {
+      var S = ctx.S, stacked = ctx.stacked, fmt = VIEWS[view];
+      var table = view === "capacity" ? ctx.datasets.capacity : { data: ctx.data, headers: ctx.headers };
+      var data = table.data, headers = table.headers;
+      var row = document.getElementById("row");
+      row.style.columnGap = stacked ? "0px" : Math.max(Math.min(56, S.chartGap), Math.min(S.chartGap, ctx.W * 0.12)) + "px";
+      DV.alignHeads([charts.left.head, charts.right.head], !stacked);
+
+      var w = charts.left.box.clientWidth;
+      var h = stacked ? DV.clamp(w * S.chartHeight * 0.8, 220, 440) : DV.clamp(w * S.chartHeight, 220, 760);
+      var ls = series(S, headers, LEFT_KEYS), rs = series(S, headers, RIGHT_KEYS);
+      // Shared y-scale so both panels are directly comparable
+      var sc = DV.scale(Math.max(DV.stackMax(data, ls), DV.stackMax(data, rs)), false);
+      var common = { S: S, width: w, height: h, data: data, period: ctx.P, yMax: sc.max, tickStep: sc.step,
+        unit: fmt.unit, decimals: fmt.decimals };
+
+      var L = DV.stackedArea(Object.assign({}, common, {
+        svg: charts.left.svg, tip: charts.left.tip, series: ls,
+        totals: function (d) {
+          var inDev = d.Shelved + d.Construction + d["Pre-construction"] + d.Announced;
+          return [["In development", inDev], ["Total tracked", inDev + d[LEFT]]];
+        }
+      }));
+      DV.stackedArea(Object.assign({}, common, {
+        svg: charts.right.svg, tip: charts.right.tip, series: rs,
+        totals: function (d) { return [["Total left development", d.Cancelled + d.Mothballed + d.Operating]]; }
+      }));
+
+      var over = document.getElementById("arrow"), down = document.getElementById("arrow-down");
+      DV.clear(down);
+      var at = DV.overlay(over, row);
+      ctx.root.classList.toggle("dv-no-arrow", !S.arrowShow);
+      if (!S.arrowShow) return;
+      if (stacked) { DV.arrow(down, 30, 2, 30, 56, S, 0, 0.75); return; }
+      var last = data.length - 1;
+      var a = at(charts.left.svg, L.x(last) + S.arrowStartGap, L.y(data[last][LEFT] * S.arrowLevel));
+      var b = at(charts.right.svg, 0, 0);
+      var y = a.y + S.arrowOffsetY, x2 = b.x - S.arrowEndGap;
+      if (x2 - a.x > 20) DV.arrow(over, a.x, y, x2, y, S, S.arrowCurve, Math.max(0.6, ctx.k));
+    }
+  });
+})();
+</script>
+</body>
+</html>

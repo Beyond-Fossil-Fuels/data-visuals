@@ -45,7 +45,7 @@
     ]},
     { name: "Layout", fields: [
       { key: "titleAlign",  type: "select", options: ["left", "center", "right"], def: "center", help: "Main title alignment" },
-      { key: "legendAlign", type: "select", options: ["left", "right"], def: "right", help: "Legend alignment when charts sit side by side" },
+      { key: "legendAlign", type: "select", options: ["left", "center", "right"], def: "right", help: "Legend alignment when charts sit side by side" },
       { key: "maxWidth",    type: "range", min: 600, max: 1600, step: 10, def: 1100, help: "Widest a graphic gets, in px" },
       { key: "stackBelow",  type: "range", min: 360, max: 1000, step: 10, def: 640, help: "Below this width (px) charts stack vertically" }
     ]},
@@ -538,7 +538,15 @@
     }
 
     var ctx = { root: root, S: merged() };
-    loadData(cfg).then(function (table) {
+    // cfg.datasets = { name: { sheetTab, fallback } } loads extra tabs too (ctx.datasets[name])
+    var extraNames = Object.keys(cfg.datasets || {});
+    Promise.all([loadData(cfg)].concat(extraNames.map(function (n) {
+      var d = cfg.datasets[n];
+      return loadData({ sheetId: d.sheetId || cfg.sheetId, sheetTab: d.sheetTab, fallback: d.fallback, columns: d.columns || cfg.columns });
+    }))).then(function (tables) {
+      var table = tables[0];
+      ctx.datasets = {};
+      extraNames.forEach(function (n, i) { ctx.datasets[n] = tables[i + 1]; });
       ctx.data = table.data;
       ctx.headers = table.headers;
       ctx.P = table.headers[0];
@@ -565,6 +573,7 @@
         postHeight();
       }
       function rerender() { render(true); }
+      ctx.rerender = rerender;
 
       function apply() {
         var S = ctx.S = merged();
@@ -575,7 +584,7 @@
         de.setProperty("--dv-title-align", S.titleAlign);
         de.setProperty("--dv-heading-weight", S.headingWeight);
         de.setProperty("--dv-tooltip-size", S.tooltipSize + "px");
-        de.setProperty("--dv-legend-align", S.legendAlign === "left" ? "flex-start" : "flex-end");
+        de.setProperty("--dv-legend-align", { left: "flex-start", center: "center" }[S.legendAlign] || "flex-end");
         de.setProperty("--dv-bg", S.background);
         de.setProperty("--dv-text", S.textColor);
         de.setProperty("--dv-heading", S.headingColor);

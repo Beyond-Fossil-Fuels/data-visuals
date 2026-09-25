@@ -38,6 +38,7 @@ body { font-family: var(--dv-font); color: var(--dv-text); }
   display: flex; flex-wrap: wrap; justify-content: var(--dv-legend-align);
   gap: 2px 12px; font-size: var(--dv-legend-size); color: var(--dv-heading);
   margin: 0 0 6px; min-height: 20px;
+  padding-right: 14px;  /* = the chart's right margin, so right-aligned legends end where the grid lines end */
 }
 .dv-stacked .dv-legend { justify-content: flex-start; }
 .dv-legend span { display: inline-flex; align-items: center; gap: 0.35em; white-space: nowrap; }
