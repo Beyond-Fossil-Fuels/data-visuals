@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tracking new gas unit projects</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="../shared/v1/core.css">
+</head>
+<body>
+<div class="dv" id="dv">
+  <h1 class="dv-title" id="dv-title"></h1>
+  <div class="dv-row" id="row">
+    <div class="dv-chart" id="chart-left"></div>
+    <div class="dv-arrow-down" aria-hidden="true"><svg id="arrow-down" width="60" height="58"></svg></div>
+    <div class="dv-chart" id="chart-right"></div>
+    <svg class="dv-arrow" id="arrow" aria-hidden="true"></svg>
+  </div>
+  <p class="dv-footer" id="dv-footer"></p>
+</div>
+
+<script src="../shared/brand.js"></script>
+<script>
+// ==== SETTINGS START ====
+/* ================================================================
+ * DESIGN SETTINGS FOR THIS GRAPHIC
+ * Change any value below to restyle this graphic. Colours are hex
+ * codes, sizes are in pixels. Keep the quotes and the comma on each line.
+ * Fonts, text colours and palette colours are shared by all graphics:
+ * they live in shared/brand.js.
+ * Easier: open this page with ?design at the end of its address to
+ * adjust everything with sliders, then download the result.
+ * ================================================================ */
+var SETTINGS = {
+  // ---- Text ----
+  title: "Tracking number of new gas unit projects", // Main title
+  leftTitle: "In development",                 // Heading above the left chart
+  rightTitle: "Already left development since start of tracking", // Heading above the right chart
+  footer: "Power plants tracked since {first} | Last update: {last}", // Footer; {first} and {last} are filled in from the data. Leave empty to hide
+
+  // ---- Colours ----
+  colorAlreadyLeft: "#333333",                 // Dark area: already left development
+  colorAlreadyLeftDots: "#000000",             // Line and dots on the dark area
+
+  // ---- Layout ----
+  chartGap: 150,                               // Space between the two charts (where the arrow sits), in px
+  chartHeight: 0.88,                           // Chart height as a share of its width
+
+  // ---- Arrow position ----
+  arrowShow: true,                             // Show the arrow
+  arrowCurve: 0,                               // Bend: 0 = straight, + curves up, - curves down
+  arrowLevel: 0.5,                             // Start height on the dark area (0 = bottom, 1 = top)
+  arrowOffsetY: 0,                             // Nudge the whole arrow up (-) or down (+), in px
+  arrowStartGap: 10,                           // Space between the left chart and the arrow start, in px
+  arrowEndGap: 4,                              // Space between the arrow tip and the right chart, in px
+};
+// ==== SETTINGS END ====
+</script>
+<script src="../shared/v1/core.js"></script>
+<script>
+(function () {
+  /* ------------------------------------------------------------------
+   * DATA: live from the "Gas tracker" tab of the public Google Sheet.
+   * FALLBACK is shown only if the sheet can't be reached; refresh it now
+   * and then so it's never far behind. Blank cells count as 0.
+   * ------------------------------------------------------------------ */
+  var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
+  var SHEET_TAB = "Gas tracker";
+  var FALLBACK = [
+    "YQ\tAlready left development since start of tracking\tShelved\tConstruction\tPre-construction\tAnnounced\tCancelled\tMothballed\tOperating",
+    "2023\t0\t37\t85\t87\t40\t\t\t",
+    "24Q1\t45\t38\t58\t97\t36\t5\t8\t32",
+    "24Q2\t52\t38\t56\t100\t38\t5\t8\t39",
+    "24Q3\t53\t41\t59\t104\t34\t5\t8\t40",
+    "24Q4\t63\t40\t54\t110\t37\t7\t8\t48",
+    "25Q1\t67\t38\t58\t119\t36\t7\t8\t52",
+    "25Q2\t69\t43\t58\t123\t36\t7\t8\t54",
+    "25Q3\t78\t44\t53\t127\t33\t8\t8\t62",
+    "25Q4\t95\t30\t57\t128\t42\t22\t8\t65",
+    "26Q1\t99\t25\t61\t127\t40\t24\t8\t67",
+    "26Q2\t102\t24\t63\t128\t39\t25\t8\t69"
+  ].join("\n");
+
+  var LEFT = "Already left development since start of tracking";
+
+  // Series, bottom of the stack first. Colours come from the brand palette (shared/brand.js).
+  function leftSeries(S) {
+    return [
+      { key: LEFT, label: "Already left development", color: S.colorAlreadyLeftDots, fill: S.colorAlreadyLeft, lineOpacity: 0.6 },
+      { key: "Shelved",          color: S.gasShelved },
+      { key: "Construction",     color: S.gasConstruction },
+      { key: "Pre-construction", color: S.gasPreConstruction },
+      { key: "Announced",        color: S.gasAnnounced }
+    ];
+  }
+  function rightSeries(S) {
+    return [
+      { key: "Cancelled",  color: S.gasCancelled },
+      { key: "Mothballed", color: S.gasMothballed },
+      { key: "Operating",  color: S.gasOperating }
+    ];
+  }
+
+  var charts = {};
+
+  DV.create({
+    sheetId: SHEET_ID,
+    sheetTab: SHEET_TAB,
+    fallback: FALLBACK,
+    columns: [LEFT, "Shelved", "Construction", "Pre-construction", "Announced", "Cancelled", "Mothballed", "Operating"],
+
+    // Settings specific to this graphic (brand settings are in shared/brand.js)
+    groups: [
+      { name: "Text", fields: [
+        { key: "title",      type: "text", def: "Tracking number of new gas unit projects", help: "Main title" },
+        { key: "leftTitle",  type: "text", def: "In development", help: "Heading above the left chart" },
+        { key: "rightTitle", type: "text", def: "Already left development since start of tracking", help: "Heading above the right chart" },
+        { key: "footer",     type: "text", def: "Power plants tracked since {first} | Last update: {last}", help: "Footer; {first} and {last} are filled in from the data. Leave empty to hide" }
+      ]},
+      { name: "Colours", fields: [
+        { key: "colorAlreadyLeft",     type: "color", def: "#333333", help: "Dark area: already left development" },
+        { key: "colorAlreadyLeftDots", type: "color", def: "#000000", help: "Line and dots on the dark area" }
+      ]},
+      { name: "Layout", fields: [
+        { key: "chartGap",    type: "range", min: 40, max: 260, step: 2, def: 150, help: "Space between the two charts (where the arrow sits), in px" },
+        { key: "chartHeight", type: "range", min: 0.5, max: 1.4, step: 0.02, def: 0.88, help: "Chart height as a share of its width" }
+      ]},
+      { name: "Arrow position", fields: [
+        { key: "arrowShow",     type: "check", def: true, help: "Show the arrow" },
+        { key: "arrowCurve",    type: "range", min: -150, max: 150, step: 1, def: 0, help: "Bend: 0 = straight, + curves up, - curves down" },
+        { key: "arrowLevel",    type: "range", min: 0, max: 1, step: 0.05, def: 0.5, help: "Start height on the dark area (0 = bottom, 1 = top)" },
+        { key: "arrowOffsetY",  type: "range", min: -200, max: 200, step: 1, def: 0, help: "Nudge the whole arrow up (-) or down (+), in px" },
+        { key: "arrowStartGap", type: "range", min: -40, max: 120, step: 1, def: 10, help: "Space between the left chart and the arrow start, in px" },
+        { key: "arrowEndGap",   type: "range", min: -40, max: 120, step: 1, def: 4, help: "Space between the arrow tip and the right chart, in px" }
+      ]}
+    ],
+
+    // Headings and legends (re-run when settings change)
+    build: function (ctx) {
+      var S = ctx.S;
+      charts.left = DV.chartBox(document.getElementById("chart-left"), S.leftTitle, [
+        { label: "Announced", color: S.gasAnnounced }, { label: "Pre-construction", color: S.gasPreConstruction },
+        { label: "Construction", color: S.gasConstruction }, { label: "Shelved", color: S.gasShelved }
+      ]);
+      charts.right = DV.chartBox(document.getElementById("chart-right"), S.rightTitle, [
+        { label: "Cancelled", color: S.gasCancelled }, { label: "Mothballed", color: S.gasMothballed },
+        { label: "Operating", color: S.gasOperating }
+      ]);
+    },
+
+    // Charts and arrow (re-run on every resize)
+    render: function (ctx) {
+      var S = ctx.S, data = ctx.data, stacked = ctx.stacked;
+      var row = document.getElementById("row");
+      row.style.columnGap = stacked ? "0px" : Math.max(Math.min(56, S.chartGap), Math.min(S.chartGap, ctx.W * 0.12)) + "px";
+      DV.alignHeads([charts.left.head, charts.right.head], !stacked);
+
+      var w = charts.left.box.clientWidth;
+      var h = stacked ? DV.clamp(w * S.chartHeight * 0.8, 220, 440) : DV.clamp(w * S.chartHeight, 220, 760);
+      var ls = leftSeries(S), rs = rightSeries(S);
+      // Shared y-scale so both panels are directly comparable
+      var sc = DV.scale(Math.max(DV.stackMax(data, ls), DV.stackMax(data, rs)), false);
+      var common = { S: S, width: w, height: h, data: data, period: ctx.P, yMax: sc.max, tickStep: sc.step, decimals: 0 };
+
+      var L = DV.stackedArea(Object.assign({}, common, {
+        svg: charts.left.svg, tip: charts.left.tip, series: ls,
+        totals: function (d) {
+          var inDev = d.Shelved + d.Construction + d["Pre-construction"] + d.Announced;
+          return [["In development", inDev], ["Total tracked", inDev + d[LEFT]]];
+        }
+      }));
+      DV.stackedArea(Object.assign({}, common, {
+        svg: charts.right.svg, tip: charts.right.tip, series: rs,
+        totals: function (d) { return [["Total left development", d.Cancelled + d.Mothballed + d.Operating]]; }
+      }));
+
+      // Arrow: from the middle of the dark "already left" layer to the right-hand chart
+      var over = document.getElementById("arrow"), down = document.getElementById("arrow-down");
+      DV.clear(down);
+      var at = DV.overlay(over, row);
+      ctx.root.classList.toggle("dv-no-arrow", !S.arrowShow);
+      if (!S.arrowShow) return;
+      if (stacked) { DV.arrow(down, 30, 2, 30, 56, S, 0, 0.75); return; }
+      var last = data.length - 1;
+      var a = at(charts.left.svg, L.x(last) + S.arrowStartGap, L.y(data[last][LEFT] * S.arrowLevel));
+      var b = at(charts.right.svg, 0, 0);
+      var y = a.y + S.arrowOffsetY, x2 = b.x - S.arrowEndGap;
+      if (x2 - a.x > 20) DV.arrow(over, a.x, y, x2, y, S, S.arrowCurve, Math.max(0.6, ctx.k));
+    }
+  });
+})();
+</script>
+</body>
+</html>
