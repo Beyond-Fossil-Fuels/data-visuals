@@ -17,6 +17,12 @@ MESSAGE="${1:-Update data visuals}"
 SRC="$(cd "$(dirname "$0")" && pwd)"
 WORK="$HOME/.bff-data-visuals-publish"
 
+if [ "$SRC" = "$WORK" ]; then
+  echo "This is the script's internal publishing copy, not the master folder."
+  echo "Run ./publish.sh from the data-visuals folder on the shared Google Drive instead."
+  exit 1
+fi
+
 if [ ! -d "$WORK/.git" ]; then
   echo "First run: cloning $REPO into $WORK"
   gh repo clone "$REPO" "$WORK"
