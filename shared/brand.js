@@ -7,17 +7,17 @@
  * ================================================================ */
 var BRAND = {
   // ---- Fonts ----
-  font: "Inter",                               // Main font (a Google Fonts name, or an Adobe Fonts name when adobeKitId is set)
-  titleFont: "",                               // Font for main titles only (empty = same as main font)
+  font: "Roboto",                              // Main font (a Google Fonts name, or an Adobe Fonts name when adobeKitId is set)
+  titleFont: "Lexend",                         // Font for main titles only (empty = same as main font)
   adobeKitId: "",                              // Adobe Fonts web project ID, e.g. abc1def (empty = not used)
   titleSize: 46,                               // Main title size in px (shrinks on small screens)
   titleWeight: 800,                            // Main title boldness
   headingSize: 21,                             // Chart heading size in px
   headingWeight: 700,                          // Chart heading boldness
-  legendSize: 14.5,                            // Legend text size in px
-  axisSize: 15,                                // Axis label size in px
-  tooltipSize: 13,                             // Tooltip text size in px
-  footerSize: 24,                              // Footer text size in px
+  legendSize: 14,                              // Legend text size in px
+  axisSize: 17,                                // Axis label size in px
+  tooltipSize: 13.5,                           // Tooltip text size in px
+  footerSize: 18,                              // Footer text size in px
 
   // ---- Colours ----
   background: "#ffffff",                       // Page background
@@ -29,21 +29,21 @@ var BRAND = {
   // ---- Layout ----
   titleAlign: "center",                        // Main title alignment
   legendAlign: "right",                        // Legend alignment when charts sit side by side
-  maxWidth: 1100,                              // Widest a graphic gets, in px
-  stackBelow: 640,                             // Below this width (px) charts stack vertically
+  maxWidth: 1050,                              // Widest a graphic gets, in px
+  stackBelow: 570,                             // Below this width (px) charts stack vertically
 
   // ---- Chart style ----
-  areaOpacity: 0.85,                           // How solid coloured areas are (0 = invisible, 1 = solid)
-  lineWidth: 2,                                // Line along the top of each area, in px (0 = none)
+  areaOpacity: 0.8,                            // How solid coloured areas are (0 = invisible, 1 = solid)
+  lineWidth: 2.5,                              // Line along the top of each area, in px (0 = none)
   showDots: true,                              // Show a dot at every data point
   dotSize: 4.5,                                // Dot radius in px
   showGrid: true,                              // Show horizontal grid lines
 
   // ---- Arrow style ----
   arrowColor: "#000000",                       // Arrow colour
-  arrowThickness: 8,                           // Line thickness in px
-  arrowHeadSize: 18,                           // Arrowhead size in px
-  arrowHeadStyle: "open",                      // Arrowhead: open chevron or filled triangle
+  arrowThickness: 6.5,                         // Line thickness in px
+  arrowHeadSize: 26,                           // Arrowhead size in px
+  arrowHeadStyle: "filled",                    // Arrowhead: open chevron or filled triangle
   arrowLineStyle: "solid",                     // Line style
 
   // ---- Palette: colours graphics refer to by name, e.g. S.gasOperating ----
