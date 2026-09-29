@@ -96,7 +96,7 @@
     </div>
     <div class="search"><input id="search" type="search" placeholder="Search graphics…" aria-label="Search graphics"></div>
     <nav id="nav" aria-label="Graphics"></nav>
-    <div class="side-foot"><nav><a href="#embedding" data-slug="embedding">How to embed<small>Auto-height script for the website</small></a></nav></div>
+    <div class="side-foot"><nav><a href="#embedding" data-slug="embedding">How to embed<small>Adding a graphic to the website</small></a></nav></div>
   </aside>
   <main id="main"></main>
 </div>
@@ -121,20 +121,22 @@
   var picker = document.getElementById("picker"), search = document.getElementById("search");
   var width = "100%";
 
-  var SNIPPET = [
-    "<script>",
-    "  window.addEventListener(\"message\", function (e) {",
-    "    if (!e.data || e.data.type !== \"dv-height\") return;",
-    "    document.querySelectorAll(\"iframe\").forEach(function (f) {",
-    "      if (f.contentWindow === e.source) f.style.height = e.data.height + \"px\";",
-    "    });",
-    "  });",
-    "<\/script>"
-  ].join("\n");
-
+  // Self-contained embed: the iframe plus a small script that resizes only this iframe to fit its graphic.
+  // Nothing needs adding to the website as a whole, and several graphics can share one page.
   function embedCode(g) {
-    return '<iframe src="' + base + g.slug + '/" title="' + g.title + '"\n' +
-      '        style="width:100%;border:0;height:' + g.height + 'px" scrolling="no" loading="lazy"></iframe>';
+    var id = "dv-" + g.slug;
+    return [
+      '<iframe id="' + id + '" src="' + base + g.slug + '/" title="' + g.title + '"',
+      '        style="width:100%;border:0;height:' + g.height + 'px" scrolling="no" loading="lazy"></iframe>',
+      "<script>",
+      "  (function () {",
+      '    var f = document.getElementById("' + id + '");',
+      '    window.addEventListener("message", function (e) {',
+      '      if (e.source === f.contentWindow && e.data && e.data.type === "dv-height") f.style.height = e.data.height + "px";',
+      "    });",
+      "  })();",
+      "<\/script>"
+    ].join("\n");
   }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
 
@@ -201,7 +203,7 @@
       '<div class="stage"><div class="frame" id="frame"><iframe src="' + esc(g.slug) + '/" scrolling="no" title="' + esc(g.title) + '"></iframe></div></div>' +
       "<h3>Embed code</h3>" +
       '<pre id="embed"></pre>' +
-      '<p class="note">Paste this into a <b>Custom HTML</b> block in WordPress. The site also needs the auto-height script once (see <a href="#embedding">How to embed</a>).</p>';
+      '<p class="note">Paste this into a <b>Custom HTML</b> block in WordPress. It includes a small script that resizes the graphic to fit, so nothing else is needed on the site.</p>';
     document.getElementById("embed").textContent = embedCode(g);
     document.getElementById("copy-embed").addEventListener("click", function (ev) { copy(embedCode(g), ev.target); });
     Array.prototype.forEach.call(main.querySelectorAll("[data-w]"), function (b) {
@@ -221,13 +223,11 @@
     document.title = "How to embed · BFF data visuals";
     main.innerHTML =
       '<div class="head"><div><h2>How to embed</h2><div class="meta">For the website (WordPress)</div></div></div>' +
-      '<p class="note"><b>1. Once for the whole site:</b> add this auto-height script, for example with a header/footer code plugin. ' +
-      "It lets every embedded graphic grow or shrink to fit, with no scrollbars, including several graphics on one page.</p>" +
-      '<pre id="snippet"></pre><div class="actions"><button class="primary" id="copy-snippet">Copy script</button></div>' +
-      '<p class="note" style="margin-top:20px"><b>2. For each graphic:</b> pick it in the side panel, click <b>Copy embed code</b>, ' +
-      "and paste it into a <b>Custom HTML</b> block where the graphic should appear.</p>";
-    document.getElementById("snippet").textContent = SNIPPET;
-    document.getElementById("copy-snippet").addEventListener("click", function (ev) { copy(SNIPPET, ev.target); });
+      '<p class="note"><b>1.</b> Pick the graphic in the side panel and click <b>Copy embed code</b>.</p>' +
+      '<p class="note"><b>2.</b> In WordPress, add a <b>Custom HTML</b> block where the graphic should appear and paste the code.</p>' +
+      '<p class="note"><b>That\'s all.</b> Each embed code is self-contained: it includes a small script that makes the graphic ' +
+      "grow or shrink to fit, with no scrollbars. Several graphics can go on the same page. " +
+      "If WordPress removes the script (only Administrators can save scripts), the graphic still shows, at a fixed height.</p>";
   }
 
   function copy(text, btn) {
