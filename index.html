@@ -45,6 +45,27 @@
   nav a small { display: block; font-size: 11.5px; color: var(--muted); margin-top: 1px; }
   nav a:hover { background: #f5f5f5; }
   nav a.active { background: var(--accent); font-weight: 600; }
+  nav .vid { font-weight: 700; }
+  /* A graphic with several versions: button + pop-out menu */
+  .parent {
+    display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 8px; text-align: left;
+    padding: 8px 10px; margin: 1px 0; border: 0; border-radius: 8px; background: transparent;
+    font: inherit; font-size: 14px; line-height: 1.3; color: #000; cursor: pointer; white-space: normal;
+  }
+  .parent small { display: block; font-size: 11.5px; color: var(--muted); margin-top: 1px; font-weight: 400; }
+  .parent:hover, .parent[aria-expanded="true"] { background: #f5f5f5; }
+  .parent.active { background: var(--accent); font-weight: 600; }
+  .parent .chev { font-size: 18px; color: var(--muted); }
+  .flyout {
+    display: none; position: fixed; z-index: 50; width: 270px; padding: 6px;
+    background: #fff; border: 1px solid #d9dcdf; border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.14);
+  }
+  .flyout.open { display: block; }
+  .flyout::before { content: ""; position: absolute; left: -10px; top: 0; bottom: 0; width: 10px; } /* hover bridge */
+  .fly-head { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); padding: 6px 10px 4px; }
+  .versions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .versions a { font-size: 12.5px; padding: 4px 10px; border: 1px solid #c9ced4; border-radius: 999px; color: #000; text-decoration: none; background: #fff; }
+  .versions a.on { background: var(--accent); border-color: #000; }
   nav .empty { padding: 10px; font-size: 13px; color: var(--muted); }
   .side-foot { border-top: 1px solid var(--line); padding: 10px 8px; }
 
@@ -103,18 +124,36 @@
 
 <script>
   /* ------------------------------------------------------------------
-   * THE LIST OF GRAPHICS: add one line per new graphic folder.
+   * THE LIST OF GRAPHICS, following the IDs in the tracking sheet.
+   * A graphic with one version:
+   *   { id: "C1", name: "…", section: "Coal core page", slug: "folder-name", tab: "Sheet tab", title: "…", height: 650 }
+   * A graphic with several versions (shown as a pop-out menu in the side panel):
+   *   { id: "G1", name: "…", section: "…", versions: [ { id: "G1.1", label: "…", slug, tab, title, height }, … ] }
    *   slug   = folder name (never rename once embedded)
-   *   tab    = name shown in the side panel (the Google Sheet tab name)
-   *   title  = the graphic's title
-   *   group  = heading it's listed under in the side panel
-   *   height = starting iframe height in px (the auto-height script adjusts it)
+   *   tab    = the Google Sheet tab(s) it reads
+   *   height = starting iframe height in px (the embed code adjusts it)
    * ------------------------------------------------------------------ */
   var GRAPHICS = [
-    { slug: "gas-tracker",          tab: "Gas tracker",          title: "Tracking number of new gas unit projects",  group: "Gas", height: 650 },
-    { slug: "gas-tracker-capacity", tab: "Gas tracker capacity", title: "Tracking the capacity of new gas projects", group: "Gas", height: 650 },
-    { slug: "gas-tracker-switch",   tab: "Gas tracker + capacity", title: "Tracking new gas projects (units / capacity switch)", group: "Prototypes", height: 720 }
+    { id: "G1", name: "Gas tracker", section: "Gas core page", versions: [
+      { id: "G1.1", label: "Capacity", slug: "gas-tracker-capacity", tab: "Gas tracker capacity",
+        title: "Tracking the capacity of new gas projects", height: 650 },
+      { id: "G1.2", label: "Units", slug: "gas-tracker", tab: "Gas tracker",
+        title: "Tracking number of new gas unit projects", height: 650 },
+      { id: "G1.3", label: "Both (units / capacity switch)", slug: "gas-tracker-switch", tab: "Gas tracker + Gas tracker capacity",
+        title: "Tracking new gas projects", height: 720 }
+    ]}
   ];
+
+  // Every version as one flat list (a single-version graphic is its own version)
+  var VERSIONS = [];
+  GRAPHICS.forEach(function (g) {
+    (g.versions || [g]).forEach(function (v) {
+      v.graphic = g;
+      v.fullLabel = g.versions ? g.name + " – " + v.label : g.name;
+      VERSIONS.push(v);
+    });
+  });
+  function bySlug(slug) { return VERSIONS.filter(function (v) { return v.slug === slug; })[0]; }
 
   var base = location.href.replace(/[?#].*$/, "").replace(/index\.html$/, "");
   var nav = document.getElementById("nav"), main = document.getElementById("main");
@@ -141,45 +180,109 @@
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
 
   document.getElementById("count").textContent =
-    GRAPHICS.length + " graphic" + (GRAPHICS.length === 1 ? "" : "s") + " · live data from Google Sheets";
+    GRAPHICS.length + " graphic" + (GRAPHICS.length === 1 ? "" : "s") +
+    (VERSIONS.length > GRAPHICS.length ? " (" + VERSIONS.length + " versions)" : "") + " · live data from Google Sheets";
 
-  /* ---------- side panel + dropdown ---------- */
+  /* ---------- side panel ---------- */
+  function versionLink(v, showName) {
+    return '<a href="#' + esc(v.slug) + '" data-slug="' + esc(v.slug) + '"><b class="vid">' + esc(v.id) + "</b> " +
+      esc(showName ? v.fullLabel : v.label) + "<small>" + esc(v.tab) + "</small></a>";
+  }
   function buildNav(filter) {
     var q = (filter || "").trim().toLowerCase();
-    var shown = GRAPHICS.filter(function (g) {
-      return !q || (g.tab + " " + g.title + " " + g.slug + " " + (g.group || "")).toLowerCase().indexOf(q) > -1;
-    });
-    var html = "", lastGroup = null;
-    shown.forEach(function (g) {
-      var grp = g.group || "Other";
-      if (grp !== lastGroup) { html += '<div class="group">' + esc(grp) + "</div>"; lastGroup = grp; }
-      html += '<a href="#' + esc(g.slug) + '" data-slug="' + esc(g.slug) + '">' + esc(g.tab) + "<small>" + esc(g.title) + "</small></a>";
-    });
+    var html = "", lastSection = null;
+    function section(name) {
+      if (name !== lastSection) { html += '<div class="group">' + esc(name) + "</div>"; lastSection = name; }
+    }
+    if (q) {
+      // While searching, list matching versions directly
+      VERSIONS.filter(function (v) {
+        return (v.id + " " + v.fullLabel + " " + v.title + " " + v.tab + " " + v.slug + " " + v.graphic.section).toLowerCase().indexOf(q) > -1;
+      }).forEach(function (v) { section(v.graphic.section || "Other"); html += versionLink(v, true); });
+    } else {
+      GRAPHICS.forEach(function (g) {
+        section(g.section || "Other");
+        if (!g.versions) { html += versionLink(g, true); return; }
+        html += '<div class="navitem" data-graphic="' + esc(g.id) + '">' +
+          '<button type="button" class="parent" aria-haspopup="true" aria-expanded="false">' +
+            '<span><b class="vid">' + esc(g.id) + "</b> " + esc(g.name) + '<small class="sub">' + g.versions.length + " versions</small></span>" +
+            '<span class="chev" aria-hidden="true">›</span></button>' +
+          '<div class="flyout" role="menu" aria-label="' + esc(g.id + " " + g.name) + ' versions">' +
+            '<div class="fly-head">' + esc(g.id) + " · " + esc(g.name) + "</div>" +
+            g.versions.map(function (v) { return versionLink(v, false); }).join("") +
+          "</div></div>";
+      });
+    }
     nav.innerHTML = html || '<div class="empty">No graphics match “' + esc(filter) + "”.</div>";
+    wireFlyouts();
     markActive();
   }
+
+  // Pop-out menus: open on hover or keyboard focus (desktop), or on click (touch screens)
+  var openItem = null, closeTimer = null;
+  function openFly(item) {
+    clearTimeout(closeTimer);
+    if (openItem && openItem !== item) closeFly(openItem);
+    var fly = item.querySelector(".flyout"), btn = item.querySelector(".parent");
+    var r = btn.getBoundingClientRect(), side = document.querySelector("aside").getBoundingClientRect();
+    fly.classList.add("open");
+    fly.style.left = side.right + 6 + "px";
+    fly.style.top = Math.max(8, Math.min(r.top - 6, window.innerHeight - fly.offsetHeight - 8)) + "px";
+    btn.setAttribute("aria-expanded", "true");
+    openItem = item;
+  }
+  function closeFly(item) {
+    item.querySelector(".flyout").classList.remove("open");
+    item.querySelector(".parent").setAttribute("aria-expanded", "false");
+    if (openItem === item) openItem = null;
+  }
+  function wireFlyouts() {
+    Array.prototype.forEach.call(nav.querySelectorAll(".navitem"), function (item) {
+      var btn = item.querySelector(".parent");
+      item.addEventListener("mouseenter", function () { openFly(item); });
+      item.addEventListener("mouseleave", function () { closeTimer = setTimeout(function () { closeFly(item); }, 200); });
+      item.addEventListener("focusin", function () { openFly(item); });
+      item.addEventListener("focusout", function (e) { if (!item.contains(e.relatedTarget)) closeFly(item); });
+      btn.addEventListener("click", function () { if (openItem === item) closeFly(item); else openFly(item); });
+      Array.prototype.forEach.call(item.querySelectorAll(".flyout a"), function (a) {
+        a.addEventListener("click", function () { closeFly(item); });
+      });
+    });
+  }
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && openItem) closeFly(openItem); });
+  document.addEventListener("click", function (e) { if (openItem && !openItem.contains(e.target)) closeFly(openItem); });
+  document.querySelector("aside").addEventListener("scroll", function () { if (openItem) closeFly(openItem); });
+
+  /* ---------- dropdown (narrow screens) ---------- */
   function buildPicker() {
-    var html = "", lastGroup = null;
-    GRAPHICS.forEach(function (g) {
-      var grp = g.group || "Other";
-      if (grp !== lastGroup) { if (lastGroup !== null) html += "</optgroup>"; html += '<optgroup label="' + esc(grp) + '">'; lastGroup = grp; }
-      html += '<option value="' + esc(g.slug) + '">' + esc(g.tab) + "</option>";
+    var html = "", lastSection = null;
+    VERSIONS.forEach(function (v) {
+      var sec = v.graphic.section || "Other";
+      if (sec !== lastSection) { if (lastSection !== null) html += "</optgroup>"; html += '<optgroup label="' + esc(sec) + '">'; lastSection = sec; }
+      html += '<option value="' + esc(v.slug) + '">' + esc(v.id + " · " + v.fullLabel) + "</option>";
     });
     html += '</optgroup><option value="embedding">How to embed</option>';
     picker.innerHTML = html;
     picker.addEventListener("change", function () { location.hash = picker.value; });
   }
   function markActive() {
-    var cur = current();
+    var cur = current(), v = bySlug(cur);
     Array.prototype.forEach.call(document.querySelectorAll("aside a[data-slug]"), function (a) {
       a.classList.toggle("active", a.getAttribute("data-slug") === cur);
+    });
+    // A graphic with versions is highlighted when one of its versions is shown, and says which one
+    Array.prototype.forEach.call(nav.querySelectorAll(".navitem"), function (item) {
+      var g = GRAPHICS.filter(function (x) { return x.id === item.getAttribute("data-graphic"); })[0];
+      var on = !!(v && v.graphic === g);
+      item.querySelector(".parent").classList.toggle("active", on);
+      item.querySelector(".sub").textContent = on ? "Showing " + v.id + " · " + v.label : g.versions.length + " versions";
     });
     picker.value = cur;
   }
   function current() {
     var h = decodeURIComponent(location.hash.slice(1));
-    if (h === "embedding" || GRAPHICS.some(function (g) { return g.slug === h; })) return h;
-    return GRAPHICS.length ? GRAPHICS[0].slug : "embedding";
+    if (h === "embedding" || bySlug(h)) return h;
+    return VERSIONS.length ? VERSIONS[0].slug : "embedding";
   }
 
   /* ---------- main area ---------- */
@@ -187,11 +290,15 @@
     var slug = current();
     markActive();
     if (slug === "embedding") { showEmbedding(); return; }
-    var g = GRAPHICS.filter(function (x) { return x.slug === slug; })[0];
-    document.title = g.tab + " · BFF data visuals";
+    var g = bySlug(slug), parent = g.graphic;
+    document.title = g.id + " " + g.fullLabel + " · BFF data visuals";
     main.innerHTML =
       '<div class="head"><div><h2>' + esc(g.title) + "</h2>" +
-        '<div class="meta">Sheet tab <code>' + esc(g.tab) + "</code> · Folder <code>" + esc(g.slug) + "/</code></div></div>" +
+        '<div class="meta"><b>' + esc(g.id) + "</b> · " + esc(g.fullLabel) + " · Sheet tab <code>" + esc(g.tab) + "</code> · Folder <code>" + esc(g.slug) + "/</code></div>" +
+        (parent.versions ? '<div class="versions">' + parent.versions.map(function (v) {
+          return '<a href="#' + esc(v.slug) + '" class="' + (v === g ? "on" : "") + '"><b>' + esc(v.id) + "</b> " + esc(v.label) + "</a>";
+        }).join("") + "</div>" : "") +
+        "</div>" +
         '<div class="actions">' +
           '<button class="primary" id="copy-embed">Copy embed code</button>' +
           '<a class="btn" href="' + esc(g.slug) + '/" target="_blank" rel="noopener">Open</a>' +

@@ -10,14 +10,11 @@ var BRAND = {
   font: "Roboto",                              // Main font (a Google Fonts name, or an Adobe Fonts name when adobeKitId is set)
   titleFont: "Lexend",                         // Font for main titles only (empty = same as main font)
   adobeKitId: "",                              // Adobe Fonts web project ID, e.g. abc1def (empty = not used)
-  titleSize: 46,                               // Main title size in px (shrinks on small screens)
   titleWeight: 800,                            // Main title boldness
-  headingSize: 21,                             // Chart heading size in px
   headingWeight: 700,                          // Chart heading boldness
   legendSize: 14,                              // Legend text size in px
   axisSize: 17,                                // Axis label size in px
   tooltipSize: 13.5,                           // Tooltip text size in px
-  footerSize: 18,                              // Footer text size in px
 
   // ---- Colours ----
   background: "#ffffff",                       // Page background

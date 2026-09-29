@@ -27,14 +27,11 @@
       { key: "font",          type: "font", def: "Inter", help: "Main font (a Google Fonts name, or an Adobe Fonts name when adobeKitId is set)" },
       { key: "titleFont",     type: "font", def: "", help: "Font for main titles only (empty = same as main font)" },
       { key: "adobeKitId",    type: "text", def: "", help: "Adobe Fonts web project ID, e.g. abc1def (empty = not used)" },
-      { key: "titleSize",     type: "range", min: 16, max: 72, step: 1, def: 46, help: "Main title size in px (shrinks on small screens)" },
       { key: "titleWeight",   type: "select", options: WEIGHTS, def: 800, help: "Main title boldness" },
-      { key: "headingSize",   type: "range", min: 11, max: 32, step: 0.5, def: 21, help: "Chart heading size in px" },
       { key: "headingWeight", type: "select", options: WEIGHTS, def: 700, help: "Chart heading boldness" },
       { key: "legendSize",    type: "range", min: 10, max: 22, step: 0.5, def: 14.5, help: "Legend text size in px" },
       { key: "axisSize",      type: "range", min: 9, max: 22, step: 0.5, def: 15, help: "Axis label size in px" },
-      { key: "tooltipSize",   type: "range", min: 10, max: 18, step: 0.5, def: 13, help: "Tooltip text size in px" },
-      { key: "footerSize",    type: "range", min: 10, max: 32, step: 0.5, def: 24, help: "Footer text size in px" }
+      { key: "tooltipSize",   type: "range", min: 10, max: 18, step: 0.5, def: 13, help: "Tooltip text size in px" }
     ]},
     { name: "Colours", fields: [
       { key: "background",   type: "color", def: "#ffffff", help: "Page background" },
@@ -64,6 +61,30 @@
       { key: "arrowLineStyle", type: "select", options: ["solid", "dashed", "dotted"], def: "solid", help: "Line style" }
     ]}
   ];
+
+  /* ------------------------------------------------------------------
+   * STANDARD GRAPHIC FIELDS: added to every graphic's own settings
+   * (inserted after its first group). Fonts stay in the brand; sizes
+   * are decided per graphic.
+   * ------------------------------------------------------------------ */
+  var GRAPHIC_BASE_GROUPS = [
+    { name: "Text sizes", fields: [
+      { key: "titleSize",   type: "range", min: 16, max: 72, step: 1, def: 46, help: "Main title size in px (shrinks on small screens)" },
+      { key: "headingSize", type: "range", min: 11, max: 32, step: 0.5, def: 21, help: "Chart heading (subtitle) size in px" },
+      { key: "footerSize",  type: "range", min: 10, max: 32, step: 0.5, def: 18, help: "Footer (footnote) text size in px" }
+    ]}
+  ];
+  function withBaseGroups(groups) {
+    var names = {};
+    GRAPHIC_BASE_GROUPS.forEach(function (g) { g.fields.forEach(function (f) { names[f.key] = true; }); });
+    // a graphic that defines one of these fields itself keeps its own version
+    var own = {};
+    groups.forEach(function (g) { g.fields.forEach(function (f) { own[f.key] = true; }); });
+    var base = GRAPHIC_BASE_GROUPS.map(function (g) {
+      return { name: g.name, fields: g.fields.filter(function (f) { return !own[f.key]; }) };
+    }).filter(function (g) { return g.fields.length; });
+    return groups.slice(0, 1).concat(base, groups.slice(1));
+  }
 
   var SETTINGS_HEADER = [
     "/* ================================================================",
@@ -498,7 +519,8 @@
    * ------------------------------------------------------------------ */
   DV.create = function (cfg) {
     var root = document.getElementById(cfg.root || "dv");
-    var brandFields = fieldMap(BRAND_GROUPS), graphicFields = fieldMap(cfg.groups);
+    var groups = withBaseGroups(cfg.groups);
+    var brandFields = fieldMap(BRAND_GROUPS), graphicFields = fieldMap(groups);
     var FILE_BRAND = window.BRAND || {}, FILE_SETTINGS = window.SETTINGS || {};
     var design = /[?&]design\b/i.test(location.search);
     var storeB = "dv-brand", storeG = "dv-graphic:" + location.pathname;
@@ -510,7 +532,9 @@
       Object.keys(brandFields).forEach(function (k) { B[k] = k in FILE_BRAND ? FILE_BRAND[k] : brandFields[k].def; });
       PAL = JSON.parse(JSON.stringify(FILE_BRAND.palette || {}));
       G = {};
-      Object.keys(graphicFields).forEach(function (k) { G[k] = k in FILE_SETTINGS ? FILE_SETTINGS[k] : graphicFields[k].def; });
+      Object.keys(graphicFields).forEach(function (k) {
+        G[k] = k in FILE_SETTINGS ? FILE_SETTINGS[k] : k in FILE_BRAND ? FILE_BRAND[k] : graphicFields[k].def;
+      });
       overrides = Object.keys(FILE_SETTINGS).filter(function (k) { return k in brandFields; });
       overrides.forEach(function (k) { G[k] = FILE_SETTINGS[k]; });
     }
@@ -664,7 +688,7 @@
         }
 
         section("This graphic");
-        cfg.groups.forEach(function (g, i) {
+        groups.forEach(function (g, i) {
           group(g.name, g.fields,
             function (k) { return G[k]; },
             function (k, v) { G[k] = v; save(); },
@@ -813,7 +837,7 @@
     }
     function graphicSource() {
       var lines = [SETTINGS_HEADER, "var SETTINGS = {"];
-      cfg.groups.forEach(function (g, gi) {
+      groups.forEach(function (g, gi) {
         if (gi) lines.push("");
         lines.push("  // ---- " + g.name + " ----");
         g.fields.forEach(function (f) { lines.push(line("  ", f.key, G[f.key], f.help)); });
