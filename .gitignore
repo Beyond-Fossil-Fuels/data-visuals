@@ -1,0 +1,9 @@
+# Internal notes and local tooling: kept on the shared drive, never published
+CLAUDE.md
+.claude/
+
+# System and Google Drive files
+.DS_Store
+Icon?
+*.gsheet
+*.gdoc
