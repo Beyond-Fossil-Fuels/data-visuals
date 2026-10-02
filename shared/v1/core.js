@@ -659,10 +659,6 @@
             '<div class="gd-msg" id="gd-msg"></div>' +
             '<textarea class="gd-out" id="gd-out" readonly wrap="off"></textarea>' +
           "</div>";
-        var dl = document.createElement("datalist");
-        dl.id = "gd-fonts";
-        FONT_SUGGESTIONS.forEach(function (f) { var op = document.createElement("option"); op.value = f; dl.appendChild(op); });
-        panel.appendChild(dl);
 
         var pending = false;
         function save() {
@@ -750,13 +746,39 @@
             input = document.createElement("input"); input.type = "checkbox"; input.checked = !!val;
             input.addEventListener("change", function () { set(f.key, input.checked); });
             ctl.appendChild(input);
+          } else if (f.type === "font") {
+            // Dropdown of suggested fonts (current one selected), plus "Other font…" for any Google/Adobe font name
+            var OTHER = "__other__";
+            input = document.createElement("select");
+            var opts = (f.key === "titleFont" ? [["", "(same as main font)"]] : [])
+              .concat(FONT_SUGGESTIONS.map(function (n) { return [n, n]; }));
+            if (val && FONT_SUGGESTIONS.indexOf(val) < 0) opts.splice(f.key === "titleFont" ? 1 : 0, 0, [val, val]);
+            opts.push([OTHER, "Other font…"]);
+            opts.forEach(function (o) { var op = document.createElement("option"); op.value = o[0]; op.textContent = o[1]; input.appendChild(op); });
+            input.value = val || "";
+            var other = document.createElement("input");
+            other.type = "text"; other.placeholder = "Type a font name, then press Enter";
+            other.style.display = "none"; other.style.flexBasis = "100%";
+            ctl.style.flexWrap = "wrap";
+            input.addEventListener("change", function () {
+              if (input.value === OTHER) { other.style.display = ""; other.value = ""; other.focus(); return; }
+              other.style.display = "none";
+              set(f.key, input.value);
+            });
+            other.addEventListener("change", function () {
+              var name = other.value.trim();
+              if (!name) return;
+              if (!Array.prototype.some.call(input.options, function (o) { return o.value === name; })) {
+                var op = document.createElement("option"); op.value = name; op.textContent = name;
+                input.insertBefore(op, input.lastChild);
+              }
+              input.value = name; other.style.display = "none";
+              set(f.key, name);
+            });
+            ctl.appendChild(input); ctl.appendChild(other);
           } else {
             input = document.createElement("input"); input.type = "text"; input.value = val;
-            if (f.type === "font") {
-              input.setAttribute("list", "gd-fonts");
-              input.placeholder = f.key === "titleFont" ? "(same as main font)" : "e.g. Inter";
-              input.addEventListener("change", function () { set(f.key, input.value.trim()); });
-            } else if (f.key === "adobeKitId") {
+            if (f.key === "adobeKitId") {
               input.addEventListener("change", function () { set(f.key, input.value.trim()); });
             } else {
               input.addEventListener("input", function () { set(f.key, input.value); });

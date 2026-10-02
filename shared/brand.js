@@ -7,8 +7,8 @@
  * ================================================================ */
 var BRAND = {
   // ---- Fonts ----
-  font: "Roboto",                              // Main font (a Google Fonts name, or an Adobe Fonts name when adobeKitId is set)
-  titleFont: "Lexend",                         // Font for main titles only (empty = same as main font)
+  font: "Inter",                               // Main font (a Google Fonts name, or an Adobe Fonts name when adobeKitId is set)
+  titleFont: "",                               // Font for main titles only (empty = same as main font)
   adobeKitId: "",                              // Adobe Fonts web project ID, e.g. abc1def (empty = not used)
   titleWeight: 800,                            // Main title boldness
   headingWeight: 700,                          // Chart heading boldness
