@@ -8,9 +8,9 @@
 var BRAND = {
   // ---- Fonts ----
   font: "Inter",                               // Main font (a Google Fonts name, or an Adobe Fonts name when adobeKitId is set)
-  titleFont: "",                               // Font for main titles only (empty = same as main font)
-  adobeKitId: "",                              // Adobe Fonts web project ID, e.g. abc1def (empty = not used)
-  titleWeight: 800,                            // Main title boldness
+  titleFont: "alfabet",                        // Font for main titles only (empty = same as main font)
+  adobeKitId: "fpb7yyu",                       // Adobe Fonts web project ID, e.g. abc1def (empty = not used)
+  titleWeight: 700,                            // Main title boldness
   headingWeight: 700,                          // Chart heading boldness
   legendSize: 14,                              // Legend text size in px
   axisSize: 17,                                // Axis label size in px
