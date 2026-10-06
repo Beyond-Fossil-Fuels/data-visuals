@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The import trap: gas imports vs. gas power capacity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="../shared/v1/core.css">
+<link rel="stylesheet" href="../shared/v1/map.css">
+<style>
+  /* Country details (hover popup over a country or its symbol; below the map on phones) */
+  .g2-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding-right: 22px; }
+  .g2-head img { width: 28px; height: 21px; flex: none; }
+  .g2-head b { font-size: 1.2em; line-height: 1.15; display: inline; margin: 0; }
+  .g2-rows { width: 100%; border-collapse: collapse; }
+  .g2-rows td { padding: 0.3em 0.2em; border-top: 1px solid #e6e6e6; vertical-align: middle; }
+  .g2-rows td:first-child { white-space: nowrap; }
+  .g2-rows td + td { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; padding-left: 1em; }
+  .g2-rows i { display: inline-block; width: 0.8em; height: 0.8em; border-radius: 50%; margin-right: 0.45em; vertical-align: -0.05em; }
+  .g2-rows i.sq { border-radius: 2px; }
+  .g2-rows .na { font-weight: 400; color: #666; }
+  /* Notes under the footer */
+  .g2-notes { margin: 6px 0 0; font-size: var(--g2-notes-size); }
+  .g2-notes p { margin: 0 0 4px; }
+  .g2-notes:empty { display: none; }
+</style>
+</head>
+<body>
+<div class="dv" id="dv">
+  <h1 class="dv-title" id="dv-title"></h1>
+  <div id="map"></div>
+  <p class="dv-footer" id="dv-footer"></p>
+  <div class="dv-footer g2-notes" id="notes"></div>
+</div>
+
+<script src="../shared/brand.js"></script>
+<script>
+// ==== SETTINGS START ====
+/* ================================================================
+ * DESIGN SETTINGS FOR THIS GRAPHIC
+ * Change any value below to restyle this graphic. Colours are hex
+ * codes, sizes are in pixels. Keep the quotes and the comma on each line.
+ * Fonts, text colours and palette colours are shared by all graphics:
+ * they live in shared/brand.js.
+ * Easier: open this page with ?design at the end of its address to
+ * adjust everything with sliders, then download the result.
+ * ================================================================ */
+var SETTINGS = {
+  // ---- Text ----
+  title: "Doubling down: current gas import reliance vs. planned capacity", // Main title (empty = none)
+  footer: "Sources: BFF gas power plant database (July 2026); plants counted as in development include those at announced, pre-construction, construction and shelved statuses.", // Footer; [text](https://…) makes a link. Leave empty to hide
+  notes: "Energy balance data, 2024 (Eurostat; DUKES for UK); data cover gas imports as a share of total national gas supply (imports plus domestic production).", // Notes under the footer, one paragraph per line; [text](https://…) makes a link
+  notesSize: 14,                               // Notes text size in px
+  importsTitle: "Gas imports (TWh)",           // Title of the gas imports colour legend
+  statusTitle: "Gas power capacity",           // Title of the operating / in development legend (empty = none)
+  statusLabels: "operating :: Operating\ndevelopment :: In development", // Legend wording, one line per status: code :: wording
+  popupLabels: "imports :: Gas imports (2024)\noperating :: Operating capacity\ndevelopment :: In development\nnoData :: no data", // Popup wording, one line per row: key :: wording
+  importsUnit: "TWh",                          // Unit after gas imports in the popup
+  capacityUnit: "GW",                          // Unit after capacities in the popup
+  searchPlaceholder: "Select country",         // Search box placeholder
+
+  // ---- Text sizes ----
+  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  headingSize: 21,                             // Chart heading (subtitle) size in px
+  footerSize: 18,                              // Footer (footnote) text size in px
+  legendSize: 14,                              // Legend text size in px
+  axisSize: 14,                                // Axis label size in px
+  tooltipSize: 14,                             // Tooltip (popup) text size in px
+
+  // ---- Spacing ----
+  padTop: 16,                                  // Space above the graphic in px
+  padSides: 16,                                // Space left and right of the graphic in px
+  padBottom: 12,                               // Space below the graphic in px
+
+  // ---- Background ----
+  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+
+  // ---- Symbols ----
+  symbolMode: "pie chart",                     // Capacity symbols, pie chart: one pie per country sized by total capacity; side by side or nested: one circle per status
+  pointPosition: "label point (as in the R map)", // Where the symbols sit, label point: inside each country's main territory (Natural Earth, as in the R map); sheet coordinates: the Lat and Lon columns (capitals, as in Flourish)
+  symbolGap: 1,                                // Space between the two circles side by side, in px
+  statusLegendPos: "above map",                // Operating / in development legend position
+  legendDir: "horizontal",                     // Operating / in development legend direction
+  legendGap: 14,                               // Space between legend items in px
+  legendFilter: true,                          // Click a legend item to show only that status (like Flourish's switch)
+
+  // ---- Gas imports colours ----
+  importsLow: "#f1e9e4",                       // Colour for no gas imports (the scale starts at 0)
+  importsHigh: "#6D330C",                      // Colour for the largest gas imports (the brand's gas colour)
+  importsScale: "linear",                      // Colour scale, linear: as in the R map; square root: more contrast between smaller importers
+  importsMax: 0,                               // Value that gets the darkest colour (0 = the largest in the data)
+  importsLegendPos: "above map",               // Gas imports legend position
+  importsLegendWidth: 180,                     // Gas imports legend width in px
+
+  // ---- Popup and search ----
+  tooltipShow: true,                           // Show a popup when hovering over a country or its symbol (mouse only)
+  tooltipWidth: 300,                           // Popup maximum width in px
+  flagShow: true,                              // Show the country's flag in the popup
+  searchPos: "above map",                      // Country search position
+  searchWidth: 160,                            // Search box width in px
+
+  // ---- Bubbles ----
+  bubbleMinR: 2,                               // Smallest bubble radius in px (on a 1000 px wide map)
+  bubbleMaxR: 24,                              // Largest bubble radius in px (on a 1000 px wide map)
+  bubbleMaxValue: 0,                           // Value that gets the largest bubble (0 = the largest in the data; fix it so sizes don't change between updates)
+  bubbleOpacity: 1,                            // Bubble fill opacity
+  bubbleStroke: "#ffffff",                     // Bubble outline colour
+  bubbleStrokeWidth: 0.75,                     // Bubble outline width in px
+  bubbleHit: 8,                                // How close the pointer must be to a bubble to pick it, in px
+  highlightInner: "#000000",                   // Highlighted bubble: inner ring
+  highlightOuter: "#ffffff",                   // Highlighted bubble: outer ring
+  highlightWidth: 3,                           // Highlighted bubble: ring width in px
+  sizeLegendPos: "above map",                  // Size legend position (hidden = none)
+  sizeLegendTitle: "Capacity (GW)",            // Size legend title
+  sizeLegendValues: "1, 20",                   // Size legend values, separated by commas
+
+  // ---- Map shapes ----
+  geometry: "Medium (Natural Earth 50m)",      // Country shapes, Simple: few islands and smooth coasts; Detailed: what Flourish used
+  mapDetail: 1,                                // Coastline detail, share of points kept (1 = all, lower = smoother)
+  mapMinIsland: 0,                             // Hide islands smaller than this, in km² (0 = show all; for scale: Mallorca is about 3,600, Rhodes 1,400)
+  noDataShow: "BFF countries only",            // Countries without data, hidden: only countries with data; BFF countries only: also BFF countries with no data; all countries: neighbours too
+  smallMode: "as they are",                    // Very small countries (list below), as they are: their real size; circle: a dot you can hover; zoomed box: an enlarged copy in a box
+  smallList: "MT",                             // Very small countries, ISO codes separated by commas (e.g. MT, LU)
+  smallSize: 5,                                // Size of the zoomed box (or circle), in % of the map width
+  smallDX: 5,                                  // Zoomed box position sideways from the country, in % of the map width: + right
+  smallDY: -1.5,                               // Zoomed box position up or down from the country, in % of the map width: + down
+
+  // ---- Projection and view ----
+  projection: "Natural Earth",                 // Map projection
+  mapCentreLon: 0,                             // Central meridian (longitude); 0 matches Flourish, around 15 straightens Europe
+  viewWest: -12,                               // View box: west edge (longitude)
+  viewEast: 45,                                // View box: east edge (longitude)
+  viewSouth: 33.5,                             // View box: south edge (latitude)
+  viewNorth: 69.3,                             // View box: north edge (latitude)
+  mapZoom: 1,                                  // Zoom (1 = the view box fits the map area)
+  mapShiftX: 0,                                // Move the map sideways, in % of its width: + right, - left
+  mapShiftY: 0,                                // Move the map up or down, in % of its height: + down, - up
+  mapHeight: 0.72,                             // Map height as a share of its width
+  mapHeightPhone: 0.85,                        // Map height on phones, as a share of its width (phones = narrower than the brand stackBelow width)
+  mapZoomPhone: 1,                             // Extra zoom on phones (1 = same as wide screens)
+
+  // ---- Map colours and borders ----
+  noDataFill: "#e0e0e0",                       // BFF countries without data
+  otherFill: "#eceef0",                        // Other countries (neighbours)
+  borderColor: "#ffffff",                      // Country borders
+  borderWidth: 0.8,                            // Border width in px
+  smallBoxColor: "#8a8a8a",                    // Zoomed box and its line
+
+  // ---- Hover and selection ----
+  hoverStyle: "outline",                       // What happens to the country under the pointer
+  hoverColor: "#000000",                       // Hover outline colour
+  hoverWidth: 1.5,                             // Hover outline width in px
+  fadeOpacity: 0.4,                            // How visible the other countries stay when faded (0 = invisible, 1 = no fade)
+  selectColor: "#000000",                      // Outline of the selected (clicked or searched) country
+  selectWidth: 2.5,                            // Selected outline width in px
+};
+// ==== SETTINGS END ====
+</script>
+<script src="../shared/v1/core.js"></script>
+<script src="../shared/bff-countries.js"></script>
+<script src="../shared/vendor/d3-array.min.js"></script>
+<script src="../shared/vendor/d3-geo.min.js"></script>
+<script src="../shared/vendor/topojson-client.min.js"></script>
+<script src="../shared/vendor/topojson-simplify.min.js"></script>
+<script src="../shared/v1/map.js"></script>
+<script>
+(function () {
+  /* ------------------------------------------------------------------
+   * DATA: live from the "G2" tab of the public Google Sheet. One row per country:
+   *   ISO                  two-letter country code (GB, GR, XK for Kosovo; UK and EL also work)
+   *   Country              name shown in the popup and the search box
+   *   Gas imports (TWh)    colours the country (empty = no data: grey)
+   *   Operating (GW), In development (GW)   gas power capacity, the symbols
+   *   Lat, Lon             optional: only used when the symbols are placed at "sheet coordinates";
+   *                        otherwise they sit at Natural Earth's label point, as in the R map
+   * Empty cells mean no data. FALLBACK is used only if the sheet can't be reached
+   * or doesn't have these columns.
+   * ------------------------------------------------------------------ */
+  var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
+  var SHEET_TAB = "G2";
+  var FALLBACK = [
+    "ISO\tCountry\tGas imports (TWh)\tOperating (GW)\tIn development (GW)\tLat\tLon",
+    "AL\tAlbania\t\t\t0.52\t41.3317\t19.8172",
+    "AT\tAustria\t52.4\t4.84\t\t48.2201\t16.3798",
+    "BE\tBelgium\t185.7\t6.17\t1.77\t50.8371\t4.36761",
+    "BA\tBosnia and Herzegovina\t2.1\t\t1.75\t43.8607\t18.4214",
+    "BG\tBulgaria\t26.6\t1.14\t1.34\t42.7105\t23.3238",
+    "HR\tCroatia\t26.3\t0.83\t1.22\t45.8069\t15.9614",
+    "CY\tCyprus\t\t\t0.42\t35.1676\t33.3736",
+    "CZ\tCzech Republic\t56.2\t1.7\t3.21\t50.0878\t14.4205",
+    "DK\tDenmark\t83.8\t0.81\t\t55.6763\t12.5681",
+    "EE\tEstonia\t3.4\t0.2\t0.1\t59.4392\t24.7586",
+    "FI\tFinland\t21.7\t1.55\t\t60.1608\t24.9525",
+    "FR\tFrance\t432.1\t8.32\t0.63\t48.8566\t2.35097",
+    "DE\tGermany\t690.7\t27.08\t20.26\t52.5235\t13.4115",
+    "GR\tGreece\t61.7\t7\t4.69\t37.9792\t23.7166",
+    "HU\tHungary\t54.2\t2.61\t1.54\t47.4984\t19.0408",
+    "IE\tIreland\t39.4\t4.5\t6.7\t53.3441\t-6.26749",
+    "IT\tItaly\t566.4\t44.48\t7.16\t41.8955\t12.4823",
+    "XK\tKosovo\t\t\t\t42.565\t20.926",
+    "LV\tLatvia\t8.3\t1.09\t\t56.9465\t24.1048",
+    "LT\tLithuania\t26.3\t1.15\t\t54.6896\t25.2799",
+    "LU\tLuxembourg\t6\t\t\t49.61\t6.1296",
+    "MT\tMalta\t3.7\t0.36\t\t35.9042\t14.5189",
+    "MD\tMoldova\t7.6\t1.59\t0.3\t47.0167\t28.8497",
+    "ME\tMontenegro\t\t\t0.4\t42.4602\t19.2595",
+    "NL\tNetherlands\t287.6\t13.53\t0.5\t52.3738\t4.89095",
+    "MK\tNorth Macedonia\t3.4\t0.28\t0.8\t42.0024\t21.4361",
+    "NO\tNorway\t0.7\t0.23\t0.22\t59.9138\t10.7387",
+    "PL\tPoland\t156.2\t5\t11.47\t52.26\t21.02",
+    "PT\tPortugal\t36.3\t4.37\t\t38.7072\t-9.13552",
+    "RO\tRomania\t21.5\t2.71\t5.78\t44.4479\t26.0979",
+    "RS\tSerbia\t23.4\t0.6\t0.85\t44.8024\t20.4656",
+    "SK\tSlovakia\t39.8\t1.02\t\t48.1484\t17.1073",
+    "SI\tSlovenia\t8.3\t0.42\t0.11\t46.0546\t14.5044",
+    "ES\tSpain\t305.2\t28.55\t0.07\t40.4167\t-3.70327",
+    "SE\tSweden\t9.2\t0.83\t\t59.3327\t18.0645",
+    "CH\tSwitzerland\t\t\t\t46.948\t7.44821",
+    "TR\tTürkiye\t499.4\t26.79\t\t39.7153\t32.3606",
+    "UA\tUkraine\t\t\t\t50.4536\t30.5038",
+    "GB\tUnited Kingdom\t453.3\t35.67\t18.64\t51.5002\t-0.126236"
+  ].join("\n");
+
+  // The two capacity statuses: column, colour in the brand palette ("Gas plant status")
+  var STATUSES = [
+    { code: "operating",   column: "Operating (GW)",      color: "gasOperating" },
+    { code: "development", column: "In development (GW)", color: "gasInDevelopment" }
+  ];
+  var SYMBOLS = ["pie chart", "two circles side by side", "nested circles", "operating only", "in development only"];
+  var POSITIONS = ["label point (as in the R map)", "sheet coordinates (Lat, Lon)"];
+
+  var state = { rows: [], byId: {}, active: null, selected: null, topo: null, geometry: null, labelPts: {} };
+  var ui = null;
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function num(v) { var n = parseFloat(String(v == null ? "" : v).replace(/,/g, "")); return isFinite(n) ? n : null; }
+  function fill(text, vars) { return String(text || "").replace(/\{(\w+)\}/g, function (m, k) { return k in vars ? vars[k] : m; }); }
+  function pairs(text) {
+    var out = {};
+    String(text || "").split(/\n/).forEach(function (line) {
+      var m = /^\s*([\w-]+)\s*::\s*(.*?)\s*$/.exec(line);
+      if (m) out[m[1]] = m[2];
+    });
+    return out;
+  }
+
+  function prepare(ctx) {
+    state.byId = {};
+    state.rows = ctx.data.map(function (d) {
+      var r = { id: DV.isoCode(d.ISO), name: d.Country || d.ISO, imports: num(d["Gas imports (TWh)"]),
+        lat: num(d.Lat), lon: num(d.Lon), cap: {} };
+      STATUSES.forEach(function (st) { r.cap[st.code] = num(d[st.column]); });
+      state.byId[r.id] = r;
+      return r;
+    });
+  }
+
+  // Gas imports -> colour (linear or square-root scale from 0 to the largest value)
+  function importsMax(S) {
+    return +S.importsMax > 0 ? +S.importsMax : Math.max.apply(null, state.rows.map(function (r) { return r.imports || 0; }));
+  }
+  function importsColor(S) {
+    var ramp = DV.colorRamp([S.importsLow, S.importsHigh]), max = importsMax(S) || 1;
+    return function (v) {
+      var t = DV.clamp(v / max, 0, 1);
+      return ramp(S.importsScale === "square root" ? Math.sqrt(t) : t);
+    };
+  }
+  function style(S) {
+    var col = importsColor(S);
+    return function (f) {
+      var r = state.byId[f.id];
+      if (!r) return null;                                   // not in the data: see "Countries without data"
+      if (r.imports == null) return { fill: S.noDataFill, on: true };
+      return { fill: col(r.imports), on: true };
+    };
+  }
+
+  function statusLabel(S, code) { return pairs(S.statusLabels)[code] || code; }
+  function shown(code) { return !state.active || state.active[code]; }
+
+  // Popup / panel: the same three numbers for a country and for its symbol
+  function info(S, r) {
+    var L = pairs(S.popupLabels), na = '<span class="na">' + esc(L.noData || "no data") + "</span>";
+    var h = '<div class="g2-head">' + (S.flagShow ? '<img src="' + DV.sharedUrl + "flags/" + esc(r.id) + '.svg" alt="" onerror="this.remove()">' : "") +
+      "<b>" + esc(r.name) + "</b></div><table class=\"g2-rows\">";
+    var swatch = r.imports == null ? S.noDataFill : importsColor(S)(r.imports);
+    h += '<tr><td><i class="sq" style="background:' + swatch + '"></i>' + esc(L.imports || "") + "</td><td>" +
+      (r.imports == null ? na : esc(DV.fmt(r.imports, S.importsUnit, 1))) + "</td></tr>";
+    STATUSES.forEach(function (st) {
+      var v = r.cap[st.code];
+      h += '<tr><td><i style="background:' + S[st.color] + '"></i>' + esc(L[st.code] || "") + "</td><td>" +
+        (v == null ? na : esc(DV.fmt(v, S.capacityUnit, 2))) + "</td></tr>";
+    });
+    return h + "</table>";
+  }
+
+  // The symbols for each country, for the chosen style
+  function symbols(S, w) {
+    var mode = S.symbolMode, list = [];
+    function pos(r) {
+      if (S.pointPosition === POSITIONS[1] && r.lat != null && r.lon != null) return [r.lon, r.lat];
+      return state.labelPts[r.id] || (r.lat != null ? [r.lon, r.lat] : null);
+    }
+    function val(r, code) { return shown(code) && r.cap[code] > 0 ? r.cap[code] : 0; }
+    var codes = mode === "operating only" ? ["operating"] : mode === "in development only" ? ["development"] : ["operating", "development"];
+    var max = 0;
+    state.rows.forEach(function (r) {
+      if (mode === "pie chart") max = Math.max(max, codes.reduce(function (t, c) { return t + val(r, c); }, 0));
+      else codes.forEach(function (c) { max = Math.max(max, val(r, c)); });
+    });
+    var radius = DV.bubbleRadius(S, max, w);
+    state.rows.forEach(function (r) {
+      var p = pos(r);
+      if (!p) return;
+      var base = { lon: p[0], lat: p[1], opacity: S.bubbleOpacity, stroke: S.bubbleStroke, strokeWidth: S.bubbleStrokeWidth };
+      if (mode === "pie chart") {
+        var total = codes.reduce(function (t, c) { return t + val(r, c); }, 0);
+        if (total > 0) list.push(Object.assign({ id: r.id, r: radius(total),
+          slices: codes.map(function (c) { return { value: val(r, c), fill: S[STATUSES.filter(function (st) { return st.code === c; })[0].color] }; }) }, base));
+        return;
+      }
+      var items = codes.map(function (c) {
+        return { code: c, v: val(r, c), color: S[STATUSES.filter(function (st) { return st.code === c; })[0].color] };
+      }).filter(function (it) { return it.v > 0; });
+      items.forEach(function (it, i) {
+        var b = Object.assign({ id: r.id + "|" + it.code, r: radius(it.v), fill: it.color }, base);
+        // side by side: operating on the left, in development on the right, touching at the point
+        if (mode === "two circles side by side" && items.length === 2) b.dx = (i === 0 ? -1 : 1) * (b.r + S.symbolGap / 2);
+        list.push(b);
+      });
+    });
+    return { list: list, radius: radius, max: max };
+  }
+
+  function select(ctx, id, touch) {
+    var S = ctx.S, r = state.byId[id];
+    state.selected = r ? id : null;
+    ui.view.select(state.selected, "country");
+    ui.search.set(state.selected);
+    var wasOpen = ui.panelOpen;
+    ui.panelOpen = !!r && (touch || ctx.stacked);
+    if (ui.panelOpen) ui.panelBody.innerHTML = info(S, r);
+    if (ui.panelOpen || wasOpen) ctx.rerender();
+    if (r && !ui.panelOpen && S.tooltipShow) {
+      var b = ui.view.bubbleAt(id) || ui.view.bubbleAt(id + "|operating") || ui.view.bubbleAt(id + "|development");
+      if (b) ui.view.tipAt(b.getAttribute("data-id"), info(S, r));
+    }
+  }
+
+  function makeUI(ctx) {
+    var layout = DV.mapLayout(document.getElementById("map"), ctx.root);
+    var view = DV.mapView(layout.stage);
+    var panel = document.createElement("div"); panel.className = "dvm-panel dv-control";
+    var close = document.createElement("button"); close.className = "dvm-panel-close"; close.type = "button";
+    close.setAttribute("aria-label", "Close"); close.innerHTML = "&times;";
+    var body = document.createElement("div");
+    panel.appendChild(close); panel.appendChild(body);
+    ui = { layout: layout, view: view, panel: panel, panelBody: body, panelOpen: false };
+    close.addEventListener("click", function () { select(ctx, null); });
+
+    // a country and its symbol(s) show the same popup
+    function countryOf(id) { return String(id || "").split("|")[0]; }
+    view.onHover = function (id) {
+      var r = state.byId[countryOf(id)];
+      return r && ctx.S.tooltipShow ? info(ctx.S, r) : "";
+    };
+    view.onClick = function (id) {
+      var iso = countryOf(id), touch = view.lastPointer === "touch" || view.lastPointer === "pen";
+      select(ctx, iso && iso !== state.selected ? iso : null, touch);
+    };
+    ui.search = DV.mapSearch({
+      items: state.rows.slice().sort(function (a, b) { return a.name.localeCompare(b.name); })
+        .map(function (r) { return { id: r.id, label: r.name }; }),
+      onSelect: function (id) { select(ctx, id); }
+    });
+  }
+
+  DV.create({
+    sheetId: SHEET_ID,
+    sheetTab: SHEET_TAB,
+    fallback: FALLBACK,
+    columns: ["ISO", "Country", "Gas imports (TWh)", "Operating (GW)", "In development (GW)"],
+    text: true,
+
+    groups: [
+      { name: "Text", fields: [
+        { key: "title",        type: "text", def: "Doubling down: current gas import reliance vs. planned capacity", help: "Main title (empty = none)" },
+        { key: "footer",       type: "text", def: "Sources: BFF gas power plant database (July 2026); plants counted as in development include those at announced, pre-construction, construction and shelved statuses.", help: "Footer; [text](https://…) makes a link. Leave empty to hide" },
+        { key: "notes",        type: "textarea", rows: 4, def: "Energy balance data, 2024 (Eurostat; DUKES for UK); data cover gas imports as a share of total national gas supply (imports plus domestic production).", help: "Notes under the footer, one paragraph per line; [text](https://…) makes a link" },
+        { key: "notesSize",    type: "range", min: 10, max: 24, step: 0.5, def: 14, help: "Notes text size in px" },
+        { key: "importsTitle", type: "text", def: "Gas imports (TWh)", help: "Title of the gas imports colour legend" },
+        { key: "statusTitle",  type: "text", def: "Gas power capacity", help: "Title of the operating / in development legend (empty = none)" },
+        { key: "statusLabels", type: "textarea", rows: 2, def: "operating :: Operating\ndevelopment :: In development", help: "Legend wording, one line per status: code :: wording" },
+        { key: "popupLabels",  type: "textarea", rows: 4, def: "imports :: Gas imports (2024)\noperating :: Operating capacity\ndevelopment :: In development\nnoData :: no data", help: "Popup wording, one line per row: key :: wording" },
+        { key: "importsUnit",  type: "text", def: "TWh", help: "Unit after gas imports in the popup" },
+        { key: "capacityUnit", type: "text", def: "GW", help: "Unit after capacities in the popup" },
+        { key: "searchPlaceholder", type: "text", def: "Select country", help: "Search box placeholder" }
+      ]},
+      { name: "Symbols", fields: [
+        { key: "symbolMode",    type: "select", options: SYMBOLS, def: "pie chart", help: "Capacity symbols, pie chart: one pie per country sized by total capacity; side by side or nested: one circle per status" },
+        { key: "pointPosition", type: "select", options: POSITIONS, def: POSITIONS[0], help: "Where the symbols sit, label point: inside each country's main territory (Natural Earth, as in the R map); sheet coordinates: the Lat and Lon columns (capitals, as in Flourish)" },
+        { key: "symbolGap",     type: "range", min: 0, max: 10, step: 0.5, def: 1, help: "Space between the two circles side by side, in px" },
+        { key: "statusLegendPos", type: "select", options: DV.POSITIONS, def: "above map", help: "Operating / in development legend position" },
+        { key: "legendDir",     type: "select", options: ["vertical", "horizontal"], def: "horizontal", help: "Operating / in development legend direction" },
+        { key: "legendGap",     type: "range", min: 0, max: 40, step: 1, def: 14, help: "Space between legend items in px" },
+        { key: "legendFilter",  type: "check", def: true, help: "Click a legend item to show only that status (like Flourish's switch)" }
+      ]},
+      { name: "Gas imports colours", fields: [
+        { key: "importsLow",       type: "color", def: "#f1e9e4", help: "Colour for no gas imports (the scale starts at 0)" },
+        { key: "importsHigh",      type: "color", def: "#6D330C", help: "Colour for the largest gas imports (the brand's gas colour)" },
+        { key: "importsScale",     type: "select", options: ["linear", "square root"], def: "linear", help: "Colour scale, linear: as in the R map; square root: more contrast between smaller importers" },
+        { key: "importsMax",       type: "range", min: 0, max: 1500, step: 10, def: 0, help: "Value that gets the darkest colour (0 = the largest in the data)" },
+        { key: "importsLegendPos", type: "select", options: DV.POSITIONS, def: "above map", help: "Gas imports legend position" },
+        { key: "importsLegendWidth", type: "range", min: 80, max: 400, step: 5, def: 180, help: "Gas imports legend width in px" }
+      ]},
+      { name: "Popup and search", fields: [
+        { key: "tooltipShow",  type: "check", def: true, help: "Show a popup when hovering over a country or its symbol (mouse only)" },
+        { key: "tooltipWidth", type: "range", min: 180, max: 480, step: 5, def: 300, help: "Popup maximum width in px" },
+        { key: "flagShow",     type: "check", def: true, help: "Show the country's flag in the popup" },
+        { key: "searchPos",    type: "select", options: DV.POSITIONS, def: "above map", help: "Country search position" },
+        { key: "searchWidth",  type: "range", min: 80, max: 400, step: 5, def: 160, help: "Search box width in px" }
+      ]}
+    ].concat(DV.bubbleGroup({
+      bubbleMinR: 2, bubbleMaxR: 24, sizeLegendPos: "above map", sizeLegendTitle: "Capacity (GW)", sizeLegendValues: "1, 20"
+    }), DV.mapGroups({
+      noDataShow: "BFF countries only", noDataFill: "#e0e0e0", borderWidth: 0.8, smallMode: "as they are",
+      viewWest: -12, viewEast: 45, viewSouth: 33.5, viewNorth: 69.3
+    })),
+
+    build: function (ctx) {
+      var S = ctx.S;
+      prepare(ctx);
+      if (!ui) makeUI(ctx);
+      var st = ctx.root.style;
+      st.setProperty("--dvm-search-width", S.searchWidth + "px");
+      st.setProperty("--dvm-tip-width", S.tooltipWidth + "px");
+      st.setProperty("--dvm-panel-size", S.tooltipSize + "px");
+      document.getElementById("dv-title").style.display = S.title ? "" : "none";
+      document.getElementById("notes").innerHTML = String(S.notes || "").split(/\n/).filter(function (l) { return l.trim(); })
+        .map(function (l) { return "<p>" + DV.linkify(l) + "</p>"; }).join("");
+
+      if (ui.statusLegend) ui.statusLegend.remove();
+      state.active = null;
+      var codes = S.symbolMode === "operating only" ? ["operating"] : S.symbolMode === "in development only" ? ["development"] : ["operating", "development"];
+      ui.statusLegend = DV.mapLegend({
+        title: S.statusTitle,
+        items: STATUSES.filter(function (s) { return codes.indexOf(s.code) > -1; })
+          .map(function (s) { return { key: s.code, label: statusLabel(S, s.code), color: S[s.color] }; }),
+        onToggle: S.legendFilter && codes.length > 1 ? function (active) { state.active = active; ctx.rerender(); } : null
+      });
+      ui.statusLegend.setLayout(S.legendDir, S.legendGap);
+
+      if (ui.importsLegend) ui.importsLegend.remove();
+      ui.importsLegend = DV.gradientLegend({ title: S.importsTitle, min: 0, max: Math.round(importsMax(S)),
+        colors: [0, 0.25, 0.5, 0.75, 1].map(function (t) { return importsColor(S)(t * importsMax(S)); }),
+        fmt: function (v) { return DV.fmt(v, "", 0); } });
+      Array.prototype.forEach.call(ui.importsLegend.querySelectorAll(".dvm-bar, .dvm-bar-labels"), function (e) { e.style.width = S.importsLegendWidth + "px"; });
+      ui.search.setPlaceholder(S.searchPlaceholder);
+      if (ui.panelOpen) ui.panelBody.innerHTML = info(S, state.byId[state.selected]);
+
+      if (state.geometry !== S.geometry) {
+        state.geometry = S.geometry;
+        DV.loadGeo(S.geometry).then(function (topo) {
+          if (state.geometry !== S.geometry) return;
+          state.topo = topo;
+          state.labelPts = {};
+          topo.objects.countries.geometries.forEach(function (g) {
+            if (g.properties && g.properties.lx != null) state.labelPts[g.id] = [g.properties.lx, g.properties.ly];
+          });
+          ctx.rerender();
+        }, function (e) { console.warn("G2: map shapes could not be loaded (" + e.message + ")"); });
+      }
+    },
+
+    render: function (ctx) {
+      var S = ctx.S, narrow = ctx.stacked;
+      ctx.root.style.setProperty("--g2-notes-size", ctx.sz(S.notesSize, 12) + "px");
+      var w0 = ui.layout.stage.clientWidth || ctx.W;
+      if (ui.sizeLegend) { ui.sizeLegend.remove(); ui.sizeLegend = null; }
+      var sym0 = symbols(S, w0);
+      var values = String(S.sizeLegendValues || "").split(/[,;\s]+/).map(Number).filter(function (v) { return v > 0; });
+      if (S.sizeLegendPos !== "hidden" && values.length) {
+        ui.sizeLegend = DV.bubbleLegend({ title: S.sizeLegendTitle, values: values, r: sym0.radius,
+          fmt: function (v) { return DV.fmt(v, S.capacityUnit, 0); } });
+      }
+      var list = [[ui.importsLegend, S.importsLegendPos], [ui.statusLegend, S.statusLegendPos]];
+      if (ui.sizeLegend) list.push([ui.sizeLegend, S.sizeLegendPos]);
+      list.push([ui.search, S.searchPos], [ui.panel, ui.panelOpen ? "below map" : "hidden", true]);
+      ui.layout.place(list, narrow);
+      if (!state.topo) return;
+
+      var w = ui.layout.stage.clientWidth;
+      var h = Math.round(w * (narrow ? S.mapHeightPhone : S.mapHeight));
+      var view = Object.create(S);
+      if (narrow) view.mapZoom = S.mapZoom * S.mapZoomPhone;
+      ui.view.draw({
+        S: S, width: w, height: h,
+        projection: DV.mapProjection(view, w, h),
+        features: DV.mapShapes(state.topo, S),
+        style: style(S),
+        label: (S.title || "Gas import map") + ": countries coloured by gas imports, with gas power capacity operating and in development"
+      });
+      ui.view.bubbles(symbols(S, w).list);
+    }
+  });
+})();
+</script>
+</body>
+</html>

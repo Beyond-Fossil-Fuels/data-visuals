@@ -168,7 +168,7 @@
    *   style null = no data: shown or hidden following S.noDataShow (BFF countries / all / hidden)
    *   Countries in S.smallList (e.g. "MT") get a circle or a zoomed box (S.smallMode).
    * view.restyle(style)          recolour only (time slider, legend filter)
-   * view.bubbles([{ id, lon, lat, r, fill, stroke, strokeWidth, opacity }])
+   * view.bubbles([{ id, lon, lat, r, fill, stroke, strokeWidth, opacity, dx, dy (px offsets), slices: [{ value, fill }] (pie) }])
    * view.select(id)              outline one country (null clears)
    * view.onHover = function (id, kind) -> tooltip HTML (or "" for none)
    * view.onClick = function (id, kind)
@@ -288,10 +288,26 @@
       (list || []).slice().sort(function (a, b) { return b.r - a.r; }).forEach(function (b) {
         var xy = view.projection([b.lon, b.lat]);
         if (!xy || !(b.r > 0)) return;
-        var c = DV.el("circle", { cx: xy[0], cy: xy[1], r: b.r, fill: b.fill, "fill-opacity": b.opacity == null ? 1 : b.opacity,
+        var cx = xy[0] + (b.dx || 0), cy = xy[1] + (b.dy || 0);
+        var pie = b.slices && b.slices.filter(function (sl) { return sl.value > 0; });
+        var c = DV.el("circle", { cx: cx, cy: cy, r: b.r, fill: pie && pie.length > 1 ? "none" : (pie && pie.length ? pie[0].fill : b.fill),
+          "fill-opacity": b.opacity == null ? 1 : b.opacity,
           stroke: b.stroke || "none", "stroke-width": b.strokeWidth || 0, "stroke-opacity": b.strokeOpacity == null ? 1 : b.strokeOpacity,
           "data-id": b.id, "data-kind": "bubble", "class": "dvm-b" }, gBub);
-        bubbleList.push({ id: b.id, x: xy[0], y: xy[1], r: b.r, el: c });
+        // a pie chart: slices clockwise from 12 o'clock, drawn under the outline circle
+        if (pie && pie.length > 1) {
+          var total = pie.reduce(function (t, sl) { return t + sl.value; }, 0), a0 = -Math.PI / 2;
+          pie.forEach(function (sl) {
+            var a1 = a0 + sl.value / total * 2 * Math.PI, large = a1 - a0 > Math.PI ? 1 : 0;
+            DV.el("path", { d: "M" + cx + " " + cy + "L" + (cx + b.r * Math.cos(a0)) + " " + (cy + b.r * Math.sin(a0)) +
+              "A" + b.r + " " + b.r + " 0 " + large + " 1 " + (cx + b.r * Math.cos(a1)) + " " + (cy + b.r * Math.sin(a1)) + "Z",
+              fill: sl.fill, "fill-opacity": b.opacity == null ? 1 : b.opacity, stroke: b.stroke || "none",
+              "stroke-width": (b.strokeWidth || 0) * 0.6, "stroke-linejoin": "round", "data-id": b.id, "data-kind": "bubble" }, gBub);
+            a0 = a1;
+          });
+          gBub.appendChild(c);   // outline on top of the slices
+        }
+        bubbleList.push({ id: b.id, x: cx, y: cy, r: b.r, el: c });
         bubbleEls[b.id] = c;
       });
       if (view.selected && view.selectedKind === "bubble") view.select(view.selected, "bubble");
