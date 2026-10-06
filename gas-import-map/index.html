@@ -127,6 +127,17 @@ var SETTINGS = {
   smallDX: 5,                                  // Zoomed box position sideways from the country, in % of the map width: + right
   smallDY: -1.5,                               // Zoomed box position up or down from the country, in % of the map width: + down
 
+  // ---- Inset (far-away area in a box) ----
+  insetShow: false,                            // Show a far-away area (e.g. the Canary Islands) in a box in a corner of the map
+  insetPos: "at a point on the map",           // Inset box position (at a point: centred on the longitude and latitude below)
+  insetLon: -9.5,                              // Inset box centre: longitude (e.g. -9.5 between Iberia and Ireland, -2 after Gibraltar)
+  insetLat: 46.5,                              // Inset box centre: latitude (e.g. 46.5 between Iberia and Ireland, 35.5 after Gibraltar)
+  insetWidth: 14,                              // Inset box width in % of the map width
+  insetWest: -18.5,                            // Inset area: west edge (longitude)
+  insetEast: -13,                              // Inset area: east edge (longitude)
+  insetSouth: 27.4,                            // Inset area: south edge (latitude)
+  insetNorth: 33.3,                            // Inset area: north edge (latitude)
+
   // ---- Projection and view ----
   projection: "Natural Earth",                 // Map projection
   mapCentreLon: 0,                             // Central meridian (longitude); 0 matches Flourish, around 15 straightens Europe

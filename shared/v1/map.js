@@ -236,8 +236,44 @@
         view.paths[f.id] = p;
       });
       drawSmall(o);
-      if (view.selected) view.select(view.selected);
+      drawInset(o);
+      if (view.selected) view.select(view.selected, view.selectedKind);
     };
+
+    /* Inset: a far-away area (e.g. the Canary Islands and Madeira) drawn in a box in a corner of the map,
+     * with its own projection. Countries and bubbles inside the area are drawn there and stay hoverable. */
+    function drawInset(o) {
+      view.inset = null;
+      if (!S.insetShow) return;
+      var W = +S.insetWest, E = +S.insetEast, So = +S.insetSouth, N = +S.insetNorth;
+      if (!(E > W && N > So)) return;
+      var area = { type: "MultiPoint", coordinates: [[W, So], [E, So], [W, N], [E, N], [(W + E) / 2, So], [(W + E) / 2, N], [W, (So + N) / 2], [E, (So + N) / 2]] };
+      var bw = Math.max(50, (+S.insetWidth || 14) / 100 * o.width), pad = 4;
+      var p = d3.geoAzimuthalEqualArea().rotate([-(W + E) / 2, -(So + N) / 2]).fitWidth(bw - pad * 2, area);
+      var bnd = d3.geoPath(p).bounds(area), bh = bnd[1][1] - bnd[0][1] + pad * 2;
+      var pos = S.insetPos || "bottom-left corner", m = 2, x0, y0;
+      if (/point/.test(pos)) {
+        // centred on a place on the map (e.g. open sea), kept inside the map
+        var c = o.projection([+S.insetLon, +S.insetLat]) || [o.width / 2, o.height / 2];
+        x0 = DV.clamp(c[0] - bw / 2, m, o.width - bw - m); y0 = DV.clamp(c[1] - bh / 2, m, o.height - bh - m);
+      } else {
+        x0 = /right/.test(pos) ? o.width - bw - m : m; y0 = /bottom/.test(pos) ? o.height - bh - m : m;
+      }
+      p.fitExtent([[x0 + pad, y0 + pad], [x0 + bw - pad, y0 + bh - pad]], area).clipExtent([[x0, y0], [x0 + bw, y0 + bh]]);
+      DV.el("rect", { x: x0, y: y0, width: bw, height: bh, rx: 2, fill: S.pageBg && S.pageBg !== "transparent" ? S.pageBg : "#fff",
+        stroke: S.smallBoxColor, "stroke-width": 0.8 }, gSmall);
+      var path = d3.geoPath(p);
+      o.features.forEach(function (f) {
+        var b = d3.geoBounds(f);
+        if (b[1][0] < W || b[0][0] > E || b[1][1] < So || b[0][1] > N) return;
+        var d = path(f);
+        if (!d) return;
+        var el = DV.el("path", { d: d, stroke: S.borderColor, "stroke-width": S.borderWidth, "data-id": f.id, "class": "dvm-c" }, gSmall);
+        applyStyle(el, f);
+        (view.extra[f.id] = view.extra[f.id] || []).push(el);
+      });
+      view.inset = { proj: p, W: W, E: E, S: So, N: N };
+    }
 
     // Small countries: a circle on top, or a zoomed copy in a box with a line to the real place
     function drawSmall(o) {
@@ -286,7 +322,8 @@
     view.bubbles = function (list) {
       DV.clear(gBub); bubbleList = []; bubbleEls = {};
       (list || []).slice().sort(function (a, b) { return b.r - a.r; }).forEach(function (b) {
-        var xy = view.projection([b.lon, b.lat]);
+        var ins = view.inset, inInset = ins && b.lon >= ins.W && b.lon <= ins.E && b.lat >= ins.S && b.lat <= ins.N;
+        var xy = (inInset ? ins.proj : view.projection)([b.lon, b.lat]);
         if (!xy || !(b.r > 0)) return;
         var cx = xy[0] + (b.dx || 0), cy = xy[1] + (b.dy || 0);
         var pie = b.slices && b.slices.filter(function (sl) { return sl.value > 0; });
@@ -663,6 +700,17 @@
         { key: "smallSize",    type: "range", min: 2, max: 15, step: 0.5, def: 5, help: "Size of the zoomed box (or circle), in % of the map width" },
         { key: "smallDX",      type: "range", min: -20, max: 20, step: 0.5, def: 5, help: "Zoomed box position sideways from the country, in % of the map width: + right" },
         { key: "smallDY",      type: "range", min: -20, max: 20, step: 0.5, def: -1.5, help: "Zoomed box position up or down from the country, in % of the map width: + down" }
+      ]},
+      { name: "Inset (far-away area in a box)", fields: [
+        { key: "insetShow",  type: "check", def: false, help: "Show a far-away area (e.g. the Canary Islands) in a box in a corner of the map" },
+        { key: "insetPos",   type: "select", options: ["at a point on the map", "bottom-left corner", "top-left corner", "bottom-right corner", "top-right corner"], def: "at a point on the map", help: "Inset box position (at a point: centred on the longitude and latitude below)" },
+        { key: "insetLon",   type: "range", min: -40, max: 60, step: 0.5, def: -9.5, help: "Inset box centre: longitude (e.g. -9.5 between Iberia and Ireland, -2 after Gibraltar)" },
+        { key: "insetLat",   type: "range", min: 25, max: 75, step: 0.5, def: 46.5, help: "Inset box centre: latitude (e.g. 46.5 between Iberia and Ireland, 35.5 after Gibraltar)" },
+        { key: "insetWidth", type: "range", min: 6, max: 40, step: 0.5, def: 14, help: "Inset box width in % of the map width" },
+        { key: "insetWest",  type: "range", min: -40, max: 60, step: 0.1, def: -18.5, help: "Inset area: west edge (longitude)" },
+        { key: "insetEast",  type: "range", min: -40, max: 60, step: 0.1, def: -13, help: "Inset area: east edge (longitude)" },
+        { key: "insetSouth", type: "range", min: 20, max: 80, step: 0.1, def: 27.4, help: "Inset area: south edge (latitude)" },
+        { key: "insetNorth", type: "range", min: 20, max: 80, step: 0.1, def: 33.3, help: "Inset area: north edge (latitude)" }
       ]},
       { name: "Projection and view", fields: [
         { key: "projection",   type: "select", options: DV.PROJECTIONS, def: "Natural Earth", help: "Map projection" },

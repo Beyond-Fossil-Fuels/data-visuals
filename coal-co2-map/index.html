@@ -19,6 +19,8 @@
   .c3-value i { width: 0.9em; height: 0.9em; border-radius: 2px; flex: none; }
   .c3-line { margin-top: 8px; }
   .c3-note { margin-top: 8px; color: #555; }
+  .c3-value.na { font-weight: 400; }
+  .c3-value.na i { display: none; }
 </style>
 </head>
 <body>
@@ -49,7 +51,7 @@ var SETTINGS = {
   footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/), [Beyond Fossil Fuels](https://beyondfossilfuels.org/coal/)", // Footer; [text](https://…) makes a link; {last} is the newest year. Leave empty to hide
   legendTitle: "CO2 emissions from coal power (Mt)", // Colour legend title (empty = none)
   valueText: "{value} Mt CO2 in {year}",       // Popup value line; {value} and {year} are filled in
-  noDataText: "No data for {year}",            // Popup line when there's no value; {year} is filled in
+  noDataText: "CO2 emissions from coal power in {year} were not available", // Popup line when there's no value; {year} is filled in
   statusText: "Phase-out status: {status}",    // Popup status line; {status} is the Status detail column
   searchPlaceholder: "Select country",         // Search box placeholder
   latestText: "{date}",                        // Slider label at the newest year; {date} is that year
@@ -71,10 +73,11 @@ var SETTINGS = {
   bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
 
   // ---- Colour scale ----
-  colorStops: "0 :: #5fd35f\n40 :: #c9c24a\n80 :: #e8b13e\n120 :: #b98431\n180 :: #7a5521\n250 :: #3a2a12\n300 :: #000000", // Colour stops, one per line: value (Mt) :: colour. Colours blend between stops; the last value is the top of the scale
+  colorStops: "0 :: #20da4b\n40 :: #c9c24a\n80 :: #e8b13e\n120 :: #b98431\n180 :: #7a5521\n250 :: #3a2a12\n300 :: #000000", // Colour stops, one per line: value (Mt) :: colour. Colours blend between stops; the last value is the top of the scale
   colorSteps: false,                           // Use solid colour steps between the stops instead of blending
   legendPos: "above map",                      // Colour legend position
-  legendWidth: 340,                            // Colour legend width in px
+  legendWidth: 340,                            // Colour scale width in px
+  legendHeight: 10,                            // Colour scale thickness in px
   legendUnit: "Mt",                            // Unit after the legend's end values
 
   // ---- Search, popup and panel ----
@@ -84,14 +87,14 @@ var SETTINGS = {
   tooltipWidth: 300,                           // Popup maximum width in px
   flagShow: true,                              // Show the country's flag
   statusShow: true,                            // Show the coal phase-out status in the popup
-  panelPos: "side panel (right)",              // Panel opened by clicking a country or searching (on phones it goes below the map; hidden = no panel)
+  panelPos: "hidden",                          // Panel opened by clicking a country or searching (on phones it goes below the map; hidden = no panel)
   panelWidth: 340,                             // Panel width in px
   panelBg: "#f4f4f4",                          // Side panel background
   panelTextSize: 16,                           // Panel text size in px
 
   // ---- Time slider ----
   sliderPos: "above map",                      // Position (on phones, corners and sides move below the map)
-  sliderStart: "earliest",                     // Date shown when the map opens
+  sliderStart: "latest",                       // Date shown when the map opens
   sliderWidth: 520,                            // Width of the whole slider (button, track and date) in px
   sliderLabelPos: "right",                     // Date label: right of the track or above it
   sliderTicks: true,                           // Show a tick for each date with data
@@ -115,6 +118,17 @@ var SETTINGS = {
   smallSize: 5,                                // Size of the zoomed box (or circle), in % of the map width
   smallDX: 5,                                  // Zoomed box position sideways from the country, in % of the map width: + right
   smallDY: -1.5,                               // Zoomed box position up or down from the country, in % of the map width: + down
+
+  // ---- Inset (far-away area in a box) ----
+  insetShow: false,                            // Show a far-away area (e.g. the Canary Islands) in a box in a corner of the map
+  insetPos: "bottom-left corner",              // Inset box position (at a point: centred on the longitude and latitude below)
+  insetLon: -9.5,                              // Inset box centre: longitude (e.g. -9.5 between Iberia and Ireland, -2 after Gibraltar)
+  insetLat: 46.5,                              // Inset box centre: latitude (e.g. 46.5 between Iberia and Ireland, 35.5 after Gibraltar)
+  insetWidth: 14,                              // Inset box width in % of the map width
+  insetWest: -18.5,                            // Inset area: west edge (longitude)
+  insetEast: -13,                              // Inset area: east edge (longitude)
+  insetSouth: 27.4,                            // Inset area: south edge (latitude)
+  insetNorth: 33.3,                            // Inset area: north edge (latitude)
 
   // ---- Projection and view ----
   projection: "Natural Earth",                 // Map projection
@@ -270,10 +284,12 @@ var SETTINGS = {
     var v = r.values[state.idx], year = state.dates[state.idx].label;
     var h = '<div class="c3-head">' + (S.flagShow ? '<img src="' + DV.sharedUrl + "flags/" + esc(r.id) + '.svg" alt="" onerror="this.remove()">' : "") +
       "<b>" + esc(r.name) + "</b></div>";
-    h += '<div class="c3-value"><i style="background:' + (v == null ? S.noDataFill : scale(S)(v)) + '"></i><span>' +
+    h += '<div class="c3-value' + (v == null ? " na" : "") + '"><i style="background:' + (v == null ? S.noDataFill : scale(S)(v)) + '"></i><span>' +
       esc(v == null ? fill(S.noDataText, { year: year }) : fill(S.valueText, { year: year, value: DV.fmt(v, "", 1) })) + "</span></div>";
     if (S.statusShow && r.detail) h += '<div class="c3-line">' + esc(fill(S.statusText, { status: r.detail })) + "</div>";
-    if (r.note) h += '<div class="c3-note">' + esc(r.note) + "</div>";
+    // the note (e.g. "No data in latest year") only matters for countries with data in some years
+    var hasData = r.values.some(function (x) { return x != null; });
+    if (r.note && hasData) h += '<div class="c3-note">' + esc(r.note) + "</div>";
     return h;
   }
 
@@ -332,18 +348,19 @@ var SETTINGS = {
         { key: "footer",       type: "text", def: "Sources: [European Environment Agency](https://www.eea.europa.eu/), [Beyond Fossil Fuels](https://beyondfossilfuels.org/coal/)", help: "Footer; [text](https://…) makes a link; {last} is the newest year. Leave empty to hide" },
         { key: "legendTitle",  type: "text", def: "CO2 emissions from coal power (Mt)", help: "Colour legend title (empty = none)" },
         { key: "valueText",    type: "text", def: "{value} Mt CO2 in {year}", help: "Popup value line; {value} and {year} are filled in" },
-        { key: "noDataText",   type: "text", def: "No data for {year}", help: "Popup line when there's no value; {year} is filled in" },
+        { key: "noDataText",   type: "text", def: "CO2 emissions from coal power in {year} were not available", help: "Popup line when there's no value; {year} is filled in" },
         { key: "statusText",   type: "text", def: "Phase-out status: {status}", help: "Popup status line; {status} is the Status detail column" },
         { key: "searchPlaceholder", type: "text", def: "Select country", help: "Search box placeholder" },
         { key: "latestText",   type: "text", def: "{date}", help: "Slider label at the newest year; {date} is that year" }
       ]},
       { name: "Colour scale", fields: [
         { key: "colorStops", type: "textarea", rows: 8, def: [
-            "0 :: #5fd35f", "40 :: #c9c24a", "80 :: #e8b13e", "120 :: #b98431", "180 :: #7a5521", "250 :: #3a2a12", "300 :: #000000"
+            "0 :: #20da4b", "40 :: #c9c24a", "80 :: #e8b13e", "120 :: #b98431", "180 :: #7a5521", "250 :: #3a2a12", "300 :: #000000"
           ].join("\n"), help: "Colour stops, one per line: value (Mt) :: colour. Colours blend between stops; the last value is the top of the scale" },
         { key: "colorSteps", type: "check", def: false, help: "Use solid colour steps between the stops instead of blending" },
         { key: "legendPos",  type: "select", options: DV.POSITIONS, def: "above map", help: "Colour legend position" },
-        { key: "legendWidth", type: "range", min: 100, max: 500, step: 5, def: 340, help: "Colour legend width in px" },
+        { key: "legendWidth", type: "range", min: 100, max: 700, step: 5, def: 340, help: "Colour scale width in px" },
+        { key: "legendHeight", type: "range", min: 4, max: 30, step: 1, def: 10, help: "Colour scale thickness in px" },
         { key: "legendUnit", type: "text", def: "Mt", help: "Unit after the legend's end values" }
       ]},
       { name: "Search, popup and panel", fields: [
@@ -353,12 +370,12 @@ var SETTINGS = {
         { key: "tooltipWidth", type: "range", min: 180, max: 480, step: 5, def: 300, help: "Popup maximum width in px" },
         { key: "flagShow",     type: "check", def: true, help: "Show the country's flag" },
         { key: "statusShow",   type: "check", def: true, help: "Show the coal phase-out status in the popup" },
-        { key: "panelPos",     type: "select", options: DV.PANEL_POSITIONS, def: "side panel (right)", help: "Panel opened by clicking a country or searching (on phones it goes below the map; hidden = no panel)" },
+        { key: "panelPos",     type: "select", options: DV.PANEL_POSITIONS, def: "hidden", help: "Panel opened by clicking a country or searching (on phones it goes below the map; hidden = no panel)" },
         { key: "panelWidth",   type: "range", min: 200, max: 480, step: 5, def: 340, help: "Panel width in px" },
         { key: "panelBg",      type: "color", def: "#f4f4f4", help: "Side panel background" },
         { key: "panelTextSize", type: "range", min: 11, max: 24, step: 0.5, def: 16, help: "Panel text size in px" }
       ]}
-    ].concat(DV.sliderGroup({ sliderStart: "earliest", sliderPos: "above map" }), DV.mapGroups({ noDataFill: "#e3e4e6" })),
+    ].concat(DV.sliderGroup({ sliderPos: "above map" }), DV.mapGroups({ noDataFill: "#e3e4e6" })),
 
     build: function (ctx) {
       var S = ctx.S;
@@ -382,6 +399,7 @@ var SETTINGS = {
       ui.legend = DV.gradientLegend({ title: S.legendTitle, colors: colors, min: col.min, max: col.max,
         fmt: function (v) { return DV.fmt(v, S.legendUnit, 0); } });
       Array.prototype.forEach.call(ui.legend.querySelectorAll(".dvm-bar, .dvm-bar-labels"), function (e) { e.style.width = S.legendWidth + "px"; e.style.maxWidth = "100%"; });
+      ui.legend.querySelector(".dvm-bar").style.height = S.legendHeight + "px";
       ui.search.setPlaceholder(S.searchPlaceholder);
 
       if (state.start !== S.sliderStart) {
