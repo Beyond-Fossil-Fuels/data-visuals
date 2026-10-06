@@ -303,15 +303,16 @@
    *       rowH, gap (0-1 of the row), labelW (px for category labels), labelSize, labelWeight,
    *       percent, bg (panel background colour), inside: fn(v, pct, s) -> text in the segment (shown if it fits),
    *       insideSize, total: fn(row, i, sum) -> text after the bar, totalSize, totalWeight,
-   *       tooltip: fn(i) -> html, grid (dashed vertical lines), gridValues ([numbers]: solid lines there), gridColor, top, bottom }
+   *       tooltip: fn(i) -> html, grid (dashed vertical lines), gridValues ([numbers]: solid lines there), gridColor, tickValues ([numbers]: axis numbers there instead of every tickStep), top, bottom }
    * Sets the svg height; returns { height, x(v), m }.
    * ------------------------------------------------------------------ */
   DV.hbars = function (o) {
     var S = o.S, svg = o.svg, W = o.width, rows = o.rows, n = rows.length;
     var fs = o.fs || DV.axisFs(S, W);
     var fmtX = o.fmtX || function (v) { return DV.fmt(v); };
-    var showAxis = o.tickStep > 0;
-    var xt = showAxis ? ticks(o.xMax, o.tickStep) : [];
+    var showAxis = o.tickStep > 0 || !!(o.tickValues && o.tickValues.length);
+    var xt = o.tickValues && o.tickValues.length ? o.tickValues.filter(function (v) { return v >= 0 && v <= o.xMax + 1e-9; }) :
+      showAxis ? ticks(o.xMax, o.tickStep) : [];
     var totalW = 0;
     if (o.total) rows.forEach(function (d, i) { totalW = Math.max(totalW, DV.textWidth(o.total(d, i, 0), o.totalSize || fs, o.totalWeight || 700)); });
     var lastTick = showAxis ? DV.textWidth(fmtX(xt[xt.length - 1]), fs) / 2 : 0;
