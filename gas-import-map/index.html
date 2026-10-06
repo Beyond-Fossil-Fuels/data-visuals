@@ -49,7 +49,7 @@
 var SETTINGS = {
   // ---- Text ----
   title: "Doubling down: current gas import reliance vs. planned capacity", // Main title (empty = none)
-  footer: "Sources: [BFF gas power plant database](https://beyondfossilfuels.org/gas/) (July 2026); 2024 energy balances from [Eurostat](https://ec.europa.eu/eurostat/databrowser/view/nrg_bal_c/default/table?lang=en) and, for the UK, [DUKES](https://www.gov.uk/government/statistics/natural-gas-chapter-4-digest-of-united-kingdom-energy-statistics-dukes). Methodology: plants in development include those at announced, pre-construction, construction and shelved statuses; gas imports are each country's total natural gas imports in 2024.", // Footer; [text](https://…) makes a link. Leave empty to hide
+  footer: "Sources: [BFF gas power plant database](https://beyondfossilfuels.org/gas/) (July 2026); 2024 energy balances from [Eurostat](https://ec.europa.eu/eurostat/databrowser/view/nrg_bal_c/default/table?lang=en) and, for the UK, [DUKES](https://www.gov.uk/government/statistics/natural-gas-chapter-4-digest-of-united-kingdom-energy-statistics-dukes). Note: plants in development include those at announced, pre-construction, construction and shelved statuses; gas imports are each country's total natural gas imports in 2024.", // Footer; [text](https://…) makes a link. Leave empty to hide
   notes: "",                                   // Notes under the footer, one paragraph per line; [text](https://…) makes a link
   notesSize: 14,                               // Notes text size in px
   importsTitle: "Gas imports (TWh)",           // Title of the gas imports colour legend
@@ -101,8 +101,8 @@ var SETTINGS = {
   searchWidth: 160,                            // Search box width in px
 
   // ---- Bubbles ----
-  bubbleMinR: 2,                               // Smallest bubble radius in px (on a 1000 px wide map)
-  bubbleMaxR: 24,                              // Largest bubble radius in px (on a 1000 px wide map)
+  bubbleMinR: 8,                               // Smallest bubble radius in px (on a 1000 px wide map)
+  bubbleMaxR: 32,                              // Largest bubble radius in px (on a 1000 px wide map)
   bubbleMaxValue: 0,                           // Value that gets the largest bubble (0 = the largest in the data; fix it so sizes don't change between updates)
   bubbleOpacity: 1,                            // Bubble fill opacity
   bubbleStroke: "#ffffff",                     // Bubble outline colour
@@ -290,6 +290,7 @@ var SETTINGS = {
       (r.imports == null ? na : esc(DV.fmt(r.imports, S.importsUnit, 1))) + "</td></tr>";
     STATUSES.forEach(function (st) {
       var v = r.cap[st.code];
+      if (st.code === "development" && !(v > 0)) return;   // no capacity in development: no row
       h += '<tr><td><i style="background:' + S[st.color] + '"></i>' + esc(L[st.code] || "") + "</td><td>" +
         (v == null ? na : esc(DV.fmt(v, S.capacityUnit, 2))) + "</td></tr>";
     });
@@ -387,7 +388,7 @@ var SETTINGS = {
     groups: [
       { name: "Text", fields: [
         { key: "title",        type: "text", def: "Doubling down: current gas import reliance vs. planned capacity", help: "Main title (empty = none)" },
-        { key: "footer",       type: "text", def: "Sources: [BFF gas power plant database](https://beyondfossilfuels.org/gas/) (July 2026); 2024 energy balances from [Eurostat](https://ec.europa.eu/eurostat/databrowser/view/nrg_bal_c/default/table?lang=en) and, for the UK, [DUKES](https://www.gov.uk/government/statistics/natural-gas-chapter-4-digest-of-united-kingdom-energy-statistics-dukes). Methodology: plants in development include those at announced, pre-construction, construction and shelved statuses; gas imports are each country's total natural gas imports in 2024.", help: "Footer; [text](https://…) makes a link. Leave empty to hide" },
+        { key: "footer",       type: "text", def: "Sources: [BFF gas power plant database](https://beyondfossilfuels.org/gas/) (July 2026); 2024 energy balances from [Eurostat](https://ec.europa.eu/eurostat/databrowser/view/nrg_bal_c/default/table?lang=en) and, for the UK, [DUKES](https://www.gov.uk/government/statistics/natural-gas-chapter-4-digest-of-united-kingdom-energy-statistics-dukes). Note: plants in development include those at announced, pre-construction, construction and shelved statuses; gas imports are each country's total natural gas imports in 2024.", help: "Footer; [text](https://…) makes a link. Leave empty to hide" },
         { key: "notes",        type: "textarea", rows: 4, def: "", help: "Notes under the footer, one paragraph per line; [text](https://…) makes a link" },
         { key: "notesSize",    type: "range", min: 10, max: 24, step: 0.5, def: 14, help: "Notes text size in px" },
         { key: "importsTitle", type: "text", def: "Gas imports (TWh)", help: "Title of the gas imports colour legend" },
@@ -423,7 +424,7 @@ var SETTINGS = {
         { key: "searchWidth",  type: "range", min: 80, max: 400, step: 5, def: 160, help: "Search box width in px" }
       ]}
     ].concat(DV.bubbleGroup({
-      bubbleMinR: 2, bubbleMaxR: 24, sizeLegendPos: "above map", sizeLegendTitle: "Capacity (GW)", sizeLegendValues: "1, 20"
+      bubbleMinR: 8, bubbleMaxR: 32, sizeLegendPos: "above map", sizeLegendTitle: "Capacity (GW)", sizeLegendValues: "1, 20"
     }), DV.mapGroups({
       noDataShow: "BFF countries only", noDataFill: "#e0e0e0", borderWidth: 0.8, smallMode: "as they are",
       viewWest: -12, viewEast: 45, viewSouth: 33.5, viewNorth: 69.3
