@@ -28,10 +28,7 @@
       { key: "titleFont",     type: "font", def: "", help: "Font for main titles only (empty = same as main font)" },
       { key: "adobeKitId",    type: "text", def: "", help: "Adobe Fonts web project ID, e.g. abc1def (empty = not used)" },
       { key: "titleWeight",   type: "select", options: WEIGHTS, def: 800, help: "Main title boldness" },
-      { key: "headingWeight", type: "select", options: WEIGHTS, def: 700, help: "Chart heading boldness" },
-      { key: "legendSize",    type: "range", min: 10, max: 22, step: 0.5, def: 14.5, help: "Legend text size in px" },
-      { key: "axisSize",      type: "range", min: 9, max: 22, step: 0.5, def: 15, help: "Axis label size in px" },
-      { key: "tooltipSize",   type: "range", min: 10, max: 18, step: 0.5, def: 13, help: "Tooltip text size in px" }
+      { key: "headingWeight", type: "select", options: WEIGHTS, def: 700, help: "Chart heading boldness" }
     ]},
     { name: "Colours", fields: [
       { key: "background",   type: "color", def: "#ffffff", help: "Page background (each graphic can use it, white or transparent)" },
@@ -64,14 +61,17 @@
 
   /* ------------------------------------------------------------------
    * STANDARD GRAPHIC FIELDS: added to every graphic's own settings
-   * (inserted after its first group). Fonts stay in the brand; sizes
-   * are decided per graphic.
+   * (inserted after its first group). Fonts stay in the brand; all text
+   * sizes are decided per graphic.
    * ------------------------------------------------------------------ */
   var GRAPHIC_BASE_GROUPS = [
     { name: "Text sizes", fields: [
       { key: "titleSize",   type: "range", min: 16, max: 72, step: 1, def: 46, help: "Main title size in px (shrinks on small screens)" },
       { key: "headingSize", type: "range", min: 11, max: 32, step: 0.5, def: 21, help: "Chart heading (subtitle) size in px" },
-      { key: "footerSize",  type: "range", min: 10, max: 32, step: 0.5, def: 18, help: "Footer (footnote) text size in px" }
+      { key: "footerSize",  type: "range", min: 10, max: 32, step: 0.5, def: 18, help: "Footer (footnote) text size in px" },
+      { key: "legendSize",  type: "range", min: 10, max: 22, step: 0.5, def: 14, help: "Legend text size in px" },
+      { key: "axisSize",    type: "range", min: 9, max: 22, step: 0.5, def: 14, help: "Axis label size in px" },
+      { key: "tooltipSize", type: "range", min: 10, max: 18, step: 0.5, def: 14, help: "Tooltip (popup) text size in px" }
     ]},
     { name: "Spacing", fields: [
       { key: "padTop",    type: "range", min: 0, max: 80, step: 1, def: 16, help: "Space above the graphic in px" },
@@ -115,9 +115,8 @@
     " * then use \"Download brand.js\" and replace this file with it.",
     " * ================================================================ */"
   ].join("\n");
-  // Image export in design mode only (loaded on demand, pinned versions)
+  // PNG export in design mode only (loaded on demand, pinned version)
   var LIB_IMAGE = "https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js";
-  var LIB_PDF = "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js";
   var MARK_START = "// ==== SETTINGS " + "START ====";
   var MARK_END = "// ==== SETTINGS " + "END ====";
 
@@ -294,6 +293,18 @@
     if (S.adobeKitId) loadAdobeKit(S.adobeKitId, function () { done(); google(); });
     else google();
   }
+  // Static (non-variable) Inter, one file per weight, for editable PDFs (open font licence, pinned version)
+  function loadStaticInter(done) {
+    if (loadStaticInter.on) return;
+    loadStaticInter.on = true;
+    [300, 400, 500, 600, 700, 800, 900].forEach(function (w) {
+      var link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.18/" + w + ".css";
+      link.onload = function () { if (document.fonts && document.fonts.load) document.fonts.load(w + ' 16px "Inter"').then(done, done); };
+      document.head.appendChild(link);
+    });
+  }
   function fontStack(f) { return '"' + f + '", "Inter", Helvetica, Arial, sans-serif'; }
 
   /* ------------------------------------------------------------------
@@ -398,7 +409,16 @@
       }
     });
 
-    if (o.label && o.label.text) areaLabel(svg, o.label, x(0), x(n - 1), y(0));
+    if (o.label && o.label.text) {
+      // top edge of the bottom area at any x, so the label can shrink to fit inside it
+      var bottom = layers[0].pts;
+      var topAt = function (px) {
+        if (n < 2) return y(bottom[0].y1);
+        var t = DV.clamp((px - x(0)) / step, 0, n - 1), i = Math.min(n - 2, Math.floor(t)), f = t - i;
+        return y(bottom[i].y1 + (bottom[i + 1].y1 - bottom[i].y1) * f);
+      };
+      areaLabel(svg, o.label, x(0), x(n - 1), y(0), topAt);
+    }
 
     var r = S.dotSize * (width < 420 ? 0.7 : 1);
     var baseR = S.showDots ? r : 0;
@@ -459,23 +479,34 @@
     return { x: x, y: y, m: m, iw: iw, ih: ih };
   };
 
-  // Text inside the bottom area, right-aligned; "|" forces a line break, long lines wrap
-  function areaLabel(svg, L, xStart, xEnd, yBase) {
-    var maxW = (xEnd - xStart) * L.width, pad = L.size * 0.5;
-    var text = DV.el("text", { "text-anchor": "end", "font-size": L.size, "font-weight": L.weight, fill: L.color }, svg);
-    var lines = [];
-    String(L.text).split("|").forEach(function (part) {
-      var words = part.trim().split(/\s+/), line = "";
-      words.forEach(function (w) {
-        var tryLine = line ? line + " " + w : w;
-        text.textContent = tryLine;
-        if (line && text.getComputedTextLength() > maxW) { lines.push(line); line = w; }
-        else line = tryLine;
+  /* Text inside the bottom area, right-aligned; "|" forces a line break, long lines wrap.
+   * L.size is the largest size: the label shrinks until it fits under the area's top edge (topAt). */
+  function areaLabel(svg, L, xStart, xEnd, yBase, topAt) {
+    var maxW = (xEnd - xStart) * L.width, size = L.size, pad, lh, lines;
+    var text = DV.el("text", { "text-anchor": "end", "font-weight": L.weight, fill: L.color }, svg);
+    for (var tries = 0; tries < 40; tries++) {
+      pad = size * 0.5; lh = size * 1.12; lines = [];
+      text.setAttribute("font-size", size);
+      var widest = 0;
+      String(L.text).split("|").forEach(function (part) {
+        var words = part.trim().split(/\s+/), line = "";
+        words.forEach(function (w) {
+          var tryLine = line ? line + " " + w : w;
+          text.textContent = tryLine;
+          if (line && text.getComputedTextLength() > maxW) { lines.push(line); line = w; }
+          else line = tryLine;
+        });
+        if (line) lines.push(line);
       });
-      if (line) lines.push(line);
-    });
+      lines.forEach(function (ln) { text.textContent = ln; widest = Math.max(widest, text.getComputedTextLength()); });
+      if (!topAt || L.fit === false) break;
+      // lowest point of the area's top edge under the label
+      var left = xEnd - pad - widest, room = Infinity;
+      for (var k = 0; k <= 12; k++) room = Math.min(room, yBase - topAt(left + (xEnd - pad - left) * k / 12));
+      if (lines.length * lh + pad * 1.5 <= room || size <= 8) break;
+      size *= 0.95;
+    }
     text.textContent = "";
-    var lh = L.size * 1.12;
     lines.forEach(function (ln, i) {
       DV.el("tspan", { x: xEnd - pad, y: yBase - pad - (lines.length - 1 - i) * lh }, text).textContent = ln;
     });
@@ -542,6 +573,8 @@
     var brandFields = fieldMap(BRAND_GROUPS), graphicFields = fieldMap(groups);
     var FILE_BRAND = window.BRAND || {}, FILE_SETTINGS = window.SETTINGS || {};
     var design = /[?&]design\b/i.test(location.search);
+    // ?design&print: the graphic alone at a set size, printed to PDF (design mode's PDF download)
+    var printMode = design && /[?&]print\b/i.test(location.search);
     var storeB = "dv-brand", storeG = "dv-graphic:" + location.pathname;
 
     // B = brand values, PAL = palette sections, G = this graphic's values (+ brand overrides)
@@ -558,18 +591,33 @@
       overrides.forEach(function (k) { G[k] = FILE_SETTINGS[k]; });
     }
     fromFiles();
+    // what the files say, to tell design-mode changes apart from the files
+    var FILE_B = JSON.parse(JSON.stringify(B)), FILE_PAL = JSON.parse(JSON.stringify(PAL)), FILE_G = JSON.parse(JSON.stringify(G));
+    var dropped = 0;
+    /* Design mode remembers only what was changed, as [value in the file, new value]. A change is
+     * used only while the file still has the value it was made from: once a newer brand.js or
+     * index.html is published, older changes to those settings no longer override it. */
+    function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+    function restore(saved, target, file) {
+      Object.keys(saved || {}).forEach(function (k) {
+        if (!(k in target) || !Array.isArray(saved[k])) return;
+        if (same(file[k], saved[k][0])) target[k] = saved[k][1]; else dropped++;
+      });
+    }
+    function changes(cur, file) {
+      var out = {};
+      Object.keys(cur).forEach(function (k) { if (!same(cur[k], file[k])) out[k] = [file[k], cur[k]]; });
+      return out;
+    }
     if (design) {
       try {
         var sb = JSON.parse(localStorage.getItem(storeB) || "null");
-        if (sb) {
-          Object.keys(sb.B || {}).forEach(function (k) { if (k in brandFields) B[k] = sb.B[k]; });
-          Object.keys(sb.PAL || {}).forEach(function (sec) {
-            if (!PAL[sec]) return;
-            Object.keys(sb.PAL[sec]).forEach(function (k) { if (k in PAL[sec]) PAL[sec][k] = sb.PAL[sec][k]; });
-          });
+        if (sb && sb.v === 2) {
+          restore(sb.B, B, FILE_B);
+          Object.keys(sb.PAL || {}).forEach(function (sec) { if (PAL[sec]) restore(sb.PAL[sec], PAL[sec], FILE_PAL[sec]); });
         }
         var sg = JSON.parse(localStorage.getItem(storeG) || "null");
-        if (sg) Object.keys(sg).forEach(function (k) { if (k in G) G[k] = sg[k]; });
+        if (sg && sg.v === 2) restore(sg.G, G, FILE_G);
       } catch (e) {}
     }
     function merged() {
@@ -636,7 +684,10 @@
         de.setProperty("--dv-text", S.textColor);
         de.setProperty("--dv-heading", S.headingColor);
         root.style.maxWidth = S.maxWidth + "px";
-        loadFonts(S, rerender);
+        // Editable PDF (?print&fonts=local): static Inter files, which the PDF embeds under their real names
+        // (the web Inter is a variable font, which PDFs can only hold as uneditable "Type 3" glyphs)
+        if (printMode && /[?&]fonts=local\b/.test(location.search)) loadStaticInter(rerender);
+        else loadFonts(S, rerender);
 
         var title = document.getElementById("dv-title");
         if (title) title.textContent = S.title || "";
@@ -650,10 +701,38 @@
       }
 
       apply();
-      if (window.ResizeObserver) new ResizeObserver(function () { render(); }).observe(root);
-      else window.addEventListener("resize", function () { render(); });
+      // redraw when the width changes; report the height whenever the container changes size
+      heightEl = root;
+      if (window.ResizeObserver) new ResizeObserver(function () { render(); postHeight(); }).observe(root);
+      else window.addEventListener("resize", function () { render(); postHeight(); });
+      window.addEventListener("load", postHeight);
       if (document.fonts && document.fonts.ready) document.fonts.ready.then(rerender);
-      if (design) initDesignMode();
+      if (design && !printMode) initDesignMode();
+      if (printMode) initPrint();
+
+      /* ---------------- print to PDF ---------------- */
+      function initPrint() {
+        function q(k) { var mm = new RegExp("[?&]" + k + "=([^&]*)").exec(location.search); return mm ? decodeURIComponent(mm[1]) : ""; }
+        var W = +q("w") || root.clientWidth, H = +q("h") || 0;
+        var html = document.documentElement;
+        html.classList.add("dv-print");
+        if (q("controls") !== "1") html.classList.add("dv-print-nocontrols");
+        root.style.maxWidth = "none"; root.style.width = W + "px"; root.style.margin = "0";
+        document.title = (location.pathname.replace(/\/(index\.html)?$/, "").split("/").pop() || "graphic") + "-" + W + "px";
+        var pageStyle = document.createElement("style");
+        document.head.appendChild(pageStyle);
+        function go() {
+          rerender();
+          var h = Math.ceil(root.getBoundingClientRect().height), outH = Math.max(H, h);
+          root.style.marginTop = H > h ? Math.floor((H - h) / 2) + "px" : "0";
+          pageStyle.textContent = "@page { size: " + W + "px " + outH + "px; margin: 0; } " +
+            "html.dv-print, html.dv-print body { width: " + W + "px; height: " + outH + "px; }";
+          html.classList.add("dv-print-ready");
+          if (!/[?&]noprint\b/.test(location.search)) setTimeout(function () { window.print(); }, 300);
+        }
+        // give fonts, data and map shapes time to arrive
+        (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(function () { setTimeout(go, 1500); });
+      }
 
       /* ---------------- design mode ---------------- */
       function initDesignMode() {
@@ -664,7 +743,10 @@
         root.parentNode.insertBefore(frame, root);
         frame.appendChild(root);
 
-        var FONT_SUGGESTIONS = ["Inter", "Lexend", "Roboto", "Nunito", "Source Sans 3", "Open Sans", "Lato", "Montserrat",
+        // BFF fonts first (alfabet and acumin-pro come from the Adobe Fonts project in adobeKitId)
+        var BFF_FONTS = [["alfabet", "alfabet (BFF titles, Adobe Fonts)"], ["Inter", "Inter (BFF text)"],
+          ["acumin-pro", "acumin-pro (BFF website, Adobe Fonts)"]];
+        var FONT_SUGGESTIONS = ["Lexend", "Roboto", "Nunito", "Source Sans 3", "Open Sans", "Lato", "Montserrat",
           "Poppins", "Work Sans", "IBM Plex Sans", "Noto Sans", "Barlow", "DM Sans", "Fira Sans", "Libre Franklin",
           "Public Sans", "Manrope", "Space Grotesk", "Merriweather", "Lora", "Playfair Display", "Roboto Slab", "Oswald"];
 
@@ -686,8 +768,10 @@
         var pending = false;
         function save() {
           try {
-            localStorage.setItem(storeB, JSON.stringify({ B: B, PAL: PAL }));
-            localStorage.setItem(storeG, JSON.stringify(G));
+            var pal = {};
+            Object.keys(PAL).forEach(function (sec) { pal[sec] = changes(PAL[sec], FILE_PAL[sec] || {}); });
+            localStorage.setItem(storeB, JSON.stringify({ v: 2, B: changes(B, FILE_B), PAL: pal }));
+            localStorage.setItem(storeG, JSON.stringify({ v: 2, G: changes(G, FILE_G) }));
           } catch (e) {}
           if (!pending) { pending = true; requestAnimationFrame(function () { pending = false; apply(); }); }
         }
@@ -706,17 +790,28 @@
           panel.appendChild(det);
         }
 
-        // Download the graphic as an image (PNG or PDF), at any width and resolution
+        // Download the graphic: PNG (picture, any dpi) or PDF (vector, editable in Illustrator)
         var imgBox = document.createElement("details");
         imgBox.className = "gd-img";
         imgBox.innerHTML = "<summary>Download image (PNG / PDF)</summary>" +
-          '<div class="gd-row"><label for="gd-if">Format</label><div class="gd-ctl"><select id="gd-if"><option>PNG</option><option>PDF</option></select></div></div>' +
-          '<div class="gd-row"><label for="gd-iw">Width in px</label><div class="gd-ctl"><input type="number" id="gd-iw" min="300" max="4000" step="10"></div></div>' +
-          '<div class="gd-row"><label for="gd-ih">Height in px</label><div class="gd-ctl"><input type="number" id="gd-ih" min="0" max="6000" step="10" value="0"></div>' +
+          '<div class="gd-row"><label for="gd-if">Format</label><div class="gd-ctl"><select id="gd-if">' +
+            '<option value="PDF">PDF (vector, editable)</option><option value="PNG">PNG (picture)</option></select></div>' +
+            "<small>PDF: real text and shapes with the fonts embedded, like R's cairo_pdf, for Illustrator. " +
+            "It opens the print window: choose Save as PDF as the destination.</small></div>" +
+          '<div class="gd-row"><label for="gd-ifn">PDF fonts</label><div class="gd-ctl"><select id="gd-ifn">' +
+            '<option value="local">editable text (for Illustrator)</option>' +
+            '<option value="web">exactly as online</option></select></div>' +
+            "<small>Editable: Inter is embedded under its real name, so Illustrator can edit the text. Titles use Alfabet only if " +
+            "it is installed on this computer (it can't be embedded from the web), otherwise Inter Bold. " +
+            "Exactly as online: Alfabet titles as on the website, but Illustrator can't edit the text's font.</small></div>" +
+          '<div class="gd-row"><label for="gd-iu">Size unit</label><div class="gd-ctl"><select id="gd-iu">' +
+            '<option value="px">px (as on screen)</option><option value="cm">cm</option><option value="in">inches</option></select></div>' +
+            "<small>1 inch = 96 px: the graphic is laid out at this size (text sizes stay as set, in px).</small></div>" +
+          '<div class="gd-row"><label for="gd-iw">Width</label><div class="gd-ctl"><input type="number" id="gd-iw" min="1" step="any"></div></div>' +
+          '<div class="gd-row"><label for="gd-ih">Height</label><div class="gd-ctl"><input type="number" id="gd-ih" min="0" step="any" value="0"></div>' +
             "<small>0 = as tall as the graphic at that width; a larger height adds space above and below</small></div>" +
-          '<div class="gd-row"><label for="gd-is">Resolution</label><div class="gd-ctl"><select id="gd-is">' +
-            '<option value="1">1x (screen)</option><option value="2" selected>2x (sharp on screens)</option><option value="3">3x</option><option value="4">4x (print)</option></select></div>' +
-            "<small>The image is width x resolution pixels wide. PDFs hold the same picture (not editable vector shapes).</small></div>" +
+          '<div class="gd-row"><label for="gd-id">Resolution (dpi, PNG only)</label><div class="gd-ctl"><input type="number" id="gd-id" min="72" max="1200" step="1" value="600"></div>' +
+            '<small id="gd-isz"></small></div>' +
           '<div class="gd-row"><label for="gd-ic">Include interactive controls</label><div class="gd-ctl"><input type="checkbox" id="gd-ic"></div>' +
             "<small>Search box, time slider, open panels… (usually left out of a still image)</small></div>" +
           '<div class="gd-btns" style="padding:0 14px 12px"><button class="gd-primary" id="gd-img">Download image</button></div>';
@@ -789,9 +884,10 @@
             // Dropdown of suggested fonts (current one selected), plus "Other font…" for any Google/Adobe font name
             var OTHER = "__other__";
             input = document.createElement("select");
-            var opts = (f.key === "titleFont" ? [["", "(same as main font)"]] : [])
+            var known = BFF_FONTS.map(function (b) { return b[0]; }).concat(FONT_SUGGESTIONS);
+            var opts = BFF_FONTS.concat(f.key === "titleFont" ? [["", "(same as main font)"]] : [])
               .concat(FONT_SUGGESTIONS.map(function (n) { return [n, n]; }));
-            if (val && FONT_SUGGESTIONS.indexOf(val) < 0) opts.splice(f.key === "titleFont" ? 1 : 0, 0, [val, val]);
+            if (val && known.indexOf(val) < 0) opts.splice(0, 0, [val, val + " (not in the list: check the spelling)"]);
             opts.push([OTHER, "Other font…"]);
             opts.forEach(function (o) { var op = document.createElement("option"); op.value = o[0]; op.textContent = o[1]; input.appendChild(op); });
             input.value = val || "";
@@ -906,13 +1002,40 @@
           fold.textContent = open ? "Close all sections" : "Open all sections";
         });
 
-        var iw = panel.querySelector("#gd-iw");
-        iw.value = Math.round(Math.min(ctx.S.maxWidth, frame.clientWidth || ctx.S.maxWidth));
+        var iw = panel.querySelector("#gd-iw"), ih = panel.querySelector("#gd-ih"), iu = panel.querySelector("#gd-iu");
+        var idpi = panel.querySelector("#gd-id"), isz = panel.querySelector("#gd-isz");
+        var PER = { px: 1, cm: 96 / 2.54, "in": 96 }, unit = "px";
+        iw.value = Math.round(ctx.S.maxWidth);   // the graphic at its full width
+        function toPx(v) { return v * PER[unit]; }
+        function sizeNote() {
+          var W = toPx(+iw.value || 0), r = (+idpi.value || 96) / 96;
+          isz.textContent = "PNG of " + Math.round(W * r) + " px wide (" + (W / 96 * 2.54).toFixed(1) + " cm at " + (+idpi.value || 96) + " dpi)";
+        }
+        iu.addEventListener("change", function () {
+          var f = PER[unit] / PER[iu.value];
+          [iw, ih].forEach(function (inp) { inp.value = +((+inp.value || 0) * f).toFixed(unit === "px" && iu.value !== "px" ? 2 : 0); });
+          unit = iu.value; sizeNote();
+        });
+        [iw, idpi].forEach(function (inp) { inp.addEventListener("input", sizeNote); });
+        sizeNote();
+        var slug = location.pathname.replace(/\/(index\.html)?$/, "").split("/").pop() || "graphic";
+
         panel.querySelector("#gd-img").addEventListener("click", function () {
-          var btn = this, fmt = panel.querySelector("#gd-if").value;
-          var W = DV.clamp(+iw.value || 1000, 300, 4000), H = Math.max(0, +panel.querySelector("#gd-ih").value || 0);
-          var scale = +panel.querySelector("#gd-is").value || 2, controls = panel.querySelector("#gd-ic").checked;
-          var name = (location.pathname.replace(/\/(index\.html)?$/, "").split("/").pop() || "graphic") + "-" + W + "px";
+          var btn = this, fmt = panel.querySelector("#gd-if").value, controls = panel.querySelector("#gd-ic").checked;
+          var W = Math.round(DV.clamp(toPx(+iw.value || 0), 300, 6000)), H = Math.round(Math.max(0, toPx(+ih.value || 0)));
+          if (fmt === "PDF") {
+            // the graphic is printed on its own, at this size, in a new window (vector shapes, real fonts)
+            var url = location.pathname + "?design&print&w=" + W + "&h=" + H + (controls ? "&controls=1" : "") +
+              (panel.querySelector("#gd-ifn").value === "local" ? "&fonts=local" : "");
+            if (!window.open(url, "_blank")) say("The browser blocked the print window: allow pop-ups for this site and try again.", true);
+            else say("In the print window, choose Save as PDF as the destination (margins and scale are set already).");
+            return;
+          }
+          var dpi = DV.clamp(+idpi.value || 600, 72, 1200), scale = dpi / 96;
+          // browsers can't make images more than about 16,000 px on a side
+          var maxScale = 16000 / Math.max(W, H || W * 1.2);
+          if (scale > maxScale) { scale = maxScale; say("That's too large for the browser: the PNG uses " + Math.floor(scale * 96) + " dpi instead."); }
+          var name = slug + "-" + iw.value + unit + "-" + Math.round(scale * 96) + "dpi";
           var keep = { w: frame.style.width, mw: frame.style.maxWidth };
           btn.disabled = true; say("Preparing the image…");
           frame.style.maxWidth = "none"; frame.style.width = W + "px";
@@ -937,21 +1060,18 @@
                 if (ctx.S.pageBg !== "transparent") { g.fillStyle = ctx.S.pageBg; g.fillRect(0, 0, out.width, out.height); }
                 g.drawImage(canvas, 0, Math.round((outH - natH) / 2 * scale));
               }
-              if (fmt === "PNG") {
-                return new Promise(function (res) { out.toBlob(function (b) { downloadBlob(name + ".png", b); res(); }, "image/png"); });
-              }
-              return (window.jspdf ? Promise.resolve() : loadScript(LIB_PDF)).then(function () {
-                var pdf = new window.jspdf.jsPDF({ orientation: W > outH ? "landscape" : "portrait", unit: "px", format: [W, outH], hotfixes: ["px_scaling"], compress: true });
-                pdf.addImage(out.toDataURL("image/png"), "PNG", 0, 0, W, outH, undefined, "SLOW");
-                pdf.save(name + ".pdf");
+              return new Promise(function (res) {
+                out.toBlob(function (b) { downloadBlob(name + ".png", b); res(); }, "image/png");
               });
             })
-            .then(function () { say("Downloaded the " + fmt + " (" + W + " px wide, " + scale + "x)."); },
+            .then(function () { say("Downloaded the PNG (" + W + " px layout at " + Math.round(scale * 96) + " dpi)."); },
               function (e) { say("Couldn't make the image: " + (e && e.message || e), true); })
             .then(function () {
               frame.style.width = keep.w; frame.style.maxWidth = keep.mw; btn.disabled = false; rerender();
             });
         });
+        if (dropped) say(dropped + " earlier design-mode change" + (dropped > 1 ? "s were" : " was") +
+          " not applied: the published files have changed since.");
 
         panel.querySelector("#gd-reset").addEventListener("click", function () {
           if (!confirm("Discard all your design-mode changes (this graphic and brand) and go back to the saved files?")) return;
@@ -1025,11 +1145,16 @@
     root.appendChild(t);
   }
 
-  // Lets the host page auto-size the iframe (see the embed snippet in README.md)
+  /* Lets the host page auto-size the iframe. Sends the height of the graphic's container (not the
+   * page's scrollHeight, which inside an iframe is at least the iframe's height, so it could only grow),
+   * whenever the container changes size. The message works with both kinds of listener:
+   *   { type: "dv-height", height }  the self-contained embed snippet (matches the iframe by e.source)
+   *   { href, height }                the website's shared listener for iframes with data-track-height
+   *                                   (matches the iframe by its src, which equals our location.href) */
+  var heightEl = null;
   function postHeight() {
-    if (window.parent === window) return;
-    // body height (not the page's scrollHeight) so the iframe can shrink as well as grow
-    var h = Math.ceil(document.body.getBoundingClientRect().height);
-    window.parent.postMessage({ type: "dv-height", height: h }, "*");
+    if (window.parent === window || !heightEl) return;
+    var h = Math.ceil(heightEl.getBoundingClientRect().height);
+    window.parent.postMessage({ type: "dv-height", href: location.href, height: h }, "*");
   }
 })();

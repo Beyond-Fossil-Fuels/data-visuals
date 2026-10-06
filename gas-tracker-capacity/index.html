@@ -53,6 +53,9 @@ var SETTINGS = {
   titleSize: 46,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
   footerSize: 18,                              // Footer (footnote) text size in px
+  legendSize: 14,                              // Legend text size in px
+  axisSize: 14,                                // Axis label size in px
+  tooltipSize: 14,                             // Tooltip (popup) text size in px
 
   // ---- Spacing ----
   padTop: 16,                                  // Space above the graphic in px
@@ -65,7 +68,7 @@ var SETTINGS = {
   // ---- Label on the dark area ----
   areaLabelShow: true,                         // Show the label inside the dark area
   areaLabelText: "Already left development|since start of tracking", // Label text; use | for a line break
-  areaLabelSize: 22,                           // Label size in px (shrinks on small screens)
+  areaLabelSize: 19,                           // Largest label size in px (it shrinks to fit inside the dark area, and on small screens)
   areaLabelWeight: 700,                        // Label boldness
   areaLabelColor: "#ffffff",                   // Label colour
   areaLabelWidth: 0.8,                         // Widest a label line gets, as a share of the chart width
@@ -75,18 +78,18 @@ var SETTINGS = {
   colorAlreadyLeftDots: "#000000",             // Line and dots on the dark area
 
   // ---- Layout ----
-  chartGap: 170,                               // Space between the left chart and the right-hand charts, in px
+  chartGap: 118,                               // Space between the left chart and the right-hand charts, in px
   chartHeight: 0.84,                           // Left chart height as a share of its width
-  rightGap: 40,                                // Space between the two right-hand charts, in px
+  rightGap: 8,                                 // Space between the two right-hand charts, in px
   roundUpRightAxis: true,                      // Extend the right-hand axes to the next round number
 
   // ---- Arrow position ----
   arrowShow: true,                             // Show the arrows
-  arrowLevel: 0.35,                            // Start height on the dark area (0 = bottom, 1 = top)
+  arrowLevel: 0.5,                             // Start height on the dark area (0 = bottom, 1 = top)
   arrowOffsetY: 0,                             // Nudge the arrow start up (-) or down (+), in px
   arrowStartGap: 14,                           // Space between the left chart and the arrow start, in px
   arrowEndGap: 8,                              // Space between the arrow tips and the right-hand charts, in px
-  arrowTopTarget: 0.4,                         // Where the upper arrow points on the Installed chart (0 = bottom, 1 = top)
+  arrowTopTarget: 0.5,                         // Where the upper arrow points on the Installed chart (0 = bottom, 1 = top)
   arrowTopCurve: 0,                            // Upper arrow bend: 0 = straight
   arrowBottomOffsetY: 0,                       // Move the lower arrow tip up (-) or down (+), in px
   arrowBottomCurve: 0,                         // Lower arrow bend: 0 = straight
@@ -167,7 +170,7 @@ var SETTINGS = {
       { name: "Label on the dark area", fields: [
         { key: "areaLabelShow",   type: "check", def: true, help: "Show the label inside the dark area" },
         { key: "areaLabelText",   type: "text", def: "Already left development|since start of tracking", help: "Label text; use | for a line break" },
-        { key: "areaLabelSize",   type: "range", min: 10, max: 40, step: 0.5, def: 22, help: "Label size in px (shrinks on small screens)" },
+        { key: "areaLabelSize",   type: "range", min: 10, max: 40, step: 0.5, def: 19, help: "Largest label size in px (it shrinks to fit inside the dark area, and on small screens)" },
         { key: "areaLabelWeight", type: "select", options: [300, 400, 500, 600, 700, 800, 900], def: 700, help: "Label boldness" },
         { key: "areaLabelColor",  type: "color", def: "#ffffff", help: "Label colour" },
         { key: "areaLabelWidth",  type: "range", min: 0.3, max: 1, step: 0.05, def: 0.8, help: "Widest a label line gets, as a share of the chart width" }

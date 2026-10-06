@@ -136,6 +136,8 @@
   var GRAPHICS = [
     { id: "C1", name: "Europe’s Coal exit country map", section: "Coal core page", slug: "coal-exit-map", tab: "C1",
       title: "Overview of country coal phase-out announcements and plans in Europe", height: 900 },
+    { id: "C2", name: "Coal Power plant tracker map", section: "Coal core page", slug: "coal-plant-map", tab: "C2",
+      title: "Coal power plants in Europe", height: 950 },
     { id: "G1", name: "Gas tracker", section: "Gas core page", versions: [
       { id: "G1.1", label: "Capacity", slug: "gas-tracker-capacity", tab: "Gas tracker capacity",
         title: "Tracking the capacity of new gas projects", height: 650 },
@@ -162,13 +164,13 @@
   var picker = document.getElementById("picker"), search = document.getElementById("search");
   var width = "100%";
 
-  // Self-contained embed: the iframe plus a small script that resizes only this iframe to fit its graphic.
-  // Nothing needs adding to the website as a whole, and several graphics can share one page.
+  // Embed: the iframe (data-track-height lets the website's shared listener resize it) plus a small script
+  // that resizes only this iframe, so it also works on pages without that listener. Both use the same height.
   function embedCode(g) {
     var id = "dv-" + g.slug;
     return [
       '<iframe id="' + id + '" src="' + base + g.slug + '/" title="' + g.title + '"',
-      '        style="width:100%;border:0;height:' + g.height + 'px" scrolling="no" loading="lazy"></iframe>',
+      '        data-track-height style="width:100%;border:0;height:' + g.height + 'px" scrolling="no" loading="lazy"></iframe>',
       "<script>",
       "  (function () {",
       '    var f = document.getElementById("' + id + '");',
@@ -336,6 +338,8 @@
       '<p class="note"><b>2.</b> In WordPress, add a <b>Custom HTML</b> block where the graphic should appear and paste the code.</p>' +
       '<p class="note"><b>That\'s all.</b> Each embed code is self-contained: it includes a small script that makes the graphic ' +
       "grow or shrink to fit, with no scrollbars. Several graphics can go on the same page. " +
+      "The <code>data-track-height</code> attribute also lets the website's own shared resize listener handle it " +
+      "(each graphic sends <code>{ href, height }</code>, where href is the iframe's address). " +
       "If WordPress removes the script (only Administrators can save scripts), the graphic still shows, at a fixed height.</p>";
   }
 

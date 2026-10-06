@@ -11,7 +11,8 @@
  *   DV.mapLayout(el, root)      slots around, on top of and beside the map for the widgets
  *   DV.mapView(stage)           draws countries and bubbles; hover, tap, select
  *   DV.mapLegend / gradientLegend / bubbleLegend, DV.mapSearch, DV.timeSlider
- *   DV.mapGroups(defaults), DV.sliderGroup(defaults)   standard design-mode settings
+ *   DV.mapGroups(defaults), DV.sliderGroup(defaults), DV.bubbleGroup(defaults)   standard design-mode settings
+ *   DV.bubbleRadius(S, maxValue, mapWidth)   bubble sizes
  *   DV.parseDate, DV.colorRamp, DV.sizeScale, DV.isBFF, DV.isoCode
  *
  * Every map uses the same shapes (shared/geo/, Natural Earth, one feature
@@ -279,24 +280,56 @@
       if (style) styleFn = style;
       view.features.forEach(function (f) { each(f, function (p) { applyStyle(p, f); }); });
     };
+    // Bubbles: largest drawn first so small ones stay on top. Hover and tap pick the nearest bubble
+    // (within S.bubbleHit px of its edge), so small dots are easy to catch.
+    var bubbleList = [], bubbleEls = {};
     view.bubbles = function (list) {
-      DV.clear(gBub);
+      DV.clear(gBub); bubbleList = []; bubbleEls = {};
       (list || []).slice().sort(function (a, b) { return b.r - a.r; }).forEach(function (b) {
         var xy = view.projection([b.lon, b.lat]);
         if (!xy || !(b.r > 0)) return;
-        DV.el("circle", { cx: xy[0], cy: xy[1], r: b.r, fill: b.fill, "fill-opacity": b.opacity == null ? 1 : b.opacity,
-          stroke: b.stroke || "none", "stroke-width": b.strokeWidth || 0, "data-id": b.id, "data-kind": "bubble",
-          "class": "dvm-b" }, gBub);
+        var c = DV.el("circle", { cx: xy[0], cy: xy[1], r: b.r, fill: b.fill, "fill-opacity": b.opacity == null ? 1 : b.opacity,
+          stroke: b.stroke || "none", "stroke-width": b.strokeWidth || 0, "stroke-opacity": b.strokeOpacity == null ? 1 : b.strokeOpacity,
+          "data-id": b.id, "data-kind": "bubble", "class": "dvm-b" }, gBub);
+        bubbleList.push({ id: b.id, x: xy[0], y: xy[1], r: b.r, el: c });
+        bubbleEls[b.id] = c;
       });
+      if (view.selected && view.selectedKind === "bubble") view.select(view.selected, "bubble");
     };
-    view.select = function (id) {
-      view.selected = id;
-      if (!id) { clearOutline("dvm-sel"); return; }
-      outline([view.paths[id]].concat(view.extra[id] || []), "dvm-sel", S.selectColor, S.selectWidth);
+    // a highlighted bubble: an outer ring and an inner ring (like Flourish's highlight)
+    function rings(el, cls, inner, outer, width) {
+      clearOutline(cls);
+      if (!el || !(width > 0)) return;
+      var cx = el.getAttribute("cx"), cy = el.getAttribute("cy"), r = +el.getAttribute("r");
+      DV.el("circle", { cx: cx, cy: cy, r: r + width / 2, fill: "none", stroke: outer, "stroke-width": width, "class": cls }, gTop);
+      DV.el("circle", { cx: cx, cy: cy, r: Math.max(0.5, r - width / 4), fill: "none", stroke: inner, "stroke-width": width / 2, "class": cls }, gTop);
+    }
+    view.select = function (id, kind) {
+      view.selected = id; view.selectedKind = kind || "country";
+      clearOutline("dvm-sel");
+      if (!id) return;
+      if (view.selectedKind === "bubble") rings(bubbleEls[id], "dvm-sel", S.highlightInner, S.highlightOuter, S.highlightWidth);
+      else outline([view.paths[id]].concat(view.extra[id] || []), "dvm-sel", S.selectColor, S.selectWidth);
     };
+    view.bubbleAt = function (id) { return bubbleEls[id] || null; };
 
     // ---- interaction ----
+    function nearestBubble(evt) {
+      if (!bubbleList.length) return null;
+      var rect = svg.getBoundingClientRect(), k = (+svg.getAttribute("width") || rect.width) / rect.width;
+      var px = (evt.clientX - rect.left) * k, py = (evt.clientY - rect.top) * k;
+      var reach = S.bubbleHit == null ? 8 : +S.bubbleHit, best = null, bestScore = Infinity;
+      bubbleList.forEach(function (b) {
+        var d = Math.sqrt((b.x - px) * (b.x - px) + (b.y - py) * (b.y - py));
+        // inside a bubble: the smallest one wins (it's drawn on top); outside: the nearest edge
+        var score = d <= b.r ? -1e6 + b.r : d - b.r <= reach ? d - b.r : Infinity;
+        if (score < bestScore) { bestScore = score; best = b; }
+      });
+      return best ? { id: best.id, kind: "bubble", el: best.el } : null;
+    }
     function target(evt) {
+      var nb = nearestBubble(evt);
+      if (nb) return nb;
       var t = evt.target;
       if (!t || !t.getAttribute) return null;
       var id = t.getAttribute("data-id");
@@ -323,6 +356,7 @@
     function hover(t) {
       unhover();
       var style = S.hoverStyle || "outline";
+      if (t.kind === "bubble") rings(t.el, "dvm-hov", S.highlightInner, S.highlightOuter, S.highlightWidth);
       if (t.kind === "country") {
         if (/outline/.test(style)) outline([t.el], "dvm-hov", S.hoverColor, S.hoverWidth);
         if (/fade/.test(style)) {
@@ -350,9 +384,21 @@
       var t = target(evt);
       // the popup goes away on click (the panel takes over); it comes back when the pointer moves to another country
       tip.classList.remove("on");
+      view.lastPointer = evt.pointerType || "mouse";
       if (view.onClick) view.onClick(t ? t.id : null, t ? t.kind : null);
     });
     view.hideTip = function () { tip.classList.remove("on"); };
+    // show the popup next to a bubble (e.g. after a search), as if the pointer were on it
+    view.tipAt = function (id, html) {
+      var b = bubbleEls[id];
+      if (!b || !html) { tip.classList.remove("on"); return; }
+      tip.innerHTML = html; tip.classList.add("on");
+      var sr = svg.getBoundingClientRect(), st = stage.getBoundingClientRect();
+      var k = sr.width / (+svg.getAttribute("width") || sr.width);
+      var x = sr.left - st.left + (+b.getAttribute("cx")) * k, y = sr.top - st.top + (+b.getAttribute("cy")) * k, r = +b.getAttribute("r") * k;
+      placeTip({ clientX: st.left + x + r, clientY: st.top + y + r });
+      hoverKey = id + "bubble";
+    };
     return view;
   };
 
@@ -630,6 +676,34 @@
         { key: "fadeOpacity",  type: "range", min: 0.1, max: 0.9, step: 0.05, def: 0.4, help: "How visible the other countries stay when faded (0 = invisible, 1 = no fade)" },
         { key: "selectColor",  type: "color", def: "#000000", help: "Outline of the selected (clicked or searched) country" },
         { key: "selectWidth",  type: "range", min: 0, max: 5, step: 0.1, def: 2.5, help: "Selected outline width in px" }
+      ]}
+    ], defs);
+  };
+  // Size of a bubble for a value: area in proportion to the value, between S.bubbleMinR and S.bubbleMaxR,
+  // scaled with the map width (the radii are for a 1000 px wide map). maxValue: S.bubbleMaxValue or the data's largest.
+  DV.bubbleRadius = function (S, maxValue, mapWidth) {
+    var mv = +S.bubbleMaxValue > 0 ? +S.bubbleMaxValue : maxValue, k = DV.clamp(mapWidth / 1000, 0.55, 1.5);
+    return function (v) {
+      if (!(v > 0) || !(mv > 0)) return 0;
+      return Math.max(S.bubbleMinR, Math.sqrt(Math.min(v, mv) / mv) * S.bubbleMaxR) * k;
+    };
+  };
+  DV.bubbleGroup = function (defs) {
+    return withDefs([
+      { name: "Bubbles", fields: [
+        { key: "bubbleMinR",        type: "range", min: 0.5, max: 10, step: 0.25, def: 2.5, help: "Smallest bubble radius in px (on a 1000 px wide map)" },
+        { key: "bubbleMaxR",        type: "range", min: 3, max: 40, step: 0.5, def: 8, help: "Largest bubble radius in px (on a 1000 px wide map)" },
+        { key: "bubbleMaxValue",    type: "range", min: 0, max: 10000, step: 50, def: 0, help: "Value that gets the largest bubble (0 = the largest in the data; fix it so sizes don't change between updates)" },
+        { key: "bubbleOpacity",     type: "range", min: 0.1, max: 1, step: 0.05, def: 1, help: "Bubble fill opacity" },
+        { key: "bubbleStroke",      type: "color", def: "#ffffff", help: "Bubble outline colour" },
+        { key: "bubbleStrokeWidth", type: "range", min: 0, max: 3, step: 0.05, def: 0.75, help: "Bubble outline width in px" },
+        { key: "bubbleHit",         type: "range", min: 0, max: 30, step: 1, def: 8, help: "How close the pointer must be to a bubble to pick it, in px" },
+        { key: "highlightInner",    type: "color", def: "#000000", help: "Highlighted bubble: inner ring" },
+        { key: "highlightOuter",    type: "color", def: "#ffffff", help: "Highlighted bubble: outer ring" },
+        { key: "highlightWidth",    type: "range", min: 0, max: 8, step: 0.5, def: 3, help: "Highlighted bubble: ring width in px" },
+        { key: "sizeLegendPos",     type: "select", options: DV.POSITIONS, def: "hidden", help: "Size legend position (hidden = none)" },
+        { key: "sizeLegendTitle",   type: "text", def: "Capacity (MW)", help: "Size legend title" },
+        { key: "sizeLegendValues",  type: "text", def: "500, 2000", help: "Size legend values, separated by commas" }
       ]}
     ], defs);
   };

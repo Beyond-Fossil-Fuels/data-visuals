@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coal power plant tracker map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="../shared/v1/core.css">
+<link rel="stylesheet" href="../shared/v1/map.css">
+<style>
+  /* Plant details (hover popup, and below the map on phones), as in the Flourish popup:
+     a coloured header block, then a white table with thin lines between the rows; no frame around them */
+  .c2-card.dvm-tip, .c2-card.dvm-panel { background: transparent; border: 0; box-shadow: none; padding: 0; }
+  .c2-card .dvm-panel-close { top: 0.3em; right: 8px; color: inherit; }
+  .c2-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 0.45em 0.75em;
+    border-radius: 4px; line-height: 1.25; }
+  .c2-head b { font-size: 1.2em; }
+  .c2-head span { font-size: 1.05em; }
+  .dvm-panel .c2-head { padding-right: 2.6em; }
+  .c2-head.plain { padding: 0.45em 0.75em; background: #fff; border: 2px solid #e3e3e3; border-bottom: 0; border-radius: 4px 4px 0 0; }
+  .c2-head.plain b { display: flex; align-items: center; gap: 8px; }
+  .c2-head.plain i { width: 0.8em; height: 0.8em; border-radius: 50%; flex: none; }
+  .c2-head.plain + .c2-body { margin-top: 0; border-radius: 0 0 4px 4px; }
+  .c2-body { margin-top: 3px; padding: 0.3em 0.55em; border: 2px solid #e3e3e3; border-radius: 4px; background: #fff; }
+  .c2-body table { width: 100%; border-collapse: collapse; }
+  .c2-body td { padding: 0.28em 0.4em; vertical-align: top; border-bottom: 1px solid var(--c2-line, #e6e6e6); }
+  .c2-body tr:last-child td { border-bottom: 0; }
+  .c2-body td:first-child { white-space: nowrap; }
+  .c2-body td + td { font-variant-numeric: tabular-nums; width: 100%; }
+  .c2-body tr.sec td { font-weight: 700; }
+  /* Notes under the footer */
+  .c2-notes { margin: 6px 0 0; font-size: var(--c2-notes-size); }
+  .c2-notes p { margin: 0 0 4px; }
+  .c2-notes:empty { display: none; }
+</style>
+</head>
+<body>
+<div class="dv" id="dv">
+  <h1 class="dv-title" id="dv-title"></h1>
+  <div id="map"></div>
+  <p class="dv-footer" id="dv-footer"></p>
+  <div class="dv-footer c2-notes" id="notes"></div>
+</div>
+
+<script src="../shared/brand.js"></script>
+<script>
+// ==== SETTINGS START ====
+/* ================================================================
+ * DESIGN SETTINGS FOR THIS GRAPHIC
+ * Change any value below to restyle this graphic. Colours are hex
+ * codes, sizes are in pixels. Keep the quotes and the comma on each line.
+ * Fonts, text colours and palette colours are shared by all graphics:
+ * they live in shared/brand.js.
+ * Easier: open this page with ?design at the end of its address to
+ * adjust everything with sliders, then download the result.
+ * ================================================================ */
+var SETTINGS = {
+  // ---- Text ----
+  title: "Coal power plants in Europe",        // Main title (empty = none)
+  footer: "Source: [Beyond Fossil Fuels coal tracker](https://beyondfossilfuels.org/coal/) | Plant retirements tracked since Jan 2016 | Last update: July 2026", // Footer; [text](https://…) makes a link. Leave empty to hide
+  notes: "Note: The map excludes all coal power plants that retired or were cancelled before 2016 and includes all those that were planned, under construction, or open at the beginning of 2016. Plants that are not announced to retire but under a non-legislated national phase-out commitment, appear under \"no retirement announcement\" (check out the map of [national coal phase-out commitments](https://beyondfossilfuels.org/europes-coal-exit/)).\nThe status of Ukraine's coal units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.", // Notes under the footer, one paragraph per line; [text](https://…) makes a link
+  notesSize: 14,                               // Notes text size in px
+  legendTitle: "",                             // Legend title (empty = none)
+  statusLabels: "planned :: Planned\nconstruction :: Construction\ncancelled :: Cancelled\nopen-no-retirement :: Open, no retirement announcement\nopen-after-2030 :: Open, announced to retire after 2030\nopen-by-2030 :: Open, retires 2030 at the latest\nretired :: Retired", // Legend wording, one line per status: code :: wording. The line order is the legend order
+  popupLabels: "general :: General information\nstatus :: Status:\nfuel :: Fuel type:\nowner :: Owner:\nco2 :: CO2 emissions (2025, Mt):\nfirstUnit :: Year commissioning first unit:\nlastUnit :: Year retirement last unit:\ncapacity :: Capacity (MW)\nplanned :: - Planned:\ncancelled :: - Cancelled or shelved:\nconstruction :: - Construction:\nopen :: - Open:\nretired :: - Retired since 2016:", // Popup wording, one line per row: key :: wording (rows with no data are left out)
+  searchPlaceholder: "Search for a plant",     // Search box placeholder
+
+  // ---- Text sizes ----
+  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  headingSize: 21,                             // Chart heading (subtitle) size in px
+  footerSize: 18,                              // Footer (footnote) text size in px
+  legendSize: 14,                              // Legend text size in px
+  axisSize: 14,                                // Axis label size in px
+  tooltipSize: 14,                             // Tooltip (popup) text size in px
+
+  // ---- Spacing ----
+  padTop: 16,                                  // Space above the graphic in px
+  padSides: 16,                                // Space left and right of the graphic in px
+  padBottom: 12,                               // Space below the graphic in px
+
+  // ---- Background ----
+  bgMode: "transparent",                       // Page background, brand colour: the brand Page background; transparent: the website shows through
+
+  // ---- Legend and search ----
+  legendPos: "top-left corner",                // Legend position (on phones, corners and sides move above the map)
+  legendDir: "vertical",                       // Legend direction
+  legendGap: 5,                                // Space between legend items in px (between rows when vertical, between items when horizontal)
+  legendFilter: true,                          // Click a legend item to show only that status
+  searchPos: "top-right corner",               // Plant search position
+  searchWidth: 180,                            // Search box width in px
+
+  // ---- Popup ----
+  tooltipShow: true,                           // Show a popup when hovering over a plant (mouse only)
+  tooltipWidth: 380,                           // Popup maximum width in px
+  popupHeader: "coloured block",               // Popup header: coloured block (as in Flourish) or the name with a colour dot
+  popupHeaderText: "automatic",                // Text colour on the coloured block (automatic: black or white, whichever reads better)
+  popupStatus: false,                          // Show the status (legend wording) in the popup (Flourish didn't)
+  noRetirementText: "not planned",             // Retirement year when a plant (not cancelled) has none (empty = leave the row out)
+  popupLines: "#e6e6e6",                       // Lines between the popup rows
+
+  // ---- Bubbles ----
+  bubbleMinR: 2.5,                             // Smallest bubble radius in px (on a 1000 px wide map)
+  bubbleMaxR: 8,                               // Largest bubble radius in px (on a 1000 px wide map)
+  bubbleMaxValue: 0,                           // Value that gets the largest bubble (0 = the largest in the data; fix it so sizes don't change between updates)
+  bubbleOpacity: 1,                            // Bubble fill opacity
+  bubbleStroke: "#ffffff",                     // Bubble outline colour
+  bubbleStrokeWidth: 0.75,                     // Bubble outline width in px
+  bubbleHit: 8,                                // How close the pointer must be to a bubble to pick it, in px
+  highlightInner: "#000000",                   // Highlighted bubble: inner ring
+  highlightOuter: "#ffffff",                   // Highlighted bubble: outer ring
+  highlightWidth: 3,                           // Highlighted bubble: ring width in px
+  sizeLegendPos: "hidden",                     // Size legend position (hidden = none)
+  sizeLegendTitle: "Capacity (MW)",            // Size legend title
+  sizeLegendValues: "500, 2000",               // Size legend values, separated by commas
+
+  // ---- Map shapes ----
+  geometry: "Medium (Natural Earth 50m)",      // Country shapes, Simple: few islands and smooth coasts; Detailed: what Flourish used
+  mapDetail: 1,                                // Coastline detail, share of points kept (1 = all, lower = smoother)
+  mapMinIsland: 0,                             // Hide islands smaller than this, in km² (0 = show all; for scale: Mallorca is about 3,600, Rhodes 1,400)
+  noDataShow: "BFF countries only",            // Countries without data, hidden: only countries with data; BFF countries only: also BFF countries with no data; all countries: neighbours too
+  smallMode: "as they are",                    // Very small countries (list below), as they are: their real size; circle: a dot you can hover; zoomed box: an enlarged copy in a box
+  smallList: "MT",                             // Very small countries, ISO codes separated by commas (e.g. MT, LU)
+  smallSize: 5,                                // Size of the zoomed box (or circle), in % of the map width
+  smallDX: 5,                                  // Zoomed box position sideways from the country, in % of the map width: + right
+  smallDY: -1.5,                               // Zoomed box position up or down from the country, in % of the map width: + down
+
+  // ---- Projection and view ----
+  projection: "Natural Earth",                 // Map projection
+  mapCentreLon: 0,                             // Central meridian (longitude); 0 matches Flourish, around 15 straightens Europe
+  viewWest: -10,                               // View box: west edge (longitude)
+  viewEast: 44,                                // View box: east edge (longitude)
+  viewSouth: 35,                               // View box: south edge (latitude)
+  viewNorth: 66,                               // View box: north edge (latitude)
+  mapZoom: 1,                                  // Zoom (1 = the view box fits the map area)
+  mapShiftX: 0,                                // Move the map sideways, in % of its width: + right, - left
+  mapShiftY: 0,                                // Move the map up or down, in % of its height: + down, - up
+  mapHeight: 0.72,                             // Map height as a share of its width
+  mapHeightPhone: 0.85,                        // Map height on phones, as a share of its width (phones = narrower than the brand stackBelow width)
+  mapZoomPhone: 1,                             // Extra zoom on phones (1 = same as wide screens)
+
+  // ---- Map colours and borders ----
+  noDataFill: "#e4e5e7",                       // BFF countries without data
+  otherFill: "#eceef0",                        // Other countries (neighbours)
+  borderColor: "#ffffff",                      // Country borders
+  borderWidth: 1.2,                            // Border width in px
+  smallBoxColor: "#8a8a8a",                    // Zoomed box and its line
+
+  // ---- Hover and selection ----
+  hoverStyle: "outline",                       // What happens to the country under the pointer
+  hoverColor: "#000000",                       // Hover outline colour
+  hoverWidth: 1.5,                             // Hover outline width in px
+  fadeOpacity: 0.4,                            // How visible the other countries stay when faded (0 = invisible, 1 = no fade)
+  selectColor: "#000000",                      // Outline of the selected (clicked or searched) country
+  selectWidth: 2.5,                            // Selected outline width in px
+};
+// ==== SETTINGS END ====
+</script>
+<script src="../shared/v1/core.js"></script>
+<script src="../shared/bff-countries.js"></script>
+<script src="../shared/vendor/d3-array.min.js"></script>
+<script src="../shared/vendor/d3-geo.min.js"></script>
+<script src="../shared/vendor/topojson-client.min.js"></script>
+<script src="../shared/vendor/topojson-simplify.min.js"></script>
+<script src="../shared/v1/map.js"></script>
+<script>
+(function () {
+  /* ------------------------------------------------------------------
+   * DATA: live from the "C2" tab of the public Google Sheet. One row per plant:
+   *   Name, ISO (two-letter country code), Country, Lat, Lon (decimal degrees),
+   *   Status (a code, see STATUS_COLORS; the legend wording works too),
+   *   Capacity (MW)      the bubble size: the plant's total capacity (all statuses, as in Flourish),
+   *   Planned (MW), Construction (MW), Open (MW), Cancelled or shelved (MW), Retired since 2016 (MW),
+   *   Fuel, Owner, CO2 (Mt), First unit commissioned, Last unit retirement (years).
+   * Empty cells are simply left out of the popup.
+   * FALLBACK is shown only if the sheet can't be reached or doesn't have these columns.
+   * ------------------------------------------------------------------ */
+  var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
+  var SHEET_TAB = "C2";
+  var FALLBACK = [
+    "Name\tISO\tCountry\tLat\tLon\tStatus\tCapacity (MW)\tPlanned (MW)\tConstruction (MW)\tOpen (MW)\tCancelled or shelved (MW)\tRetired since 2016 (MW)\tFuel\tOwner\tCO2 (Mt)\tFirst unit commissioned\tLast unit retirement",
+    "Riedersbach\tAT\tAustria\t48.0333\t12.8333\tretired\t220\t\t\t\t\t220\thard coal\tEnergie AG\t\t1969\t2016",
+    "Mellach\tAT\tAustria\t46.9117\t15.4883\tretired\t246\t\t\t\t\t246\thard coal\tVerbund\t\t1986\t2020",
+    "Duernrohr\tAT\tAustria\t48.3261\t15.9233\tretired\t802\t\t\t\t\t802\thard coal\tEVN\t\t1985\t2019",
+    "Gacko\tBA\tBosnia & Herzegovina\t43.1721\t18.5116\topen-no-retirement\t300\t\t\t300\t\t\tlignite\tElektroprivreda Republike Srpske (MH ERS)\t\t1983\t",
+    "Kakanj\tBA\tBosnia & Herzegovina\t44.0896\t18.1139\topen-no-retirement\t1050\t\t\t450\t600\t\tlignite\tEPBiH\t\t1969\t",
+    "Stanari\tBA\tBosnia & Herzegovina\t44.7593\t17.8232\topen-no-retirement\t300\t\t\t300\t\t\tlignite\tEFT\t\t2016\t",
+    "Tuzla\tBA\tBosnia & Herzegovina\t44.521\t18.6064\topen-no-retirement\t1623\t\t\t723\t900\t\tlignite\tElektroprivreda BiH\t\t1966\t",
+    "Ugljevik\tBA\tBosnia & Herzegovina\t44.6822\t18.9674\topen-no-retirement\t300\t\t\t300\t\t\tlignite\tElektroprivreda Republike Srpske (MH ERS)\t\t1985\t",
+    "Banovici Power Station\tBA\tBosnia & Herzegovina\t44.4\t18.5333\tcancelled\t350\t\t\t\t350\t\tlignite\tRMU Banovici\t\t\t",
+    "Bugojno Thermal Power Project\tBA\tBosnia & Herzegovina\t44.05\t17.45\tcancelled\t300\t\t\t\t300\t\tlignite\tElektroprivreda BiH\t\t\t",
+    "Gacko Thermal Power Plant\tBA\tBosnia & Herzegovina\t43.172259\t18.512728\tplanned\t350\t350\t\t\t\t\tlignite\tElektroprivreda Republike Srpske (ERS)\t\t\t",
+    "Ugljevik-3 power station\tBA\tBosnia & Herzegovina\t44.683446\t18.968516\tplanned\t700\t700\t\t\t\t\tlignite\tComsar Energy\t\t\t",
+    "Kongora Thermal Power Plant\tBA\tBosnia & Herzegovina\t43.64611\t17.33139\tcancelled\t550\t\t\t\t550\t\tlignite\tElektroprivreda HZHB\t\t\t",
+    "Kamengrad Thermal Power Plant\tBA\tBosnia & Herzegovina\t44.766667\t16.666667\tcancelled\t430\t\t\t\t430\t\tlignite\tRMU Kamengrad\t\t\t",
+    "Genk-Langerlo\tBE\tBelgium\t50.9368\t5.4927\tretired\t560\t\t\t\t\t560\thard coal\tUniper\t\t1975\t2016",
+    "Deven\tBG\tBulgaria\t43.1974\t27.6329\topen-no-retirement\t174\t\t\t174\t\t\thard coal\tSolvay\t\t2009\t",
+    "Maritsa 3\tBG\tBulgaria\t42.052\t25.6232\topen-no-retirement\t120\t\t\t120\t\t\tlignite\tTopgrup EOOD\t\t1971\t",
+    "Bobov Dol\tBG\tBulgaria\t42.2852\t23.0344\topen-no-retirement\t630\t\t\t630\t\t\tlignite\tConsortium Energia MK\t\t1973\t",
+    "AES Galabovo\tBG\tBulgaria\t42.1591\t25.9089\topen-no-retirement\t670\t\t\t670\t\t\tlignite\tAES\t3.73\t2011\t",
+    "Maritsa East 2\tBG\tBulgaria\t42.2564\t26.132\topen-no-retirement\t1602\t\t\t1602\t\t\tlignite\tBulgarian Energy Holding (BEH)\t\t1966\t",
+    "ContourGlobal Maritsa East 3\tBG\tBulgaria\t42.1449\t26.0025\topen-no-retirement\t908\t\t\t908\t\t\tlignite\tContourGlobal\t0.48\t1978\t",
+    "Republika (Pernik)\tBG\tBulgaria\t42.6067\t23.0783\topen-no-retirement\t180\t\t\t130\t\t50\tlignite\tBingham Management\t\t1951\t",
+    "Ruse Iztok\tBG\tBulgaria\t43.8664\t26.0092\topen-no-retirement\t400\t\t\t400\t\t\thard coal\tToplofikacia Ruse AD\t\t1964\t",
+    "Brikel\tBG\tBulgaria\t42.1545\t25.9061\topen-no-retirement\t360\t\t\t360\t\t\tlignite\tBakkar\t\t1964\t",
+    "Sliven\tBG\tBulgaria\t42.6548\t26.3259\topen-no-retirement\t45\t\t\t45\t\t\tlignite\tToplofikacia Sliven EAD\t\t1969\t",
+    "Ledvice\tCZ\tCzech Republic\t50.5765\t13.7807\topen-no-retirement\t990\t\t\t770\t\t220\tlignite\tCEZ\t3.22\t1969\t",
+    "Chvaletice\tCZ\tCzech Republic\t50.0284\t15.453\topen-by-2030\t820\t\t\t820\t\t\tlignite\tSev.en Energy AG\t2.25\t1979\t2027",
+    "Detmarovice\tCZ\tCzech Republic\t49.9064\t18.4656\tretired\t800\t\t\t\t\t800\thard coal\tCEZ\t\t1976\t2025",
+    "Hodonin\tCZ\tCzech Republic\t48.847\t17.1197\topen-no-retirement\t107\t\t\t107\t\t\tlignite\tCEZ\t0.01\t1957\t",
+    "Melnik I\tCZ\tCzech Republic\t50.4145\t14.4133\topen-by-2030\t240\t\t\t240\t\t\tlignite\tCEZ\t1.33\t1960\t2030",
+    "Melnik II/III\tCZ\tCzech Republic\t50.414\t14.4154\topen-by-2030\t720\t\t\t220\t\t500\tlignite\tCEZ\t0.47\t1971\t2030",
+    "Prunerov\tCZ\tCzech Republic\t50.4187\t13.2587\topen-no-retirement\t1610\t\t\t750\t\t860\tlignite\tCEZ\t3.28\t1968\t",
+    "Tusimice\tCZ\tCzech Republic\t50.3826\t13.3381\topen-no-retirement\t800\t\t\t800\t\t\tlignite\tCEZ\t3.34\t1974\t",
+    "Teplarna Ceskoslovenske Armady (CSA)\tCZ\tCzech Republic\t49.8443\t18.496\topen-by-2030\t24\t\t\t24\t\t\thard coal\tVeolia\t\t1952\t",
+    "Karvina\tCZ\tCzech Republic\t49.8232\t18.4785\topen-by-2030\t55\t\t\t55\t\t\thard coal\tVeolia\t0.28\t1970\t2029",
+    "Kladno\tCZ\tCzech Republic\t50.1535\t14.1286\topen-no-retirement\t440\t\t\t406\t\t34\tlignite\tSev.en Energy AG\t1.27\t1976\t",
+    "Kolin\tCZ\tCzech Republic\t50.0304\t15.2101\tretired\t17\t\t\t\t\t17\tlignite\tVeolia\t\t1964\t2024",
+    "Sko-Energo\tCZ\tCzech Republic\t50.4178\t14.9345\topen-by-2030\t70\t\t\t70\t\t\tlignite\tŠKO-ENERGO s.r.o.\t0.36\t1999\t2027",
+    "Komorany\tCZ\tCzech Republic\t50.5223\t13.5721\topen-no-retirement\t239\t\t\t239\t\t\tlignite\tEPH\t0.26\t1951\t",
+    "Olomouc\tCZ\tCzech Republic\t49.5873\t17.2664\topen-by-2030\t50\t\t\t50\t\t\thard coal\tVeolia\t0.26\t1952\t2028",
+    "Trebovice\tCZ\tCzech Republic\t49.8318\t18.2105\topen-no-retirement\t177\t\t\t177\t\t\thard coal\tVeolia\t0.69\t1964\t",
+    "Zavod 4\tCZ\tCzech Republic\t49.7959\t18.3058\topen-no-retirement\t155\t\t\t155\t\t\tlignite\tNova Hut\t\t1970\t",
+    "Vitkovice\tCZ\tCzech Republic\t49.816\t18.2733\tretired\t79\t\t\t\t\t79\thard coal\tCEZ\t\t1970\t2020",
+    "Otrokovice\tCZ\tCzech Republic\t49.2047\t17.5203\topen-no-retirement\t50\t\t\t50\t\t\tlignite\tLAMA ENERGY GROUP\t0.15\t1970\t",
+    "Opatovice\tCZ\tCzech Republic\t50.1271\t15.7919\topen-by-2030\t360\t\t\t360\t\t\tlignite\tEPH\t0.82\t1960\t2030",
+    "Plana\tCZ\tCzech Republic\t49.3667\t14.7\tretired\t46\t\t\t\t\t46\tlignite\tC-Energy Bohemia spol. s r.o.\t\t1961\t2021",
+    "Plzen\tCZ\tCzech Republic\t49.7545\t13.399\topen-no-retirement\t137\t\t\t137\t\t\tlignite\tCity of Pilsen\t0.14\t1982\t",
+    "Pocerady\tCZ\tCzech Republic\t50.4267\t13.6774\topen-no-retirement\t1000\t\t\t1000\t\t\tlignite\tSev.en Energy AG\t4.79\t1971\t",
+    "Chomutov\tCZ\tCzech Republic\t50.4622\t13.4274\topen-no-retirement\t26\t\t\t26\t\t\tlignite\tActherm\t0\t1966\t",
+    "Malesice\tCZ\tCzech Republic\t50.0848\t14.5254\topen-no-retirement\t165\t\t\t165\t\t\thard coal\tPražská teplárenská a.s.\t\t1969\t",
+    "Prerov\tCZ\tCzech Republic\t49.4451\t17.4285\tretired\t61\t\t\t\t\t61\thard coal\tVeolia\t\t1966\t2023",
+    "Pribram\tCZ\tCzech Republic\t49.6956\t14.0028\topen-no-retirement\t42\t\t\t42\t\t\tlignite\tEnergoFuture\t\t1995\t",
+    "Tisova\tCZ\tCzech Republic\t50.1522\t12.6102\topen-no-retirement\t289\t\t\t289\t\t\tlignite\tSokolovská Uhelná AS\t0.63\t1958\t",
+    "Porici II\tCZ\tCzech Republic\t50.5724\t15.9634\topen-no-retirement\t165\t\t\t165\t\t\tlignite\tCEZ\t0.27\t1957\t",
+    "Zlin\tCZ\tCzech Republic\t49.2254\t17.6538\topen-no-retirement\t66\t\t\t61\t\t5\tlignite\tSev.en Energy AG\t0.12\t1938\t",
+    "Plzenska energetika ELU III\tCZ\tCzech Republic\t49.7395\t13.3455\topen-no-retirement\t90\t\t\t90\t\t\tlignite\tCity of Pilsen\t0.21\t1960\t",
+    "Koprivnice\tCZ\tCzech Republic\t49.5833\t18.1334\topen-no-retirement\t18\t\t\t18\t\t\thard coal\tKomterm\t0.01\t1970\t",
+    "Trmice\tCZ\tCzech Republic\t50.6462\t13.9854\topen-by-2030\t89\t\t\t89\t\t\tlignite\tCEZ\t0.42\t1974\t2030",
+    "Vresova\tCZ\tCzech Republic\t50.256\t12.6964\tretired\t400\t\t\t\t\t400\tlignite\tSokolovská Uhelná AS\t\t1995\t2020",
+    "Melnik\tCZ\tCzech Republic\t50.413132\t14.41582\tcancelled\t110\t\t\t\t110\t\tlignite\tCEZ\t\t\t",
+    "Karvina new power station\tCZ\tCzech Republic\t49.823463\t18.480287\tcancelled\t55\t\t\t\t55\t\thard coal\tVeolia\t\t\t",
+    "Altbach/Deizisau\tDE\tGermany\t48.7191\t9.3713\topen-by-2030\t855\t\t\t855\t\t\thard coal\tEnBW\t1.17\t1985\t2028",
+    "Niederaussem\tDE\tGermany\t50.9709\t6.6666\topen-after-2030\t5048\t\t\t2386\t1100\t1562\tlignite\tRWE\t11.36\t1963\t2033",
+    "Bergkamen\tDE\tGermany\t51.6372\t7.6191\topen-by-2030\t780\t\t\t780\t\t\thard coal\tSteag\t0.18\t1981\t2028",
+    "Berlin-Moabit\tDE\tGermany\t52.5374\t13.3449\topen-by-2030\t100\t\t\t100\t\t\thard coal\tVattenfall\t0.27\t1990\t2030",
+    "Berlin-Klingenberg\tDE\tGermany\t52.49\t13.496\tretired\t188\t\t\t\t\t188\tlignite\tVattenfall\t\t1986\t2017",
+    "Berlin-Reuter\tDE\tGermany\t52.5309\t13.2456\tretired\t132\t\t\t\t\t132\thard coal\tVattenfall\t\t1969\t2019",
+    "Berlin-Reuter West\tDE\tGermany\t52.5352\t13.2437\topen-by-2030\t600\t\t\t600\t\t\thard coal\tVattenfall\t1.27\t1987\t2029",
+    "Bexbach\tDE\tGermany\t49.3649\t7.2355\topen-after-2030\t780\t\t\t780\t\t\thard coal\tSteag\t0.15\t1983\t2031",
+    "Lippendorf\tDE\tGermany\t51.1832\t12.3717\topen-after-2030\t1868\t\t\t1868\t\t\tlignite\tEPH/EnBW\t7.34\t1999\t2035",
+    "Deuben\tDE\tGermany\t51.111944\t12.076111\tretired\t86\t\t\t\t\t86\tlignite\tEPH\t\t1936\t2021",
+    "Boxberg\tDE\tGermany\t51.4188\t14.5743\topen-after-2030\t2582\t\t\t2582\t\t\tlignite\tEPH\t13.14\t1979\t2038",
+    "Braunschweig\tDE\tGermany\t52.278\t10.5147\tretired\t78\t\t\t\t\t78\thard coal\tVeolia\t\t1984\t2024",
+    "Bremen-Hafen\tDE\tGermany\t53.1239\t8.7273\tretired\t663\t\t\t\t\t663\thard coal\tswb AG\t\t1968\t2021",
+    "Bremen-Farge\tDE\tGermany\t53.2021\t8.5162\tretired\t380\t\t\t\t\t380\thard coal\tResInvest Group\t\t1969\t2024",
+    "Bremen-Hastedt\tDE\tGermany\t53.0593\t8.873\tretired\t129\t\t\t\t\t129\thard coal\tswb AG\t\t1989\t2024",
+    "Chemnitz North II\tDE\tGermany\t50.8566\t12.923\tretired\t167\t\t\t\t\t167\tlignite\tCity of Chemnitz\t\t1988\t2024",
+    "Cottbus\tDE\tGermany\t51.7597\t14.3696\tretired\t82\t\t\t\t\t82\tlignite\tStadtwerke Cottbus GmbH\t\t1999\t2022",
+    "Dessau\tDE\tGermany\t51.8276\t12.2306\tretired\t53\t\t\t\t\t53\tlignite\tStadtwerke Dessau\t\t1996\t2019",
+    "Duisburg-Hochfeld\tDE\tGermany\t51.4291\t6.7508\tretired\t247\t\t\t\t\t247\thard coal\tDuisburger Versorgungs- und Verkehrsgesellschaft mbH (DVV)\t\t1965\t2018",
+    "Duisburg-Walsum\tDE\tGermany\t51.526\t6.7196\topen-after-2030\t1340\t\t\t790\t\t550\thard coal\tSteag\t1.54\t1959\t",
+    "Ensdorf\tDE\tGermany\t49.2932\t6.7708\tretired\t430\t\t\t\t\t430\thard coal\tRWE\t\t1963\t2017",
+    "Erlangen\tDE\tGermany\t49.5925\t11.0021\tretired\t18\t\t\t\t\t18\thard coal\tCity of Erlangen\t\t1980\t2020",
+    "Weisweiler\tDE\tGermany\t50.8332\t6.3146\topen-by-2030\t2239\t\t\t1255\t\t984\tlignite\tRWE\t8.31\t1955\t2029",
+    "Flensburg\tDE\tGermany\t54.8049\t9.4327\topen-by-2030\t164\t\t\t31\t\t133\thard coal\tCity of Flensburg\t0.46\t1978\t",
+    "Frankfurt/Main West\tDE\tGermany\t50.0986\t8.6532\topen-by-2030\t144\t\t\t144\t\t\thard coal\tStadtwerke Frankfurt am Main\t0.52\t1989\t2026",
+    "Scholven/Buer\tDE\tGermany\t51.6024\t7.0099\topen-after-2030\t2296\t\t\t740\t\t1556\thard coal\tUniper\t0.45\t1968\t2031",
+    "Frimmersdorf\tDE\tGermany\t51.0585\t6.5825\tretired\t2206\t\t\t\t\t2206\tlignite\tRWE\t\t1957\t2021",
+    "Neurath\tDE\tGermany\t51.0372\t6.5992\topen-after-2030\t4424\t\t\t2200\t\t2224\tlignite\tRWE\t12.07\t1972\t2033",
+    "Staudinger\tDE\tGermany\t50.0877\t8.9535\topen-after-2030\t1413\t\t\t553\t\t860\thard coal\tUniper\t0.26\t1965\t2031",
+    "Hamburg-Tiefstack\tDE\tGermany\t53.5261\t10.0655\topen-by-2030\t205\t\t\t205\t\t\thard coal\tCity of Hamburg\t0.85\t1993\t",
+    "Hamm Westfalen\tDE\tGermany\t51.6826\t7.9699\tretired\t2275\t\t\t\t\t2275\thard coal\tRWE\t\t1963\t2021",
+    "Hannover\tDE\tGermany\t52.4203\t9.6476\topen-by-2030\t300\t\t\t150\t\t150\thard coal\tVersorgungs- und Verkehrsgesellschaft Hannover mbH (VVG)\t1.05\t1989\t2028",
+    "Heilbronn\tDE\tGermany\t49.1756\t9.2076\topen-by-2030\t1066\t\t\t1066\t\t\thard coal\tEnBW\t1.3\t1965\t",
+    "Buschhaus\tDE\tGermany\t52.1724\t10.9768\tretired\t405\t\t\t\t\t405\tlignite\tEPH\t\t1985\t2020",
+    "Herne\tDE\tGermany\t51.5507\t7.1875\topen-after-2030\t955\t\t\t500\t\t455\thard coal\tSteag\t0.07\t1963\t2031",
+    "Mehrum\tDE\tGermany\t52.315\t10.0914\tretired\t750\t\t\t\t\t750\thard coal\tEPH\t\t1979\t2024",
+    "Waehlitz\tDE\tGermany\t51.1663\t12.0764\topen-by-2030\t37\t\t\t37\t\t\tlignite\tEPH\t0.3\t1994\t",
+    "Goldenberg\tDE\tGermany\t50.861\t6.8434\topen-by-2030\t171\t\t\t76\t\t95\tlignite\tRWE\t0.89\t1992\t",
+    "Ibbenbueren\tDE\tGermany\t52.2888\t7.7479\tretired\t838\t\t\t\t\t838\thard coal\tRWE\t\t1985\t2021",
+    "HKW Karcherstr.\tDE\tGermany\t49.435\t7.7609\topen-by-2030\t15\t\t\t15\t\t\thard coal\tSWK - Stadtwerke Kaiserslautern\t0.1\t1996\t",
+    "Karlsruhe\tDE\tGermany\t49.0143\t8.3042\topen-after-2030\t1462\t\t\t1462\t\t\thard coal\tEnBW\t2.98\t1985\t",
+    "Kassel\tDE\tGermany\t51.2793\t9.4833\topen-by-2030\t38\t\t\t38\t\t\tlignite\tCity of Kassel\t0.15\t1988\t2026",
+    "Kiel East\tDE\tGermany\t54.3387\t10.177\tretired\t354\t\t\t\t\t354\thard coal\tUniper\t\t1970\t2019",
+    "Cologne-Merkenich\tDE\tGermany\t51.0168\t6.9634\tretired\t85\t\t\t\t\t85\tlignite\tStadtwerke Köln\t\t2010\t2025",
+    "Leverkusen\tDE\tGermany\t51.0222\t6.9859\tretired\t112\t\t\t\t\t112\thard coal\tCurrenta GmbH & Co. OHG\t\t1962\t2025",
+    "Luenen\tDE\tGermany\t51.616\t7.4781\tretired\t520\t\t\t\t\t520\thard coal\tSteag\t\t1962\t2018",
+    "Luenen-Stummhafen\tDE\tGermany\t51.6141\t7.4652\topen-after-2030\t820\t\t\t820\t\t\thard coal\tTrianel Kohlekraftwerk Lünen GmbH & Co. KG\t2.32\t2013\t",
+    "Mannheim\tDE\tGermany\t49.447\t8.4925\topen-after-2030\t2586\t\t\t2146\t\t440\thard coal\tRWE\t3.77\t1966\t",
+    "Marl\tDE\tGermany\t51.696393\t7.093964\tretired\t204\t\t\t\t\t204\thard coal\tEvonik\t\t1966\t2024",
+    "Offenbach\tDE\tGermany\t50.1113\t8.7454\topen-by-2030\t60\t\t\t60\t\t\thard coal\tMVV Energie AG\t0.16\t1990\t",
+    "Jaenschwalde\tDE\tGermany\t51.8335\t14.4577\topen-by-2030\t5210\t\t\t2140\t2000\t1070\tlignite\tEPH\t9.63\t1981\t2028",
+    "Heyden\tDE\tGermany\t52.3816\t8.9986\tretired\t923\t\t\t\t\t923\thard coal\tUniper\t\t1987\t2024",
+    "Pforzheim\tDE\tGermany\t48.897\t8.7255\tretired\t30\t\t\t\t\t30\thard coal\tSWP Stadtwerke Pforzheim\t\t1990\t2021",
+    "Quierschied-Weiher\tDE\tGermany\t49.3356\t7.0309\topen-after-2030\t724\t\t\t724\t\t\thard coal\tSteag\t0.18\t1976\t2031",
+    "Rostock\tDE\tGermany\t54.1428\t12.1329\topen-by-2030\t553\t\t\t553\t\t\thard coal\tEnBW\t1.59\t1994\t",
+    "Schkopau\tDE\tGermany\t51.3985\t11.9504\topen-after-2030\t980\t\t\t980\t\t\tlignite\tEPH\t3.96\t1996\t2034",
+    "Schwarze Pumpe\tDE\tGermany\t51.5354\t14.3538\topen-after-2030\t1600\t\t\t1600\t\t\tlignite\tEPH\t8.72\t1997\t2038",
+    "Schweinfurt\tDE\tGermany\t50.0301\t10.2236\topen-by-2030\t29\t\t\t29\t\t\thard coal\tGKS Gemeinschaftskraftwerk Schweinfurt GmbH\t0.07\t1990\t",
+    "Stuttgart-Muenster\tDE\tGermany\t48.8154\t9.2197\tretired\t96\t\t\t\t\t96\thard coal\tEnBW\t\t1982\t2026",
+    "Krefeld-Uerdingen\tDE\tGermany\t51.3682\t6.6624\topen-by-2030\t148\t\t\t148\t\t\thard coal\tCurrenta GmbH & Co. OHG\t0.68\t1957\t",
+    "Ulm Magirusstrasse\tDE\tGermany\t48.3967\t9.9654\topen-by-2030\t135\t\t\t135\t\t\thard coal\tEnBW\t0.07\t1978\t",
+    "Munich North\tDE\tGermany\t48.1812\t11.6398\tretired\t365\t\t\t\t\t365\thard coal\tStadtwerke München\t\t1991\t2024",
+    "Voelklingen-Fenne model\tDE\tGermany\t49.2491\t6.879\topen-after-2030\t466\t\t\t466\t\t\thard coal\tSteag\t0.01\t1982\t2031",
+    "Voerde\tDE\tGermany\t51.5762\t6.6841\tretired\t1522\t\t\t\t\t1522\thard coal\tSteag\t\t1982\t2017",
+    "Voerde West\tDE\tGermany\t51.5785\t6.6819\tretired\t712\t\t\t\t\t712\thard coal\tSteag\t\t1971\t2017",
+    "Frechen/Wachtberg\tDE\tGermany\t50.8942\t6.7911\tretired\t128\t\t\t\t\t128\tlignite\tRWE\t\t1959\t2022",
+    "Walheim\tDE\tGermany\t49.0177\t9.1577\tretired\t267\t\t\t\t\t267\thard coal\tEnBW\t\t1964\t2025",
+    "Wedel\tDE\tGermany\t53.5665\t9.7257\topen-by-2030\t290\t\t\t290\t\t\thard coal\tCity of Hamburg\t0.84\t1961\t2027",
+    "Werdohl-Elverlingsen\tDE\tGermany\t51.2754\t7.7046\tretired\t530\t\t\t\t\t530\thard coal\tENERVIE\t\t1971\t2018",
+    "Werne Gersteinwerk\tDE\tGermany\t51.6734\t7.708\tretired\t666\t\t\t\t\t666\thard coal\tRWE\t\t1984\t2019",
+    "Wilhelmshaven\tDE\tGermany\t53.565\t8.1469\tretired\t788\t\t\t\t\t788\thard coal\tUniper\t\t1976\t2021",
+    "Wolfsburg North\tDE\tGermany\t52.4317\t10.787\tretired\t140\t\t\t\t\t140\thard coal\tVolkswagen AG\t\t2000\t2024",
+    "Wolfsburg West\tDE\tGermany\t52.4295\t10.7683\tretired\t306\t\t\t\t\t306\thard coal\tVolkswagen AG\t\t1985\t2024",
+    "Wuppertal-Elberfeld\tDE\tGermany\t51.2482\t7.1201\tretired\t100\t\t\t\t\t100\thard coal\tWSW Wuppertaler Stadtwerke GmbH\t\t1989\t2018",
+    "Zolling-Leininger\tDE\tGermany\t48.4552\t11.7995\topen-after-2030\t474\t\t\t474\t\t\thard coal\tResInvest Group\t0.36\t1986\t2031",
+    "Hamburg-Moorburg\tDE\tGermany\t53.4897\t9.9482\tretired\t1640\t\t\t\t\t1640\thard coal\tVattenfall\t\t2015\t2021",
+    "Wilhelmshaven New\tDE\tGermany\t53.5788\t8.1327\topen-after-2030\t795\t\t\t795\t\t\thard coal\tResInvest Group\t1.5\t2015\t",
+    "Frankfurt/Oder\tDE\tGermany\t52.3182\t14.5315\tretired\t49\t\t\t\t\t49\tlignite\tCity of Frankfurt (Oder)\t\t1997\t2024",
+    "Stuttgart-Gaisburg\tDE\tGermany\t48.7827\t9.2312\tretired\t25\t\t\t\t\t25\thard coal\tEnBW\t\t2009\t2018",
+    "Fortuna Nord\tDE\tGermany\t50.9869\t6.6581\topen-by-2030\t16\t\t\t16\t\t\tlignite\tRWE\t0.42\t1984\t",
+    "Ville/Berrenrath\tDE\tGermany\t50.8671\t6.8361\topen-by-2030\t57\t\t\t57\t\t\tlignite\tRWE\t\t1991\t",
+    "Stade Dow Chemical\tDE\tGermany\t53.636798\t9.507176\tcancelled\t920\t\t\t\t920\t\thard coal\tDow Chemical\t\t\t",
+    "Datteln IV\tDE\tGermany\t51.6293\t7.3307\topen-after-2030\t1100\t\t\t1100\t\t\thard coal\tResInvest Group\t2.88\t2020\t",
+    "Ostkraft\tDK\tDenmark\t55.0928\t14.6961\tretired\t108\t\t\t\t\t108\thard coal\tBornholms Energi & Forsyning\t\t1995\t2016",
+    "Esbjerg\tDK\tDenmark\t55.4551\t8.4578\tretired\t407\t\t\t\t\t407\thard coal\tOrsted\t\t1992\t2024",
+    "Avedore\tDK\tDenmark\t55.6021\t12.4837\tretired\t263\t\t\t\t\t263\thard coal\tOrsted\t\t1990\t2016",
+    "Asnaes\tDK\tDenmark\t55.6615\t11.0848\tretired\t1057\t\t\t\t\t1057\thard coal\tOrsted\t\t1962\t2020",
+    "Amager\tDK\tDenmark\t55.686\t12.6276\tretired\t263\t\t\t\t\t263\thard coal\tHOFOR\t\t1989\t2020",
+    "Fyns\tDK\tDenmark\t55.4294\t10.4102\tretired\t597\t\t\t\t\t597\thard coal\tFunen district heating\t\t1974\t2024",
+    "Studstrup\tDK\tDenmark\t56.2515\t10.3438\tretired\t760\t\t\t\t\t760\thard coal\tOrsted\t\t1984\t2024",
+    "Nordjylland\tDK\tDenmark\t57.0776\t10.0404\topen-by-2030\t716\t\t\t411\t\t305\thard coal\tAalborg Forsyning\t\t1977\t2028",
+    "Agios Dimitrios\tGR\tGreece\t40.3938\t21.9251\tretired\t1595\t\t\t\t\t1595\tlignite\tPPC\t\t1984\t2026",
+    "Amintaio\tGR\tGreece\t40.6193\t21.6829\tretired\t600\t\t\t\t\t600\tlignite\tPPC\t\t1987\t2020",
+    "Meliti (Florina)\tGR\tGreece\t40.811\t21.601\tretired\t330\t\t\t\t\t330\tlignite\tPPC\t\t2003\t2025",
+    "Kardia\tGR\tGreece\t40.41\t21.786\tretired\t1250\t\t\t\t\t1250\tlignite\tPPC\t\t1975\t2021",
+    "Megalopoli A\tGR\tGreece\t37.418\t22.109\tretired\t550\t\t\t\t\t550\tlignite\tPPC\t\t1970\t2022",
+    "Megalopoli B\tGR\tGreece\t37.416\t22.067\tretired\t300\t\t\t\t\t300\tlignite\tPPC\t\t1991\t2024",
+    "Meliti-II\tGR\tGreece\t40.8114\t21.6014\tcancelled\t450\t\t\t\t450\t\tlignite\tPPC\t\t\t",
+    "Ptolemaida V\tGR\tGreece\t40.4809\t21.7269\topen-by-2030\t660\t\t\t660\t\t\tlignite\tPPC\t1.15\t2023\t2026",
+    "Alcudia II\tES\tSpain\t39.8106\t3.0913\topen-by-2030\t510\t\t\t260\t\t250\thard coal\tEndesa\t0.1\t1981\t2030",
+    "Teruel/Andorra\tES\tSpain\t40.9971\t-0.3806\tretired\t1102\t\t\t\t\t1102\tlignite\tEndesa\t\t1979\t2020",
+    "As Pontes\tES\tSpain\t43.4433\t-7.8608\tretired\t1468\t\t\t\t\t1468\thard coal\tEndesa\t\t1976\t2024",
+    "Litoral de Almeria\tES\tSpain\t36.9802\t-1.9037\tretired\t1159\t\t\t\t\t1159\thard coal\tEndesa\t\t1984\t2021",
+    "Abono\tES\tSpain\t43.5527\t-5.7235\topen-by-2030\t916\t\t\t360\t\t556\thard coal\tEDP\t2.64\t1974\t2026",
+    "Puente Nuevo\tES\tSpain\t38.1129\t-4.9334\tretired\t400\t\t\t\t\t400\tlignite\tViesgo\t\t1966\t2020",
+    "Lada\tES\tSpain\t43.2964\t-5.6825\tretired\t563\t\t\t\t\t563\thard coal\tIberdrola\t\t1951\t2022",
+    "La Robla\tES\tSpain\t42.7946\t-5.6314\tretired\t655\t\t\t\t\t655\thard coal\tNaturgy\t\t1971\t2020",
+    "Los Barrios\tES\tSpain\t36.1837\t-5.4184\topen-by-2030\t589\t\t\t589\t\t\thard coal\tEDP\t0.09\t1985\t2026",
+    "La Pereda\tES\tSpain\t43.272737\t-5.809021\tretired\t54\t\t\t\t\t54\thard coal\tHUNOSA\t\t1995\t2024",
+    "Meirama\tES\tSpain\t43.1702\t-8.4106\tretired\t580\t\t\t\t\t580\thard coal\tNaturgy\t\t1980\t2020",
+    "Soto de Ribera\tES\tSpain\t43.3116\t-5.8732\topen-by-2030\t672\t\t\t350\t\t322\thard coal\tEDP\t0.38\t1962\t2029",
+    "Anllares\tES\tSpain\t42.8386\t-6.5312\tretired\t365\t\t\t\t\t365\thard coal\tNaturgy\t\t1982\t2018",
+    "Compostilla II\tES\tSpain\t42.6275\t-6.5633\tretired\t1341\t\t\t\t\t1341\tlignite\tEndesa\t\t1961\t2020",
+    "Narcea\tES\tSpain\t43.292\t-6.3947\tretired\t595\t\t\t\t\t595\thard coal\tNaturgy\t\t1965\t2020",
+    "Velilla\tES\tSpain\t42.8183\t-4.8544\tretired\t516\t\t\t\t\t516\thard coal\tIberdrola\t\t1964\t2020",
+    "Suomenoja\tFI\tFinland\t60.1491\t24.7174\tretired\t170\t\t\t\t\t170\thard coal\tFortum\t\t1977\t2024",
+    "Hanasaari B\tFI\tFinland\t60.1837\t24.9712\tretired\t228\t\t\t\t\t228\thard coal\tHelen\t\t1974\t2023",
+    "Salmisaari\tFI\tFinland\t60.1648\t24.9029\tretired\t177\t\t\t\t\t177\thard coal\tHelen\t\t1984\t2025",
+    "Kristiina\tFI\tFinland\t62.2555\t21.328\tretired\t242\t\t\t\t\t242\thard coal\tPVO\t\t1983\t2017",
+    "Kymijarvi\tFI\tFinland\t60.9916\t25.7201\tretired\t212\t\t\t\t\t212\thard coal\tLahti Energia\t\t1982\t2019",
+    "Naantali 1\tFI\tFinland\t60.4585\t22.0536\tretired\t366\t\t\t\t\t366\thard coal\tFortum\t\t1960\t2024",
+    "Meri-Pori\tFI\tFinland\t61.6322\t21.4047\topen-by-2030\t614\t\t\t614\t\t\thard coal\tFortum\t0.01\t1994\t2027",
+    "Tahkoluoto (Pori)\tFI\tFinland\t61.6324\t21.4048\tretired\t225\t\t\t\t\t225\thard coal\tPVO\t\t1976\t2017",
+    "Vaskiluoto 2\tFI\tFinland\t63.0909\t21.5536\topen-by-2030\t250\t\t\t250\t\t\thard coal\tVaasan Voima\t0.02\t1981\t2029",
+    "Martinlaakso\tFI\tFinland\t60.2821\t24.8367\tretired\t80\t\t\t\t\t80\thard coal\tVantaan Energia\t\t1980\t2025",
+    "Cordemais\tFR\tFrance\t47.2762\t-1.8776\topen-by-2030\t1260\t\t\t1260\t\t\thard coal\tEDF\t0.23\t1983\t2027",
+    "Le Havre II\tFR\tFrance\t49.49\t0.13\tretired\t1480\t\t\t\t\t1480\thard coal\tEDF\t\t1964\t2021",
+    "Chambiere\tFR\tFrance\t49.1295\t6.1829\tretired\t39\t\t\t\t\t39\thard coal\tUEM\t\t1984\t2019",
+    "Provence\tFR\tFrance\t43.4692\t5.4882\tretired\t875\t\t\t\t\t875\thard coal\tEPH\t\t1984\t2021",
+    "Emile-Huchet\tFR\tFrance\t49.1525\t6.6981\topen-by-2030\t1102\t\t\t647\t\t455\thard coal\tEPH\t0.27\t1958\t2027",
+    "Le Moule Caraibe\tFR\tFrance\t16.3102\t-61.3202\tretired\t95\t\t\t\t\t95\thard coal\tAlbioma\t\t1998\t2025",
+    "Bois-Rouge\tFR\tFrance\t-20.913831\t55.636348\tretired\t110\t\t\t\t\t110\thard coal\tAlbioma\t\t1992\t2023",
+    "Le Gol\tFR\tFrance\t-21.279393\t55.397028\tretired\t122\t\t\t\t\t122\thard coal\tAlbioma\t\t1995\t2024",
+    "Plomin\tHR\tCroatia\t45.1367\t14.1626\topen-no-retirement\t835\t\t\t335\t500\t\thard coal\tHEP Proizvodnja\t0.59\t1969\t",
+    "Oroszlany\tHU\tHungary\t47.5017\t18.271\topen-no-retirement\t250\t\t\t130\t\t120\thard coal\tVeolia\t\t1961\t",
+    "Matra\tHU\tHungary\t47.79027\t20.06358\topen-by-2030\t1384\t\t\t884\t500\t\tlignite\tMVM\t1.59\t1969\t2029",
+    "Moneypoint\tIE\tIreland\t52.6075\t-9.4227\tretired\t915\t\t\t\t\t915\thard coal\tESB Group\t\t1985\t2025",
+    "Brescia\tIT\tItaly\t45.5164\t10.2122\tretired\t75\t\t\t\t\t75\thard coal\tA2A\t\t1988\t2020",
+    "Brindisi Sud\tIT\tItaly\t40.5639\t18.0322\topen-by-2030\t2640\t\t\t1980\t\t660\thard coal\tEnel\t0.06\t1991\t2026",
+    "Brindisi Nord\tIT\tItaly\t40.6431\t17.9808\tretired\t640\t\t\t\t\t640\thard coal\tA2A\t\t1979\t2020",
+    "Torrevaldaliga Nord\tIT\tItaly\t42.1283\t11.7578\topen-by-2030\t1980\t\t\t1980\t\t\thard coal\tEnel\t0.08\t2009\t2026",
+    "Genova\tIT\tItaly\t44.4039\t8.9031\tretired\t295\t\t\t\t\t295\thard coal\tEnel\t\t1952\t2017",
+    "Bastardo\tIT\tItaly\t42.8933\t12.5397\tretired\t150\t\t\t\t\t150\thard coal\tEnel\t\t1989\t2019",
+    "La Spezia\tIT\tItaly\t44.1111\t9.8722\tretired\t600\t\t\t\t\t600\thard coal\tEnel\t\t1967\t2021",
+    "Monfalcone\tIT\tItaly\t45.7967\t13.5456\tretired\t336\t\t\t\t\t336\thard coal\tA2A\t\t1965\t2024",
+    "Fiume Santo\tIT\tItaly\t40.8517\t8.2992\topen-no-retirement\t640\t\t\t640\t\t\thard coal\tEPH\t1.71\t1992\t",
+    "Sulcis Power Station\tIT\tItaly\t39.223768\t8.431664\topen-by-2030\t940\t\t\t590\t350\t\thard coal\tEnel\t1.27\t1986\t2028",
+    "Vado Ligure\tIT\tItaly\t44.2768\t8.4343\tretired\t660\t\t\t\t\t660\thard coal\tEngie\t\t1971\t2016",
+    "Fusina\tIT\tItaly\t45.4314\t12.2458\tretired\t976\t\t\t\t\t976\thard coal\tEnel\t\t1964\t2023",
+    "Kosovo A\tXK\tKosovo\t42.6765\t21.0859\topen-no-retirement\t800\t\t\t610\t\t190\tlignite\tKEK\t\t1962\t",
+    "Kosovo B\tXK\tKosovo\t42.6931\t21.056\topen-no-retirement\t678\t\t\t678\t\t\tlignite\tKEK\t\t1983\t",
+    "New Kosovo power station\tXK\tKosovo\t42.666667\t21.166667\tcancelled\t450\t\t\t\t450\t\tlignite\tContourGlobal\t\t\t",
+    "Kuchurgan\tMD\tMoldova\t46.629027\t29.939714\topen-no-retirement\t1600\t\t\t1600\t\t\tunknown\tInter RAO PJSC\t\t1964\t",
+    "Pljevlja Power Station\tME\tMontenegro\t43.334574\t19.32714\topen-no-retirement\t450\t\t\t225\t225\t\tlignite\tState of Montenegro\t\t1982\t",
+    "Bitola\tMK\tNorth Macedonia\t41.0583\t21.4843\topen-no-retirement\t675\t\t\t675\t\t\tlignite\tJSC ELEM Skopje\t\t1982\t",
+    "Oslomej\tMK\tNorth Macedonia\t41.582133\t21.000288\topen-no-retirement\t255\t\t\t125\t130\t\tlignite\tJSC ELEM Skopje\t\t1980\t",
+    "Hemweg\tNL\tNetherlands\t52.4053\t4.8471\tretired\t685\t\t\t\t\t685\thard coal\tVattenfall\t\t1995\t2019",
+    "Amer\tNL\tNetherlands\t51.7078\t4.8439\tretired\t1353\t\t\t\t\t1353\thard coal\tRWE\t\t1981\t2024",
+    "Maasvlakte\tNL\tNetherlands\t51.9591\t4.0266\tretired\t1206\t\t\t\t\t1206\thard coal\tUniper\t\t1987\t2017",
+    "Maasvlakte 3\tNL\tNetherlands\t51.9586\t4.0264\topen-by-2030\t1196\t\t\t1196\t\t\thard coal\tUniper\t2\t2016\t2029",
+    "Maasvlakte New\tNL\tNetherlands\t51.944\t4.0716\topen-by-2030\t870\t\t\t870\t\t\thard coal\tResInvest Group\t2.22\t2015\t2029",
+    "Eemshaven\tNL\tNetherlands\t53.4405\t6.8612\topen-by-2030\t1740\t\t\t1740\t\t\thard coal\tRWE\t3.6\t2015\t2029",
+    "Bedzin\tPL\tPoland\t50.302\t19.1371\topen-no-retirement\t82\t\t\t82\t\t\thard coal\tEC Będzin SA\t0.49\t1975\t",
+    "Lagisza\tPL\tPoland\t50.3489\t19.1445\topen-no-retirement\t1180\t\t\t460\t\t720\thard coal\tTauron\t1.18\t1963\t",
+    "Belchatow\tPL\tPoland\t51.2658\t19.3153\topen-after-2030\t5400\t\t\t5030\t\t370\tlignite\tPGE\t25.1\t1981\t2036",
+    "Bialystok\tPL\tPoland\t53.1484\t23.1701\topen-no-retirement\t175\t\t\t110\t\t65\thard coal\tEnea\t\t1978\t",
+    "Bielsko-Biala\tPL\tPoland\t49.8117\t19.0529\topen-no-retirement\t166\t\t\t50\t\t116\thard coal\tTauron\t0.27\t1960\t",
+    "Turow\tPL\tPoland\t50.9486\t14.9131\topen-no-retirement\t2554\t\t\t1948\t\t606\tlignite\tPGE\t7.8\t1963\t",
+    "Opole\tPL\tPoland\t50.7518\t17.882\topen-no-retirement\t3332\t\t\t3332\t\t\thard coal\tPGE\t7.18\t1993\t",
+    "Bydgoszcz II\tPL\tPoland\t53.0992\t18.0875\topen-no-retirement\t227\t\t\t105\t\t122\thard coal\tPGE\t\t1971\t",
+    "Miechowice\tPL\tPoland\t50.3487\t18.8431\tretired\t125\t\t\t\t\t125\thard coal\tFortum\t\t1955\t2019",
+    "Chorzow 2\tPL\tPoland\t50.3078\t18.9686\topen-no-retirement\t226\t\t\t226\t\t\thard coal\tResInvest Group\t\t2003\t",
+    "Czestochowa\tPL\tPoland\t50.7943\t19.1425\topen-by-2030\t64\t\t\t64\t\t\thard coal\tFortum\t0.16\t2010\t2027",
+    "Elblag\tPL\tPoland\t54.1817\t19.3893\topen-by-2030\t62\t\t\t12\t\t50\thard coal\tEnerga\t0.07\t1955\t2029",
+    "Gdansk 2\tPL\tPoland\t54.3781\t18.6417\topen-by-2030\t237\t\t\t218\t\t19\thard coal\tPGE\t1.13\t1971\t2030",
+    "Gdynia\tPL\tPoland\t54.5533\t18.4808\topen-no-retirement\t106\t\t\t53\t\t53\thard coal\tPGE\t0.64\t1980\t",
+    "Jaworzno 2\tPL\tPoland\t50.2122\t19.2289\topen-no-retirement\t200\t\t\t200\t\t\thard coal\tTauron\t0.47\t1998\t",
+    "Jaworzno 3\tPL\tPoland\t50.2078\t19.2097\topen-no-retirement\t2255\t\t\t2255\t\t\thard coal\tTauron\t4.64\t1977\t",
+    "Katowice\tPL\tPoland\t50.2853\t19.0539\topen-no-retirement\t135\t\t\t135\t\t\thard coal\tTauron\t0.51\t1999\t",
+    "Patnow I\tPL\tPoland\t52.3055\t18.2317\tretired\t1244\t\t\t\t\t1244\tlignite\tZEPAK\t\t1967\t2024",
+    "Konin\tPL\tPoland\t52.2842\t18.2711\tretired\t193\t\t\t\t\t193\tlignite\tZEPAK\t\t1958\t2022",
+    "Kozienice\tPL\tPoland\t51.6647\t21.4667\topen-after-2030\t3994\t\t\t3994\t\t\thard coal\tEnea\t11.75\t1972\t2048",
+    "Krakow\tPL\tPoland\t50.0542\t20.0069\topen-by-2030\t460\t\t\t350\t\t110\thard coal\tPGE\t\t1970\t2030",
+    "Laziska\tPL\tPoland\t50.1337\t18.8465\topen-no-retirement\t1385\t\t\t1135\t\t250\thard coal\tTauron\t1.83\t1960\t",
+    "Lodz 3\tPL\tPoland\t51.7424\t19.4476\topen-by-2030\t197\t\t\t197\t\t\thard coal\tVeolia\t0.86\t1968\t2029",
+    "Lodz 4\tPL\tPoland\t51.7463\t19.5382\topen-by-2030\t215\t\t\t215\t\t\thard coal\tVeolia\t0.6\t1977\t2029",
+    "Mielec\tPL\tPoland\t50.3044\t21.4611\topen-no-retirement\t30\t\t\t30\t\t\thard coal\tE-Star Plc\t0.1\t1962\t",
+    "Dolna Odra\tPL\tPoland\t53.2058\t14.4663\topen-by-2030\t1792\t\t\t464\t\t1328\thard coal\tPGE\t0.91\t1974\t2026",
+    "Ostroleka\tPL\tPoland\t53.1044\t21.612\topen-no-retirement\t740\t\t\t681\t\t59\thard coal\tEnerga\t1.55\t1957\t",
+    "Polaniec\tPL\tPoland\t50.4381\t21.3368\topen-no-retirement\t1899\t\t\t1674\t\t225\thard coal\tEnea\t\t1979\t",
+    "Poznan-Karolin\tPL\tPoland\t52.4361\t16.9889\topen-by-2030\t313\t\t\t313\t\t\thard coal\tVeolia\t0.88\t1985\t2030",
+    "Rybnik\tPL\tPoland\t50.1333\t18.5236\topen-by-2030\t1775\t\t\t875\t\t900\thard coal\tPGE\t1.62\t1972\t2027",
+    "Czechnica\tPL\tPoland\t51.0381\t17.1503\tretired\t132\t\t\t\t\t132\thard coal\tPGE\t\t1955\t2025",
+    "Skawina\tPL\tPoland\t49.9757\t19.8011\topen-no-retirement\t540\t\t\t330\t\t210\thard coal\tResInvest Group\t0.69\t1961\t",
+    "Stalowa Wola\tPL\tPoland\t50.55\t22.0667\tretired\t250\t\t\t\t\t250\thard coal\tTauron\t\t1958\t2021",
+    "Pomorzany\tPL\tPoland\t53.3922\t14.5257\topen-no-retirement\t134\t\t\t134\t\t\thard coal\tPGE\t0.35\t1959\t",
+    "Szczecin\tPL\tPoland\t53.4113\t14.586\topen-no-retirement\t68\t\t\t68\t\t\thard coal\tPGE\t0\t1957\t",
+    "Siersza\tPL\tPoland\t50.2064\t19.463\topen-by-2030\t797\t\t\t306\t\t491\thard coal\tTauron\t0.46\t1969\t2028",
+    "Adamow\tPL\tPoland\t52.0122\t18.5461\tretired\t600\t\t\t\t\t600\tlignite\tZEPAK\t\t1964\t2017",
+    "Tychy\tPL\tPoland\t50.1063\t19.0143\topen-no-retirement\t170\t\t\t65\t\t105\thard coal\tTauron\t0.14\t2003\t",
+    "Siekierki\tPL\tPoland\t52.1896\t21.0906\topen-after-2030\t591\t\t\t591\t\t\thard coal\tPGNiG\t2.78\t1961\t2035",
+    "Zeran\tPL\tPoland\t52.2944\t20.9943\topen-by-2030\t386\t\t\t386\t\t\thard coal\tPGNiG\t2.07\t1954\t",
+    "Wroclaw\tPL\tPoland\t51.1239\t17.0244\topen-no-retirement\t263\t\t\t263\t\t\thard coal\tPGE\t\t1970\t",
+    "Zabrze\tPL\tPoland\t50.2992\t18.8123\tretired\t74\t\t\t\t\t33\thard coal\tFortum\t\t1976\t2019",
+    "Zofiowka\tPL\tPoland\t49.9643\t18.6268\topen-no-retirement\t149\t\t\t85\t\t64\thard coal\tPGNiG\t0.28\t1974\t",
+    "Patnow II\tPL\tPoland\t52.3055\t18.2317\topen-by-2030\t474\t\t\t474\t\t\tlignite\tZEPAK\t1.66\t2008\t2028",
+    "Zabrze II\tPL\tPoland\t50.3249\t18.7857\topen-by-2030\t220\t\t\t75\t\t\thard coal\tFortum\t0.37\t2018\t2027",
+    "Ostroleka C\tPL\tPoland\t53.1036\t21.6125\tretired\t1000\t\t\t\t\t1000\thard coal\tEnerga\t\t\t2020",
+    "Pulawy\tPL\tPoland\t51.4164\t21.9693\tconstruction\t109\t\t109\t\t\t\thard coal\tGrupa Azoty\t\t2025\t",
+    "Gubin Power Project\tPL\tPoland\t51.948982\t14.728458\tcancelled\t3000\t\t\t\t3000\t\tlignite\tPGE\t\t\t",
+    "Polnoc Power station\tPL\tPoland\t53.9628924\t18.7117582\tcancelled\t1600\t\t\t\t1600\t\thard coal\tPolenergia\t\t\t",
+    "Leczna Power Station (Enea)\tPL\tPoland\t51.3\t22.883333\tcancelled\t500\t\t\t\t500\t\thard coal\tEnea\t\t\t",
+    "Leczna Power Station (Bogdanka SA)\tPL\tPoland\t51.3009\t22.88211\tcancelled\t500\t\t\t\t500\t\thard coal\tBogdanka SA\t\t\t",
+    "Pego\tPT\tPortugal\t39.466\t-8.112\tretired\t682\t\t\t\t\t682\thard coal\tEndesa\t\t1992\t2021",
+    "Sines\tPT\tPortugal\t37.9306\t-8.807\tretired\t1296\t\t\t\t\t1296\thard coal\tEDP\t\t1985\t2021",
+    "Bacau\tRO\tRomania\t46.5305\t26.9409\tretired\t60\t\t\t\t\t60\tlignite\tCity of Bacau\t\t1998\t2019",
+    "Craiova II\tRO\tRomania\t44.3474\t23.8151\topen-no-retirement\t300\t\t\t300\t\t\tlignite\tMinistry of Energy of Romania\t0.9\t1987\t",
+    "Drobeta\tRO\tRomania\t44.6754\t22.6883\tretired\t340\t\t\t\t\t340\tlignite\tR.A. Activitati Nucleare (RAAN)\t\t1986\t2019",
+    "Iasi II\tRO\tRomania\t47.1493\t27.6048\tretired\t110\t\t\t\t\t100\thard coal\tCity of Iași\t\t1986\t2025",
+    "Isalnita\tRO\tRomania\t44.3857\t23.7172\tretired\t630\t\t\t\t\t630\tlignite\tCE Oltenia SA\t\t1987\t2025",
+    "Mintia\tRO\tRomania\t45.9156\t22.8278\tretired\t1285\t\t\t\t\t1285\thard coal\tCE Hunedoara SA\t\t1969\t2021",
+    "Govora\tRO\tRomania\t45.0408\t24.2901\topen-by-2030\t200\t\t\t100\t\t100\tlignite\tValcea County Council\t0.62\t1986\t2026",
+    "Rovinari\tRO\tRomania\t44.9134\t23.1337\topen-by-2030\t1320\t\t\t990\t\t330\tlignite\tCE Oltenia SA\t2.57\t1976\t",
+    "Turceni\tRO\tRomania\t44.6648\t23.4096\topen-by-2030\t2310\t\t\t330\t\t1980\tlignite\tCE Oltenia SA\t1.84\t1976\t2029",
+    "Paroseni\tRO\tRomania\t45.3609\t23.2636\topen-after-2030\t150\t\t\t150\t\t\thard coal\tCE Hunedoara SA\t0.2\t1964\t2032",
+    "Rovinari 7\tRO\tRomania\t44.910633\t23.134754\tcancelled\t600\t\t\t\t600\t\tlignite\tCE Oltenia SA\t\t\t",
+    "Kolubara A\tRS\tSerbia\t44.4803\t20.2935\topen-no-retirement\t271\t\t\t239\t\t32\tlignite\tElektroprivreda Srbije (EPS)\t\t1956\t",
+    "Kostolac A\tRS\tSerbia\t44.7237\t21.1716\topen-no-retirement\t310\t\t\t310\t\t\tlignite\tElektroprivreda Srbije (EPS)\t\t1967\t",
+    "Kostolac B\tRS\tSerbia\t44.7307\t21.211\topen-no-retirement\t1076\t\t\t1076\t\t\tlignite\tElektroprivreda Srbije (EPS)\t\t1987\t",
+    "Morava\tRS\tSerbia\t44.2238\t21.1631\topen-no-retirement\t120\t\t\t120\t\t\tlignite\tElektroprivreda Srbije (EPS)\t\t1969\t",
+    "Nikola Tesla A\tRS\tSerbia\t44.6713\t20.1584\topen-no-retirement\t1745\t\t\t1745\t\t\tlignite\tElektroprivreda Srbije (EPS)\t\t1970\t",
+    "Nikola Tesla B\tRS\tSerbia\t44.6713\t20.1584\topen-no-retirement\t2040\t\t\t1290\t750\t\tlignite\tElektroprivreda Srbije (EPS)\t\t1983\t",
+    "Kolubara B Power Station\tRS\tSerbia\t44.4675\t20.28444\tcancelled\t350\t\t\t\t350\t\tlignite\tElektroprivreda Srbije (EPS)\t\t\t",
+    "Kovin power station\tRS\tSerbia\t44.75\t20.966667\tcancelled\t700\t\t\t\t700\t\tlignite\tSerbian Oil Company (NIS)\t\t\t",
+    "Štavalj Power Station\tRS\tSerbia\t43.27305\t19.99944\tcancelled\t300\t\t\t\t300\t\tlignite\tElektroprivreda Srbije (EPS)\t\t\t",
+    "Vaertaverket\tSE\tSweden\t59.3526\t18.1009\tretired\t141\t\t\t\t\t141\thard coal\tFortum\t\t1990\t2020",
+    "Te-Tol\tSI\tSlovenia\t46.058\t14.5451\topen-no-retirement\t124\t\t\t124\t\t\thard coal\tTermoelektrarna Toplarna\t0.39\t1966\t",
+    "Sostanj\tSI\tSlovenia\t46.3723\t15.0534\topen-no-retirement\t1355\t\t\t945\t\t410\tlignite\tHSE\t1.8\t1956\t",
+    "Trbovlje\tSI\tSlovenia\t46.1258\t15.0611\tretired\t181\t\t\t\t\t181\tlignite\tHSE\t\t1966\t2018",
+    "Teko\tSK\tSlovakia\t48.6997\t21.2731\topen-by-2030\t121\t\t\t66\t\t55\thard coal\tTeko\t0.25\t1967\t2026",
+    "Vojany EVO I\tSK\tSlovakia\t48.5525\t21.9726\tretired\t660\t\t\t\t\t660\thard coal\tEPH\t\t1965\t2024",
+    "Novaky\tSK\tSlovakia\t48.6937\t18.5321\tretired\t518\t\t\t\t\t518\tlignite\tEPH\t\t1957\t2023",
+    "Zvolenska\tSK\tSlovakia\t48.5667\t19.17\tretired\t44\t\t\t\t\t44\tlignite\tZvolenska Teplarenska\t\t1986\t2023",
+    "Martinska\tSK\tSlovakia\t49.0592\t18.907\tretired\t42\t\t\t\t\t42\tlignite\tMartinska\t\t1962\t2020",
+    "Silopi\tTR\tTürkiye\t37.2465\t42.4643\topen-no-retirement\t414\t\t\t414\t\t\tlignite\tCiner Group\t\t2009\t",
+    "Atlas\tTR\tTürkiye\t36.5858\t36.1797\topen-no-retirement\t1304\t\t\t1304\t\t\thard coal\tDiler Holding\t\t2014\t",
+    "Colakoglu\tTR\tTürkiye\t40.7873\t29.5292\topen-no-retirement\t207\t\t\t207\t\t\thard coal\tÇolakoğlu\t\t2003\t",
+    "ICDAS Bekirli\tTR\tTürkiye\t40.3916\t27.0412\topen-no-retirement\t1216\t\t\t1216\t\t\thard coal\tIçdaş\t\t2011\t",
+    "Isken Sugozu\tTR\tTürkiye\t36.8345\t35.8684\topen-no-retirement\t1320\t\t\t1320\t\t\thard coal\tSteag\t\t2003\t",
+    "Izdemir Enerji\tTR\tTürkiye\t38.7272\t26.9061\topen-no-retirement\t730\t\t\t380\t350\t\thard coal\tİDÇ Steel\t\t2014\t",
+    "Zonguldak Eren I\tTR\tTürkiye\t41.497\t31.8436\topen-no-retirement\t174\t\t\t174\t\t\thard coal\tEren Holding\t\t2010\t",
+    "ICDAS Celik\tTR\tTürkiye\t40.4404\t27.1049\topen-no-retirement\t411\t\t\t411\t\t\thard coal\tIçdaş\t\t2005\t",
+    "Afsin Elbistan A\tTR\tTürkiye\t38.3532\t36.9828\topen-no-retirement\t1474\t\t\t1474\t\t\tlignite\tEÜAŞ\t\t1984\t",
+    "Afsin Elbistan B\tTR\tTürkiye\t38.3532\t36.9828\topen-no-retirement\t1564\t\t\t1564\t\t\tlignite\tEÜAŞ\t\t2006\t",
+    "Bolu-Goynuk\tTR\tTürkiye\t40.2529\t30.7684\topen-no-retirement\t276\t\t\t276\t\t\tlignite\tAksa (Kazanci Holding)\t\t2015\t",
+    "Can I Onsekizmart\tTR\tTürkiye\t40.0241\t26.9584\topen-no-retirement\t348\t\t\t348\t\t\tlignite\tEÜAŞ\t\t2003\t",
+    "Catalagzi\tTR\tTürkiye\t41.497\t31.8436\topen-no-retirement\t326\t\t\t326\t\t\thard coal\tBereket\t\t1989\t",
+    "Cayirhan\tTR\tTürkiye\t40.0969\t31.6947\topen-no-retirement\t672\t\t\t672\t\t\tlignite\tCiner Group\t\t1987\t",
+    "Kangal\tTR\tTürkiye\t39.0747\t37.2975\topen-no-retirement\t823\t\t\t497\t\t\tlignite\tKonya Şeker\t\t1989\t",
+    "Kemerkoy\tTR\tTürkiye\t37.0286\t27.9114\topen-no-retirement\t684\t\t\t684\t\t\tlignite\tIçdaş\t\t1994\t",
+    "Orhaneli\tTR\tTürkiye\t39.9533\t28.8522\topen-no-retirement\t397\t\t\t397\t\t\tlignite\tÇelikler\t\t1992\t",
+    "Seyitomer\tTR\tTürkiye\t39.5778\t29.8944\topen-no-retirement\t652\t\t\t652\t\t\tlignite\tÇelikler\t\t1973\t",
+    "Soma B\tTR\tTürkiye\t39.1949\t27.636\topen-no-retirement\t1074\t\t\t1074\t\t\tlignite\tKonya Şeker\t\t1981\t",
+    "Tufanbeyli\tTR\tTürkiye\t38.2692\t36.0651\topen-no-retirement\t489\t\t\t489\t\t\tlignite\tSabancı Holding\t\t2016\t",
+    "Tuncbilek\tTR\tTürkiye\t39.629\t29.4573\topen-no-retirement\t397\t\t\t397\t\t\tlignite\tÇelikler\t\t1966\t",
+    "Yatagan\tTR\tTürkiye\t37.3313\t28.1001\topen-no-retirement\t684\t\t\t684\t\t\tlignite\tBereket\t\t1983\t",
+    "Yenikoy\tTR\tTürkiye\t37.1376\t27.885\topen-no-retirement\t456\t\t\t456\t\t\tlignite\tIçdaş\t\t1986\t",
+    "Yunus Emre\tTR\tTürkiye\t39.9836\t31.3206\topen-no-retirement\t316\t\t\t316\t\t\tlignite\tSSS Yıldızlar Holding\t\t2018\t",
+    "Çan-2 power station\tTR\tTürkiye\t40.0241\t26.9584\topen-no-retirement\t330\t\t\t330\t\t\tlignite\tOdaş Enerji\t\t2018\t",
+    "Cenal\tTR\tTürkiye\t40.4182\t27.3167\topen-no-retirement\t2370\t1050\t\t1320\t\t\thard coal\tCengiz Holding A.Ş.\t\t2017\t",
+    "Zonguldak Eren II\tTR\tTürkiye\t41.497\t31.8436\topen-no-retirement\t1336\t\t\t1336\t\t\thard coal\tEren Holding\t\t2010\t",
+    "Zonguldak Eren III\tTR\tTürkiye\t41.497\t31.8436\topen-no-retirement\t1461\t\t\t1461\t\t\thard coal\tEren Holding\t\t2016\t",
+    "Soma Kolin\tTR\tTürkiye\t39.2307\t27.7184\topen-no-retirement\t510\t\t\t510\t\t\tlignite\tKolin Group\t\t2019\t",
+    "EMBA Hunutlu power station\tTR\tTürkiye\t36.81609\t36.81609\topen-no-retirement\t1320\t\t\t1320\t\t\thard coal\tState Power Investment Corporation\t\t2022\t",
+    "Ada Yesildag Enerji power station\tTR\tTürkiye\t36.376111\t33.932222\tcancelled\t1200\t\t\t\t1200\t\tunknown\tYesildag Enerji Proje Insaat A.Ş.\t\t\t",
+    "Ada Yumurtalık power station\tTR\tTürkiye\t36.843\t35.86\tcancelled\t1320\t\t\t\t1320\t\thard coal\tEngie\t\t\t",
+    "Adana Akdeniz power station\tTR\tTürkiye\t36.8178\t35.86216\tcancelled\t600\t\t\t\t600\t\thard coal\tDiler Holding\t\t\t",
+    "Ağan power station\tTR\tTürkiye\t40.44982294\t27.30435562\tcancelled\t1580\t\t\t\t1580\t\thard coal\tDoğanlar Holding\t\t\t",
+    "Alpu power station\tTR\tTürkiye\t39.897\t30.862\tcancelled\t1080\t\t\t\t1080\t\tlignite\tEÜAŞ\t\t\t",
+    "Amasra Bartın power station\tTR\tTürkiye\t41.72704\t32.34971\tcancelled\t600\t\t\t\t600\t\thard coal\tHattat Holding\t\t\t",
+    "Astoria Ceyhan power station\tTR\tTürkiye\t36.90659\t35.96236\tcancelled\t1320\t\t\t\t1320\t\tunknown\tAstoria İç ve Dış Ticaret A.Ş.\t\t\t",
+    "Atakaş power station\tTR\tTürkiye\t36.6971\t36.2042\tcancelled\t660\t\t\t\t660\t\tunknown\tAtakaş Group\t\t\t",
+    "Ayas power station\tTR\tTürkiye\t36.82211\t35.86753\tcancelled\t625\t\t\t\t625\t\thard coal\tOYAK\t\t\t",
+    "Bandırma Elektrik power station\tTR\tTürkiye\t40.30593\t27.7272\tcancelled\t1600\t\t\t\t1600\t\tunknown\tBahçepınar Enerji Üretim ve İnşaat A.Ş.\t\t\t",
+    "Bandırma III power station\tTR\tTürkiye\t39.385\t27.533\tcancelled\t810\t\t\t\t810\t\tunknown\tSabancı Holding\t\t\t",
+    "Biga power station\tTR\tTürkiye\t40.47233\t27.28625\tcancelled\t1540\t\t\t\t1540\t\thard coal\tBiga Elektrik\t\t\t",
+    "Bingöl power station\tTR\tTürkiye\t39.31575\t40.889156\tcancelled\t150\t\t\t\t150\t\tlignite\tKazancı Holding\t\t\t",
+    "Bursa power station\tTR\tTürkiye\t39.90331\t29.17746\tcancelled\t270\t\t\t\t270\t\tlignite\tÇelikler Holding\t\t\t",
+    "Çalışkan Ceyhan power station\tTR\tTürkiye\t36.93815\t35.99446\tcancelled\t1320\t\t\t\t1320\t\tunknown\tÇalışkan Enerji\t\t\t",
+    "Orta Anadolu power station\tTR\tTürkiye\t40.623886\t33.112751\tcancelled\t135\t\t\t\t135\t\tlignite\tÇalık Holding\t\t\t",
+    "Çankırı Orta power station\tTR\tTürkiye\t40.623886\t33.112751\tcancelled\t150\t\t\t\t150\t\tlignite\tÇalık Holding\t\t\t",
+    "Çebi Enerji power station\tTR\tTürkiye\t41.013446\t27.961648\tcancelled\t350\t\t\t\t350\t\thard coal\tÇebi Enerji\t\t\t",
+    "Çelikler Yumurtalık power station\tTR\tTürkiye\t36.86788\t35.90949\tcancelled\t1320\t\t\t\t1320\t\thard coal\tÇelikler Holding\t\t\t",
+    "Deniz power station\tTR\tTürkiye\t38.746\t26.912\tcancelled\t1320\t\t\t\t1320\t\tunknown\tLimak Holding\t\t\t",
+    "Diler Elbistan power station\tTR\tTürkiye\t38.16\t37.33\tcancelled\t400\t\t\t\t400\t\tunknown\tDiler Holding\t\t\t",
+    "Dinar power station\tTR\tTürkiye\t38.064\t30.167\tcancelled\t3500\t\t\t\t3500\t\tlignite\t[to be determined]\t\t\t",
+    "DOSAB cogeneration plant\tTR\tTürkiye\t40.243172\t28.96442\tcancelled\t50\t\t\t\t50\t\tlignite\tDOSAB\t\t\t",
+    "Evrese power station\tTR\tTürkiye\t40.416667\t26.666667\tcancelled\t135\t\t\t\t135\t\tlignite\tAkkan Enerji A.Ş.\t\t\t",
+    "Güneybatı Anadolu power station\tTR\tTürkiye\t37.31\t27.78\tcancelled\t660\t\t\t\t660\t\tunknown\tBereket Enerji Üretim A.Ş.\t\t\t",
+    "Güreci power station\tTR\tTürkiye\t40.343889\t26.683611\tcancelled\t1320\t\t\t\t1320\t\thard coal\tDiler Holding\t\t\t",
+    "Gürmin Enerji Amasya power station\tTR\tTürkiye\t40.889\t35.597\tcancelled\t300\t\t\t\t300\t\tlignite\tSoma Holding\t\t\t",
+    "Habaş power station\tTR\tTürkiye\t38.77273\t26.94599\tcancelled\t600\t\t\t\t600\t\tunknown\tHabaş Group\t\t\t",
+    "Hakan Enerji power station\tTR\tTürkiye\t36.84343\t35.886929\tcancelled\t100\t\t\t\t100\t\thard coal\tHakan Madencilik ve Elektrik Üretim\t\t\t",
+    "Hakan Kömür power station\tTR\tTürkiye\t37.0333\t35.8167\tcancelled\t100\t\t\t\t100\t\thard coal\tTunas Enerji Elektrik Uretim A.Ş.\t\t\t",
+    "HEMA Amasra power station\tTR\tTürkiye\t41.723\t32.349\tcancelled\t1320\t\t\t\t1320\t\thard coal\tHattat Holding\t\t\t",
+    "Ilgın power station\tTR\tTürkiye\t38.26\t31.91\tcancelled\t500\t\t\t\t500\t\tlignite\tCiner Holding\t\t\t",
+    "Irmak power station\tTR\tTürkiye\t39.79\t26.3325\tcancelled\t1320\t\t\t\t1320\t\thard coal\tBıçakcılar Çandarlı Elektrik Üretim A.Ş.\t\t\t",
+    "Kangal Etyemez power station\tTR\tTürkiye\t39.07743\t37.29562\tcancelled\t135\t\t\t\t135\t\tlignite\tSoyak Holding\t\t\t",
+    "Karaburun power station\tTR\tTürkiye\t40.446\t27.287\tcancelled\t1320\t\t\t\t1320\t\thard coal\tYıldırım Group\t\t\t",
+    "Kilikya power station\tTR\tTürkiye\t36.82786\t35.87151\tcancelled\t660\t\t\t\t660\t\thard coal\tBesa Group\t\t\t",
+    "Kirazlidere Thermal Power Plant\tTR\tTürkiye\t40.38227\t26.99455\tcancelled\t1600\t\t\t\t1600\t\thard coal\tYıldırım Group\t\t\t",
+    "Kireçlik power station\tTR\tTürkiye\t41.3689442\t31.5878358\tcancelled\t1200\t\t\t\t1200\t\thard coal\tHattat Holding\t\t\t",
+    "Kınık power station\tTR\tTürkiye\t39.084\t27.45\tcancelled\t700\t\t\t\t700\t\tlignite\tPolyak Eynez Enerji Üretim Madencilik Sanayi ve Ticaret\t\t\t",
+    "Kıvanç power station\tTR\tTürkiye\t36.34\t33.4\tcancelled\t825\t\t\t\t825\t\tunknown\tKarataş Termik Üretim Santral Elektrik Madencilik Sanayi ve Ticaret A.Ş.\t\t\t",
+    "Konya Karapınar power station\tTR\tTürkiye\t37.714\t33.551\tcancelled\t5000\t\t\t\t5000\t\tlignite\tEÜAŞ\t\t\t",
+    "Kütahya Domaniç power station\tTR\tTürkiye\t39.8\t29.61\tcancelled\t300\t\t\t\t300\t\tlignite\tÇelikler Holding\t\t\t",
+    "Meda power station\tTR\tTürkiye\t40.972709\t27.876831\tcancelled\t770\t\t\t\t770\t\thard coal\tAzrataş Elektrik Üretim\t\t\t",
+    "METES power station\tTR\tTürkiye\t36.24\t33.75\tcancelled\t2000\t\t\t\t2000\t\tunknown\tEren Holding\t\t\t",
+    "Muğla power station\tTR\tTürkiye\t37.15\t27.805\tcancelled\t300\t\t\t\t300\t\tunknown\t[to be determined]\t\t\t",
+    "Petkim power station\tTR\tTürkiye\t38.795\t26.970278\tcancelled\t205\t\t\t\t205\t\thard coal\tState Oil Company of Azerbaijan (SOCAR)\t\t\t",
+    "Polat power station\tTR\tTürkiye\t39.616008\t29.4429042\tcancelled\t300\t\t\t\t300\t\tlignite\tPolat Yol Yapı\t\t\t",
+    "Sanko Gölbaşı power station\tTR\tTürkiye\t37.8197187\t37.7185124\tcancelled\t150\t\t\t\t150\t\tunknown\tSanko Holding\t\t\t",
+    "Sanko Yumurtalık power station\tTR\tTürkiye\t36.876\t35.894\tcancelled\t1600\t\t\t\t1600\t\tunknown\tSanko Holding\t\t\t",
+    "Sedef II TES power station\tTR\tTürkiye\t36.843\t35.86\tcancelled\t600\t\t\t\t600\t\tunknown\tİpekyolu Enerji\t\t\t",
+    "Selena power station\tTR\tTürkiye\t36.9214725\t36.0475297\tcancelled\t900\t\t\t\t900\t\tunknown\tBendis Enerji Üretim Madencilik Danışmanlık San ve Tic Ltd. Şti.\t\t\t",
+    "Şevketiye Lapseki power station\tTR\tTürkiye\t40.395\t26.792\tcancelled\t1320\t\t\t\t1320\t\tunknown\tKaptan Şirketler Group\t\t\t",
+    "Teyo Tufanbeyli power station\tTR\tTürkiye\t38.2299\t36.2481\tcancelled\t700\t\t\t\t700\t\tlignite\tTeyo Yatırım ve Dış Ticaret A.Ş.\t\t\t",
+    "Tosyalı İskenderun power station\tTR\tTürkiye\t36.6971\t36.2042\tcancelled\t1200\t\t\t\t1200\t\tunknown\tTosyalı Holding\t\t\t",
+    "Tunçbilek Kütahya power station expansion\tTR\tTürkiye\t0\t0\tcancelled\t300\t\t\t\t300\t\tlignite\tÇelikler Holding\t\t\t",
+    "Uluköy power station\tTR\tTürkiye\t38.1999839\t30.2705505\tcancelled\t640\t\t\t\t640\t\tlignite\tKolin Group\t\t\t",
+    "Yeşilovacık power station\tTR\tTürkiye\t36.2006108\t33.6637416\tcancelled\t1254\t\t\t\t1254\t\tunknown\tÇolakoğlu Group\t\t\t",
+    "Yıldırım Elazığ power station\tTR\tTürkiye\t38.662\t39.772\tcancelled\t200\t\t\t\t200\t\tunknown\tYıldırım Group\t\t\t",
+    "Yumurtalık IC İçtaş power station\tTR\tTürkiye\t36.77\t35.79\tcancelled\t600\t\t\t\t600\t\tunknown\tIC İbrahim Çeçen Investment Holding\t\t\t",
+    "Zafer power station\tTR\tTürkiye\t41.604444\t32.511111\tcancelled\t1320\t\t\t\t1320\t\thard coal\tAlpler Enerji Liman Hizmetleri Madencilik Denizcilik A.Ş\t\t\t",
+    "Çırpılar power station\tTR\tTürkiye\t39.816777\t27.339752\tcancelled\t200\t\t\t\t200\t\tlignite\tTaşyapı Grup\t\t\t",
+    "Ece power station\tTR\tTürkiye\t36.780693\t35.735779\tcancelled\t600\t\t\t\t600\t\thard coal\tÇukurova Demtaş Enerji Üretim\t\t\t",
+    "Ergene power station\tTR\tTürkiye\t41.2408\t27.6967\tcancelled\t170\t\t\t\t170\t\thard coal\tEren Holding\t\t\t",
+    "Güney Akdeniz power station\tTR\tTürkiye\t36.416667\t35.883333\tcancelled\t1320\t\t\t\t1320\t\thard coal\tPapatya Elektrik Üretim\t\t\t",
+    "Hande power station\tTR\tTürkiye\t36.780693\t35.735779\tcancelled\t600\t\t\t\t600\t\thard coal\tÇukurova Demtaş Enerji Üretim\t\t\t",
+    "Kahramanmaraş Anadolu power station\tTR\tTürkiye\t38.350818\t37.00706\tcancelled\t1200\t\t\t\t1200\t\tlignite\tEge Trade\t\t\t",
+    "Namal power station\tTR\tTürkiye\t40.343889\t26.683611\tcancelled\t1000\t\t\t\t1000\t\tunknown\tNamal Elektrik Üretim\t\t\t",
+    "Naren Karabiga power station\tTR\tTürkiye\t40.4580657\t27.2549938\tcancelled\t1960\t\t\t\t1960\t\thard coal\tNaren Enerji Elektrik Üretim A.Ş.\t\t\t",
+    "Antes power station\tTR\tTürkiye\t37.366667\t28.033333\tcancelled\t160\t\t\t\t160\t\tlignite\tÇalık Holding\t\t\t",
+    "Çayırhan-B power station\tTR\tTürkiye\t40.097\t31.695\tcancelled\t800\t\t\t\t800\t\tlignite\tKolin Group\t\t\t",
+    "Misis Adana power station\tTR\tTürkiye\t36.843\t35.86\tcancelled\t815\t\t\t\t815\t\tunknown\tÇınar Enerji\t\t\t",
+    "Çerkezköy power station\tTR\tTürkiye\t41.283333\t28\tcancelled\t990\t\t\t\t990\t\tlignite\tEÜAŞ\t\t\t",
+    "DETES 1 power station\tTR\tTürkiye\t41.498\t31.868\tcancelled\t160\t\t\t\t160\t\tlignite\tDemir Madencilik\t\t\t",
+    "Zorlu Akçakoca power station\tTR\tTürkiye\t41.087\t31.12\tcancelled\t1220\t\t\t\t1220\t\tunknown\tZorlu Group\t\t\t",
+    "Afşin-Elbistan power station\tTR\tTürkiye\t38.350818\t37.00706\tplanned\t688\t688\t\t\t5800\t\tlignite\tEÜAŞ\t\t\t",
+    "Çatalağzı power station\tTR\tTürkiye\t41.517402\t31.900198\tcancelled\t660\t\t\t\t660\t\thard coal\tBereket Enerji\t\t\t",
+    "Helvacı power station\tTR\tTürkiye\t40.08\t27.168\tcancelled\t270\t\t\t\t270\t\tlignite\tIC İÇTAŞ Enerji\t\t\t",
+    "Yenidere power station\tTR\tTürkiye\t37.508627\t28.6737408\tcancelled\t250\t\t\t\t250\t\tlignite\tYenidere Termik Enerji\t\t\t",
+    "Vize power station\tTR\tTürkiye\t41.5729962\t27.811652\tcancelled\t660\t\t\t\t660\t\tunknown\tTurkish Coal Enterprise (TKI)\t\t\t",
+    "Eren-1 TES\tTR\tTürkiye\t41.632\t27.03\tcancelled\t490\t\t\t\t490\t\tlignite\tDEBA madencilik\t\t\t",
+    "Kipas MMP power station\tTR\tTürkiye\t37.7671967\t27.445695\topen-no-retirement\t55\t\t\t55\t\t\thard coal\tKipas Holding\t\t2023\t",
+    "Silopi (Şırnak) power station\tTR\tTürkiye\t37.3526193\t42.5527275\tcancelled\t135\t\t\t\t135\t\tunknown\tŞırnak Elektrik Üretim A.Ş.\t\t\t",
+    "Suluova power station\tTR\tTürkiye\t40.859186\t35.651886\tcancelled\t270\t\t\t\t270\t\tunknown\tSuluova Enerji\t\t\t",
+    "Tekirdağ Malkara power station\tTR\tTürkiye\t40.638726\t27.0042947\tcancelled\t1000\t\t\t\t1000\t\tunknown\tEÜAŞ\t\t\t",
+    "Burshtyn\tUA\tUkraine\t49.210383\t24.666536\topen-no-retirement\t3166\t\t\t2366\t800\t\thard coal\tDTEK Energy BV\t\t1965\t",
+    "Cherkasy\tUA\tUkraine\t49.390543\t32.067372\topen-no-retirement\t180\t\t\t180\t\t\thard coal\tCherkasy Khimvolokno JSC\t\t1965\t",
+    "Chernihiv\tUA\tUkraine\t51.45496\t31.260173\tretired\t220\t\t\t\t\t220\thard coal\tCP Teplokomunenergo CJSC\t\t1961\t2021",
+    "Darnytska\tUA\tUkraine\t50.447771\t30.642949\topen-no-retirement\t160\t\t\t160\t\t\thard coal\tEuro Reconstruction LLC\t\t1965\t",
+    "Dobrotvir\tUA\tUkraine\t50.214293\t24.374654\topen-no-retirement\t1110\t\t\t510\t600\t\thard coal\tDTEK Energy BV\t\t1960\t",
+    "Kalush\tUA\tUkraine\t49.07049\t24.318522\topen-no-retirement\t200\t\t\t200\t\t\thard coal\tCostanza LLC\t\t1967\t",
+    "Kramatorskaya\tUA\tUkraine\t48.747705\t37.572339\topen-no-retirement\t120\t\t\t120\t\t\thard coal\tE.Connect sro\t\t1973\t",
+    "Kryvorizka\tUA\tUkraine\t47.543204\t33.659513\topen-no-retirement\t2925\t\t\t2079\t\t846\thard coal\tDTEK Energy BV\t\t1963\t",
+    "Kurakhov\tUA\tUkraine\t47.994514\t37.237077\topen-no-retirement\t1532\t\t\t1532\t\t\thard coal\tDTEK Energy BV\t\t1972\t",
+    "Ladyzhyn\tUA\tUkraine\t48.705825\t29.218668\topen-no-retirement\t1800\t\t\t1800\t\t\thard coal\tDTEK Energy BV\t\t1970\t",
+    "Luganskaya\tUA\tUkraine\t48.749346\t39.261917\topen-no-retirement\t1420\t\t\t1220\t\t200\thard coal\t[to be determined]\t\t1962\t",
+    "Myronivskyi\tUA\tUkraine\t48.479778\t38.284834\topen-no-retirement\t275\t\t\t275\t\t\thard coal\tEnergy of Donbass\t\t1953\t",
+    "Prydniprovska\tUA\tUkraine\t48.405291\t35.111749\topen-no-retirement\t2455\t\t\t910\t660\t885\thard coal\tDTEK Energy BV\t\t1958\t",
+    "Slavyansk\tUA\tUkraine\t48.870681\t37.765621\topen-no-retirement\t1540\t660\t\t880\t\t\thard coal\tDonbasenergo JSC\t\t1957\t",
+    "Starobesheve\tUA\tUkraine\t47.800786\t38.005422\topen-no-retirement\t2010\t\t\t2010\t\t\thard coal\tEnergy of Donbass\t\t1961\t",
+    "Trypilska\tUA\tUkraine\t50.133377\t30.74667\topen-no-retirement\t1225\t\t\t1225\t\t\thard coal\tCentrenergo PJSC\t\t1969\t",
+    "Vuglegirska\tUA\tUkraine\t48.464745\t38.20266\topen-no-retirement\t1200\t\t\t1200\t\t\thard coal\tEnergy of Donbass\t\t1972\t",
+    "Zaporizhia\tUA\tUkraine\t47.507238\t34.625478\topen-no-retirement\t1250\t\t\t1250\t\t\thard coal\tDTEK Energy\t\t1972\t",
+    "Zmiivska\tUA\tUkraine\t49.586013\t36.523875\topen-no-retirement\t2270\t\t\t2270\t\t\thard coal\tCentrenergo PJSC\t\t1960\t",
+    "Zuevskaya\tUA\tUkraine\t48.034804\t38.285213\topen-no-retirement\t1290\t\t\t1290\t\t\thard coal\tEnergy of Donbass\t\t1982\t",
+    "Aberthaw\tGB\tUnited Kingdom\t51.3875\t-3.4067\tretired\t1725\t\t\t\t\t1725\thard coal\tRWE\t\t1971\t2020",
+    "Cottam\tGB\tUnited Kingdom\t53.3033\t-0.7818\tretired\t2184\t\t\t\t\t2184\thard coal\tEDF\t\t1969\t2019",
+    "Fiddler’s Ferry\tGB\tUnited Kingdom\t53.3671\t-2.6838\tretired\t2132\t\t\t\t\t2132\thard coal\tSSE\t\t1971\t2020",
+    "Eggborough\tGB\tUnited Kingdom\t53.7137\t-1.1253\tretired\t2132\t\t\t\t\t2132\thard coal\tEPH\t\t1967\t2018",
+    "Ferrybridge\tGB\tUnited Kingdom\t53.7167\t-1.2817\tretired\t2132\t\t\t\t\t2132\thard coal\tSSE\t\t1966\t2016",
+    "Uskmouth\tGB\tUnited Kingdom\t51.5481\t-2.9748\tretired\t363\t\t\t\t\t363\thard coal\tSIMEC\t\t1962\t2017",
+    "Ratcliffe\tGB\tUnited Kingdom\t52.8615\t-1.2499\tretired\t2172\t\t\t\t\t2172\thard coal\tUniper\t\t1968\t2024",
+    "West Burton\tGB\tUnited Kingdom\t53.3607\t-0.8115\tretired\t2188\t\t\t\t\t2188\thard coal\tEDF\t\t1967\t2023",
+    "Rugeley\tGB\tUnited Kingdom\t52.7569\t-1.9214\tretired\t1094\t\t\t\t\t1094\thard coal\tEngie\t\t1972\t2016",
+    "Drax\tGB\tUnited Kingdom\t53.7367\t-0.9965\tretired\t4206\t\t\t\t\t4206\thard coal\tDrax Power plc\t\t1974\t2023",
+    "Kilroot\tGB\tUnited Kingdom\t54.7258\t-5.7661\tretired\t566\t\t\t\t\t566\thard coal\tEPH\t\t1981\t2023",
+    "Longannet\tGB\tUnited Kingdom\t56.05\t-3.6812\tretired\t2456\t\t\t\t\t2456\thard coal\tIberdrola\t\t1970\t2016",
+    "C.GEN North Killingholme Power Project\tGB\tUnited Kingdom\t53.657\t-0.255\tcancelled\t470\t\t\t\t470\t\thard coal\tUniper\t\t\t",
+    "Caledonia Clean Energy Project\tGB\tUnited Kingdom\t56.012083\t-3.697175\tcancelled\t570\t\t\t\t570\t\thard coal\tSummit Power Group\t\t\t",
+    "White Rose CCS Project\tGB\tUnited Kingdom\t53.7372\t-0.999\tcancelled\t426\t\t\t\t426\t\thard coal\tDrax Power plc\t\t\t"
+  ].join("\n");
+
+  // Status code -> colour in the brand palette ("Coal plant status").
+  // The legend order and wording come from the "statusLabels" setting.
+  var STATUS_COLORS = {
+    "planned": "coalPlanned",
+    "construction": "coalConstruction",
+    "cancelled": "coalCancelled",
+    "open-no-retirement": "coalNoRetirementDate",
+    "open-after-2030": "coalRetiresAfter2030",
+    "open-by-2030": "coalRetires2030Latest",
+    "retired": "coalRetired"
+  };
+  // Popup rows: [label key, column, section]
+  var ROWS = [
+    ["general", null, true],
+    ["status", "status"],
+    ["fuel", "Fuel"],
+    ["owner", "Owner"],
+    ["co2", "CO2 (Mt)"],
+    ["firstUnit", "First unit commissioned"],
+    ["lastUnit", "Last unit retirement"],
+    ["capacity", null, true],
+    ["planned", "Planned (MW)", false, true],
+    ["cancelled", "Cancelled or shelved (MW)", false, true],
+    ["construction", "Construction (MW)", false, true],
+    ["open", "Open (MW)", false, true],
+    ["retired", "Retired since 2016 (MW)", false, true]
+  ];
+
+  var state = { plants: [], byId: {}, cats: [], active: null, selected: null, topo: null, geometry: null };
+  var ui = null;
+
+  function norm(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, ""); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function num(v) { var n = parseFloat(String(v == null ? "" : v).replace(/,/g, "")); return isFinite(n) ? n : null; }
+  // "key :: text" lines -> { key: text } (and the list of keys in order)
+  function pairs(text) {
+    var out = { keys: [] };
+    String(text || "").split(/\n/).forEach(function (line) {
+      var m = /^\s*(?:status\s+)?([\w-]+)\s*::\s*(.*?)\s*$/i.exec(line);
+      if (m) { out[m[1]] = m[2]; out.keys.push(m[1]); }
+    });
+    return out;
+  }
+  function categories(S) {
+    var p = pairs(S.statusLabels);
+    return p.keys.filter(function (k) {
+      if (!STATUS_COLORS[k]) console.warn("C2: unknown status code '" + k + "' in the legend wording setting");
+      return STATUS_COLORS[k];
+    }).map(function (k) { return { code: k, label: p[k], color: S[STATUS_COLORS[k]] }; });
+  }
+  function category(v) {
+    var n = norm(v);
+    return state.cats.filter(function (c) { return norm(c.code) === n || norm(c.label) === n; })[0] || null;
+  }
+  // black or white text, whichever reads better on a colour
+  function textOn(hex) {
+    var h = String(hex).replace("#", ""), c = [0, 2, 4].map(function (i) { return parseInt(h.substr(i, 2), 16) / 255; });
+    var l = c.map(function (v) { return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+    return 0.2126 * l[0] + 0.7152 * l[1] + 0.0722 * l[2] > 0.4 ? "#000000" : "#ffffff";
+  }
+
+  function prepare(ctx) {
+    state.cats = categories(ctx.S);
+    state.byId = {};
+    state.plants = ctx.data.map(function (d, i) {
+      var p = { id: "p" + i, name: d.Name, country: d.Country || d.ISO, iso: DV.isoCode(d.ISO), lat: num(d.Lat), lon: num(d.Lon),
+        cap: num(d["Capacity (MW)"]), cat: category(d.Status), row: d };
+      if (!p.cat) console.warn("C2: unknown status '" + d.Status + "' for " + d.Name);
+      if (p.lat == null || p.lon == null) console.warn("C2: no coordinates for " + d.Name);
+      state.byId[p.id] = p;
+      return p;
+    }).filter(function (p) { return p.cat && p.lat != null && p.lon != null; });
+  }
+
+  // Popup / panel content (Flourish-like: coloured header, then a table)
+  function info(S, p) {
+    var L = pairs(S.popupLabels), c = p.cat, h;
+    if (S.popupHeader === "coloured block") {
+      var fg = S.popupHeaderText === "white" ? "#ffffff" : S.popupHeaderText === "black" ? "#000000" : textOn(c.color);
+      h = '<div class="c2-head" style="background:' + c.color + ";color:" + fg + '"><b>' + esc(p.name) + "</b><span>" + esc(p.country) + "</span></div>";
+      if (ui) ui.panel.style.color = fg;
+    } else {
+      if (ui) ui.panel.style.color = "";
+      h = '<div class="c2-head plain"><b><i style="background:' + c.color + '"></i>' + esc(p.name) + "</b><span>" + esc(p.country) + "</span></div>";
+    }
+    var rows = "", pending = null;
+    ROWS.forEach(function (r) {
+      if (r[2]) { pending = '<tr class="sec"><td colspan="2">' + esc(L[r[0]] || "") + "</td></tr>"; return; }
+      var v = r[1] === "status" ? (S.popupStatus ? c.label : "") : p.row[r[1]];
+      // as in Flourish: every plant except cancelled ones has a retirement row ("not planned" when there's no year)
+      if (r[0] === "lastUnit" && String(v || "").trim() === "" && c.code !== "cancelled") v = S.noRetirementText;
+      if (v == null || String(v).trim() === "") return;
+      if (r[3]) { var n = num(v); v = n == null ? v : DV.fmt(n, "", 0); }
+      if (pending) { rows += pending; pending = null; }
+      rows += "<tr><td>" + esc(L[r[0]] || r[0]) + "</td><td>" + esc(v) + "</td></tr>";
+    });
+    var border = S.popupHeader === "coloured block" ? c.color : "#e3e3e3";
+    return h + '<div class="c2-body" style="border-color:' + border + '"><table>' + rows + "</table></div>";
+  }
+
+  /* No side panel on this map: hovering shows the popup. A plant picked in the search box gets its popup
+   * next to it. Phones and touch screens have no hover, so a tap shows the details below the map instead. */
+  function select(ctx, id, touch) {
+    var S = ctx.S, p = state.byId[id];
+    state.selected = p ? id : null;
+    ui.view.select(state.selected, "bubble");
+    ui.search.set(state.selected);
+    var wasOpen = ui.panelOpen;
+    ui.panelOpen = !!p && (touch || ctx.stacked);
+    if (ui.panelOpen) ui.panelBody.innerHTML = info(S, p);
+    if (ui.panelOpen || wasOpen) ctx.rerender();
+    if (p && !ui.panelOpen && S.tooltipShow) ui.view.tipAt(id, info(S, p));
+  }
+
+  function makeUI(ctx) {
+    var layout = DV.mapLayout(document.getElementById("map"), ctx.root);
+    var view = DV.mapView(layout.stage);
+    var panel = document.createElement("div"); panel.className = "dvm-panel dv-control c2-card";
+    var close = document.createElement("button"); close.className = "dvm-panel-close"; close.type = "button";
+    close.setAttribute("aria-label", "Close"); close.innerHTML = "&times;";
+    var body = document.createElement("div");
+    panel.appendChild(close); panel.appendChild(body);
+    ui = { layout: layout, view: view, panel: panel, panelBody: body, panelOpen: false };
+    view.tip.classList.add("c2-card");
+    close.addEventListener("click", function () { select(ctx, null); });
+
+    view.onHover = function (id, kind) {
+      var p = kind === "bubble" && state.byId[id];
+      return p && ctx.S.tooltipShow ? info(ctx.S, p) : "";
+    };
+    view.onClick = function (id, kind) {
+      var touch = view.lastPointer === "touch" || view.lastPointer === "pen";
+      // with a mouse, a click only highlights (the popup is already showing); a second click clears it
+      select(ctx, kind === "bubble" && id !== state.selected ? id : null, touch);
+    };
+
+    ui.search = DV.mapSearch({
+      items: state.plants.slice().sort(function (a, b) { return a.name.localeCompare(b.name); })
+        .map(function (p) { return { id: p.id, label: p.name + " (" + p.country + ")" }; }),
+      onSelect: function (id) { select(ctx, id); }
+    });
+  }
+
+  function drawBubbles(ctx, w) {
+    var S = ctx.S;
+    var maxCap = Math.max.apply(null, state.plants.map(function (p) { return p.cap || 0; }));
+    var r = DV.bubbleRadius(S, maxCap, w);
+    ui.view.bubbles(state.plants.filter(function (p) { return !state.active || state.active[p.cat.code]; }).map(function (p) {
+      return { id: p.id, lon: p.lon, lat: p.lat, r: r(p.cap), fill: p.cat.color, opacity: S.bubbleOpacity,
+        stroke: S.bubbleStroke, strokeWidth: S.bubbleStrokeWidth };
+    }));
+    return r;
+  }
+
+  DV.create({
+    sheetId: SHEET_ID,
+    sheetTab: SHEET_TAB,
+    fallback: FALLBACK,
+    columns: ["Name", "Lat", "Lon", "Status", "Capacity (MW)"],
+    text: true,
+
+    groups: [
+      { name: "Text", fields: [
+        { key: "title",             type: "text", def: "Coal power plants in Europe", help: "Main title (empty = none)" },
+        { key: "footer",            type: "text", def: "Source: [Beyond Fossil Fuels coal tracker](https://beyondfossilfuels.org/coal/) | Plant retirements tracked since Jan 2016 | Last update: July 2026", help: "Footer; [text](https://…) makes a link. Leave empty to hide" },
+        { key: "notes",             type: "textarea", rows: 6, def: [
+            "Note: The map excludes all coal power plants that retired or were cancelled before 2016 and includes all those that were planned, under construction, or open at the beginning of 2016. Plants that are not announced to retire but under a non-legislated national phase-out commitment, appear under \"no retirement announcement\" (check out the map of [national coal phase-out commitments](https://beyondfossilfuels.org/europes-coal-exit/)).",
+            "The status of Ukraine's coal units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war."
+          ].join("\n"), help: "Notes under the footer, one paragraph per line; [text](https://…) makes a link" },
+        { key: "notesSize",         type: "range", min: 10, max: 24, step: 0.5, def: 14, help: "Notes text size in px" },
+        { key: "legendTitle",       type: "text", def: "", help: "Legend title (empty = none)" },
+        { key: "statusLabels",      type: "textarea", rows: 7, def: [
+            "planned :: Planned",
+            "construction :: Construction",
+            "cancelled :: Cancelled",
+            "open-no-retirement :: Open, no retirement announcement",
+            "open-after-2030 :: Open, announced to retire after 2030",
+            "open-by-2030 :: Open, retires 2030 at the latest",
+            "retired :: Retired"
+          ].join("\n"), help: "Legend wording, one line per status: code :: wording. The line order is the legend order" },
+        { key: "popupLabels",       type: "textarea", rows: 13, def: [
+            "general :: General information",
+            "status :: Status:",
+            "fuel :: Fuel type:",
+            "owner :: Owner:",
+            "co2 :: CO2 emissions (2025, Mt):",
+            "firstUnit :: Year commissioning first unit:",
+            "lastUnit :: Year retirement last unit:",
+            "capacity :: Capacity (MW)",
+            "planned :: - Planned:",
+            "cancelled :: - Cancelled or shelved:",
+            "construction :: - Construction:",
+            "open :: - Open:",
+            "retired :: - Retired since 2016:"
+          ].join("\n"), help: "Popup wording, one line per row: key :: wording (rows with no data are left out)" },
+        { key: "searchPlaceholder", type: "text", def: "Search for a plant", help: "Search box placeholder" }
+      ]},
+      { name: "Legend and search", fields: [
+        { key: "legendPos",    type: "select", options: DV.POSITIONS, def: "top-left corner", help: "Legend position (on phones, corners and sides move above the map)" },
+        { key: "legendDir",    type: "select", options: ["vertical", "horizontal"], def: "vertical", help: "Legend direction" },
+        { key: "legendGap",    type: "range", min: 0, max: 40, step: 1, def: 5, help: "Space between legend items in px (between rows when vertical, between items when horizontal)" },
+        { key: "legendFilter", type: "check", def: true, help: "Click a legend item to show only that status" },
+        { key: "searchPos",    type: "select", options: DV.POSITIONS, def: "top-right corner", help: "Plant search position" },
+        { key: "searchWidth",  type: "range", min: 80, max: 400, step: 5, def: 180, help: "Search box width in px" }
+      ]},
+      { name: "Popup", fields: [
+        { key: "tooltipShow",     type: "check", def: true, help: "Show a popup when hovering over a plant (mouse only)" },
+        { key: "tooltipWidth",    type: "range", min: 180, max: 480, step: 5, def: 380, help: "Popup maximum width in px" },
+        { key: "popupHeader",     type: "select", options: ["coloured block", "name with colour dot"], def: "coloured block", help: "Popup header: coloured block (as in Flourish) or the name with a colour dot" },
+        { key: "popupHeaderText", type: "select", options: ["automatic", "white", "black"], def: "automatic", help: "Text colour on the coloured block (automatic: black or white, whichever reads better)" },
+        { key: "popupStatus",     type: "check", def: false, help: "Show the status (legend wording) in the popup (Flourish didn't)" },
+        { key: "noRetirementText", type: "text", def: "not planned", help: "Retirement year when a plant (not cancelled) has none (empty = leave the row out)" },
+        { key: "popupLines",      type: "color", def: "#e6e6e6", help: "Lines between the popup rows" }
+      ]}
+    ].concat(DV.bubbleGroup(), DV.mapGroups({
+      noDataShow: "BFF countries only", noDataFill: "#e4e5e7", borderWidth: 1.2, smallMode: "as they are",
+      viewWest: -10, viewEast: 44, viewSouth: 35, viewNorth: 66
+    })),
+
+    build: function (ctx) {
+      var S = ctx.S;
+      prepare(ctx);
+      if (!ui) makeUI(ctx);
+      var st = ctx.root.style;
+      st.setProperty("--dvm-search-width", S.searchWidth + "px");
+      st.setProperty("--dvm-tip-width", S.tooltipWidth + "px");
+      st.setProperty("--dvm-panel-size", S.tooltipSize + "px");
+      st.setProperty("--c2-line", S.popupLines);
+      document.getElementById("dv-title").style.display = S.title ? "" : "none";
+      document.getElementById("notes").innerHTML = String(S.notes || "").split(/\n/).filter(function (l) { return l.trim(); })
+        .map(function (l) { return "<p>" + DV.linkify(l) + "</p>"; }).join("");
+
+      if (ui.legend) ui.legend.remove();
+      state.active = null;
+      ui.legend = DV.mapLegend({
+        title: S.legendTitle,
+        items: state.cats.map(function (c) { return { key: c.code, label: c.label, color: c.color }; }),
+        onToggle: S.legendFilter ? function (active) { state.active = active; ctx.rerender(); } : null
+      });
+      ui.legend.setLayout(S.legendDir, S.legendGap);
+      ui.search.setPlaceholder(S.searchPlaceholder);
+      if (ui.panelOpen) ui.panelBody.innerHTML = info(S, state.byId[state.selected]);
+
+      if (state.geometry !== S.geometry) {
+        state.geometry = S.geometry;
+        DV.loadGeo(S.geometry).then(function (topo) {
+          if (state.geometry !== S.geometry) return;
+          state.topo = topo;
+          ctx.rerender();
+        }, function (e) { console.warn("C2: map shapes could not be loaded (" + e.message + ")"); });
+      }
+    },
+
+    render: function (ctx) {
+      var S = ctx.S, narrow = ctx.stacked;
+      ctx.root.style.setProperty("--c2-notes-size", ctx.sz(S.notesSize, 12) + "px");
+      if (ui.sizeLegend) { ui.sizeLegend.remove(); ui.sizeLegend = null; }
+      var w0 = ui.layout.stage.clientWidth || ctx.W;
+      var maxCap = Math.max.apply(null, state.plants.map(function (p) { return p.cap || 0; }));
+      var values = String(S.sizeLegendValues || "").split(/[,;\s]+/).map(Number).filter(function (v) { return v > 0; });
+      if (S.sizeLegendPos !== "hidden" && values.length) {
+        ui.sizeLegend = DV.bubbleLegend({ title: S.sizeLegendTitle, values: values, r: DV.bubbleRadius(S, maxCap, w0),
+          fmt: function (v) { return DV.fmt(v, "", 0); } });
+      }
+      var list = [[ui.legend, S.legendPos]];
+      if (ui.sizeLegend) list.push([ui.sizeLegend, S.sizeLegendPos]);
+      list.push([ui.search, S.searchPos], [ui.panel, ui.panelOpen ? "below map" : "hidden", true]);
+      ui.layout.place(list, narrow);
+      if (!state.topo) return;
+
+      var w = ui.layout.stage.clientWidth;
+      var h = Math.round(w * (narrow ? S.mapHeightPhone : S.mapHeight));
+      var view = Object.create(S);
+      if (narrow) view.mapZoom = S.mapZoom * S.mapZoomPhone;
+      ui.view.draw({
+        S: S, width: w, height: h,
+        projection: DV.mapProjection(view, w, h),
+        features: DV.mapShapes(state.topo, S),
+        style: function () { return null; },     // countries are background only (see "Countries without data")
+        label: (S.title || "Coal plant map") + ": coal power plants in Europe by status and capacity"
+      });
+      drawBubbles(ctx, w);
+    }
+  });
+})();
+</script>
+</body>
+</html>

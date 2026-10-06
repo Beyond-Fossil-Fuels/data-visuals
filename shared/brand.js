@@ -12,9 +12,6 @@ var BRAND = {
   adobeKitId: "fpb7yyu",                       // Adobe Fonts web project ID, e.g. abc1def (empty = not used)
   titleWeight: 700,                            // Main title boldness
   headingWeight: 700,                          // Chart heading boldness
-  legendSize: 14,                              // Legend text size in px
-  axisSize: 17,                                // Axis label size in px
-  tooltipSize: 13.5,                           // Tooltip text size in px
 
   // ---- Colours ----
   background: "#fffaf2",                       // Page background (each graphic can use it, white or transparent)
@@ -39,7 +36,7 @@ var BRAND = {
   // ---- Arrow style ----
   arrowColor: "#000000",                       // Arrow colour
   arrowThickness: 6.5,                         // Line thickness in px
-  arrowHeadSize: 26,                           // Arrowhead size in px
+  arrowHeadSize: 24,                           // Arrowhead size in px
   arrowHeadStyle: "filled",                    // Arrowhead: open chevron or filled triangle
   arrowLineStyle: "solid",                     // Line style
 

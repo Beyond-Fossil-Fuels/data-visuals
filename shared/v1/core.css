@@ -122,3 +122,7 @@ body.gd-on { padding-right: 360px; }
   body.gd-on { padding-right: 0; }
   .gd-panel { position: static; width: auto; border-left: 0; border-top: 1px solid #d6d9de; }
 }
+
+/* ---------- print to PDF (design mode's PDF download: ?design&print) ---------- */
+html.dv-print, html.dv-print body { margin: 0; padding: 0; overflow: hidden; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+html.dv-print-nocontrols .dv-control, html.dv-print .dv-tooltip, html.dv-print .sr-only { display: none !important; }

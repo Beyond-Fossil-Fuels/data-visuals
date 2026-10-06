@@ -67,6 +67,9 @@ var SETTINGS = {
   titleSize: 46,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
   footerSize: 18,                              // Footer (footnote) text size in px
+  legendSize: 14,                              // Legend text size in px
+  axisSize: 14,                                // Axis label size in px
+  tooltipSize: 14,                             // Tooltip (popup) text size in px
 
   // ---- Spacing ----
   padTop: 16,                                  // Space above the graphic in px
@@ -76,13 +79,21 @@ var SETTINGS = {
   // ---- Background ----
   bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
 
+  // ---- Label on the dark area ----
+  areaLabelShow: true,                         // Show the label inside the dark area
+  areaLabelText: "Already left development|since start of tracking", // Label text; use | for a line break
+  areaLabelSize: 19,                           // Largest label size in px (it shrinks to fit inside the dark area, and on small screens)
+  areaLabelWeight: 700,                        // Label boldness
+  areaLabelColor: "#ffffff",                   // Label colour
+  areaLabelWidth: 0.8,                         // Widest a label line gets, as a share of the chart width
+
   // ---- Colours ----
   switchColor: "#fef751",                      // Background of the selected switch button
   colorAlreadyLeft: "#333333",                 // Dark area: already left development
   colorAlreadyLeftDots: "#000000",             // Line and dots on the dark area
 
   // ---- Layout ----
-  chartGap: 150,                               // Space between the two charts (where the arrow sits), in px
+  chartGap: 118,                               // Space between the two charts (where the arrow sits), in px
   chartHeight: 0.88,                           // Chart height as a share of its width
 
   // ---- Arrow position ----
@@ -181,6 +192,14 @@ var SETTINGS = {
         { key: "rightTitle",    type: "text", def: "Already left development since start of tracking", help: "Heading above the right chart" },
         { key: "footer",        type: "text", def: "Power plants tracked since {first} | Last update: {last}", help: "Footer; {first} and {last} are filled in from the data. Leave empty to hide" }
       ]},
+      { name: "Label on the dark area", fields: [
+        { key: "areaLabelShow",   type: "check", def: true, help: "Show the label inside the dark area" },
+        { key: "areaLabelText",   type: "text", def: "Already left development|since start of tracking", help: "Label text; use | for a line break" },
+        { key: "areaLabelSize",   type: "range", min: 10, max: 40, step: 0.5, def: 19, help: "Largest label size in px (it shrinks to fit inside the dark area, and on small screens)" },
+        { key: "areaLabelWeight", type: "select", options: [300, 400, 500, 600, 700, 800, 900], def: 700, help: "Label boldness" },
+        { key: "areaLabelColor",  type: "color", def: "#ffffff", help: "Label colour" },
+        { key: "areaLabelWidth",  type: "range", min: 0.3, max: 1, step: 0.05, def: 0.8, help: "Widest a label line gets, as a share of the chart width" }
+      ]},
       { name: "Colours", fields: [
         { key: "switchColor",          type: "color", def: "#fef751", help: "Background of the selected switch button" },
         { key: "colorAlreadyLeft",     type: "color", def: "#333333", help: "Dark area: already left development" },
@@ -246,6 +265,8 @@ var SETTINGS = {
 
       var L = DV.stackedArea(Object.assign({}, common, {
         svg: charts.left.svg, tip: charts.left.tip, series: ls,
+        label: S.areaLabelShow ? { text: S.areaLabelText, size: ctx.sz(S.areaLabelSize, 11), weight: S.areaLabelWeight,
+          color: S.areaLabelColor, width: S.areaLabelWidth } : null,
         totals: function (d) {
           var inDev = d.Shelved + d.Construction + d["Pre-construction"] + d.Announced;
           return [["In development", inDev], ["Total tracked", inDev + d[LEFT]]];
