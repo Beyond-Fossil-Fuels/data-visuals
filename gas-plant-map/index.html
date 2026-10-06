@@ -1,0 +1,1494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gas power plant map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="../shared/v1/core.css">
+<link rel="stylesheet" href="../shared/v1/map.css">
+<style>
+  /* Plant details (hover popup, and below the map on phones), as in the Flourish popup:
+     a coloured header block, then a white table with thin lines between the rows; no frame around them */
+  .c2-card.dvm-tip, .c2-card.dvm-panel { background: transparent; border: 0; box-shadow: none; padding: 0; }
+  .c2-card .dvm-panel-close { top: 0.3em; right: 8px; color: inherit; }
+  .c2-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 0.45em 0.75em;
+    border-radius: 4px; line-height: 1.25; }
+  .c2-head b { font-size: 1.2em; }
+  .c2-head span { font-size: 1.05em; }
+  .dvm-panel .c2-head { padding-right: 2.6em; }
+  .c2-head.plain { padding: 0.45em 0.75em; background: #fff; border: 2px solid #e3e3e3; border-bottom: 0; border-radius: 4px 4px 0 0; }
+  .c2-head.plain b { display: flex; align-items: center; gap: 8px; }
+  .c2-head.plain i { width: 0.8em; height: 0.8em; border-radius: 50%; flex: none; }
+  .c2-head.plain + .c2-body { margin-top: 0; border-radius: 0 0 4px 4px; }
+  .c2-body { margin-top: 3px; padding: 0.3em 0.55em; border: 2px solid #e3e3e3; border-radius: 4px; background: #fff; }
+  .c2-body table { width: 100%; border-collapse: collapse; }
+  .c2-body td { padding: 0.28em 0.4em; vertical-align: top; border-bottom: 1px solid var(--c2-line, #e6e6e6); }
+  .c2-body tr:last-child td { border-bottom: 0; }
+  .c2-body td:first-child { white-space: nowrap; }
+  .c2-body td + td { font-variant-numeric: tabular-nums; width: 100%; }
+  .c2-body tr.sec td { font-weight: 700; }
+  /* Notes under the footer */
+  .c2-notes { margin: 6px 0 0; font-size: var(--c2-notes-size); }
+  .c2-notes p { margin: 0 0 4px; }
+  .c2-notes:empty { display: none; }
+</style>
+</head>
+<body>
+<div class="dv" id="dv">
+  <h1 class="dv-title" id="dv-title"></h1>
+  <div id="map"></div>
+  <p class="dv-footer" id="dv-footer"></p>
+  <div class="dv-footer c2-notes" id="notes"></div>
+</div>
+
+<script src="../shared/brand.js"></script>
+<script>
+// ==== SETTINGS START ====
+/* ================================================================
+ * DESIGN SETTINGS FOR THIS GRAPHIC
+ * Change any value below to restyle this graphic. Colours are hex
+ * codes, sizes are in pixels. Keep the quotes and the comma on each line.
+ * Fonts, text colours and palette colours are shared by all graphics:
+ * they live in shared/brand.js.
+ * Easier: open this page with ?design at the end of its address to
+ * adjust everything with sliders, then download the result.
+ * ================================================================ */
+var SETTINGS = {
+  // ---- Text ----
+  title: "Europe’s existing and planned gas power plants", // Main title (empty = none)
+  footer: "Sources: [Beyond Fossil Fuels](https://beyondfossilfuels.org/gas/), [Global Energy Monitor](https://globalenergymonitor.org/) | Plant retirements tracked since Jan 2023 | Last update: July 2026", // Footer; [text](https://…) makes a link. Leave empty to hide
+  notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.", // Notes under the footer, one paragraph per line; [text](https://…) makes a link
+  notesSize: 14,                               // Notes text size in px
+  legendTitle: "",                             // Legend title (empty = none)
+  statusLabels: "operating :: Operating\nmothballed :: Mothballed\nannounced :: Announced\npre-construction :: Pre-construction\nconstruction :: Construction\nshelved :: Shelved\ncancelled :: Cancelled\nretired :: Retired", // Legend wording, one line per status: code :: wording. The line order is the legend order
+  popupLabels: "general :: General information\nstatus :: Status:\nowner :: Owners:\nchp :: CHP:\nfirstUnit :: Start year first unit:\nretiredIn :: Retired in:\nplannedRetirement :: Planned retirement last unit:\ncapacity :: Capacity (MW)\noperating :: - Operating:\nmothballed :: - Mothballed:\nannounced :: - Announced:\npreConstruction :: - Pre-construction:\nconstruction :: - Construction:\nshelved :: - Shelved:\ncancelled :: - Cancelled:\nretired :: - Retired:", // Popup wording, one line per row: key :: wording (rows with no data are left out)
+  searchPlaceholder: "Search power plants",    // Search box placeholder
+
+  // ---- Text sizes ----
+  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  headingSize: 21,                             // Chart heading (subtitle) size in px
+  footerSize: 18,                              // Footer (footnote) text size in px
+  legendSize: 14,                              // Legend text size in px
+  axisSize: 14,                                // Axis label size in px
+  tooltipSize: 14,                             // Tooltip (popup) text size in px
+
+  // ---- Spacing ----
+  padTop: 16,                                  // Space above the graphic in px
+  padSides: 16,                                // Space left and right of the graphic in px
+  padBottom: 12,                               // Space below the graphic in px
+
+  // ---- Background ----
+  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+
+  // ---- Legend and search ----
+  legendPos: "top-left corner",                // Legend position (on phones, corners and sides move above the map)
+  legendDir: "vertical",                       // Legend direction
+  legendGap: 5,                                // Space between legend items in px (between rows when vertical, between items when horizontal)
+  legendFilter: true,                          // Click a legend item to show only that status
+  searchPos: "top-right corner",               // Plant search position
+  searchWidth: 180,                            // Search box width in px
+
+  // ---- Popup ----
+  tooltipShow: true,                           // Show a popup when hovering over a plant (mouse only)
+  tooltipWidth: 380,                           // Popup maximum width in px
+  popupHeader: "coloured block",               // Popup header: coloured block (as in Flourish) or the name with a colour dot
+  popupHeaderText: "automatic",                // Text colour on the coloured block (automatic: black or white, whichever reads better)
+  popupStatus: false,                          // Show the status (legend wording) in the popup (Flourish didn't)
+  popupLines: "#e6e6e6",                       // Lines between the popup rows
+
+  // ---- Bubbles ----
+  bubbleMinR: 2.5,                             // Smallest bubble radius in px (on a 1000 px wide map)
+  bubbleMaxR: 8,                               // Largest bubble radius in px (on a 1000 px wide map)
+  bubbleMaxValue: 0,                           // Value that gets the largest bubble (0 = the largest in the data; fix it so sizes don't change between updates)
+  bubbleScale: "area grows from the smallest size", // Size scale, grows from the smallest size: every value gets its own size; proportional: areas strictly match the values, small ones all get the smallest size
+  bubbleOpacity: 1,                            // Bubble fill opacity
+  bubbleStroke: "#ffffff",                     // Bubble outline colour
+  bubbleStrokeWidth: 0.75,                     // Bubble outline width in px
+  bubbleHit: 8,                                // How close the pointer must be to a bubble to pick it, in px
+  highlightInner: "#000000",                   // Highlighted bubble: inner ring
+  highlightOuter: "#ffffff",                   // Highlighted bubble: outer ring
+  highlightWidth: 3,                           // Highlighted bubble: ring width in px
+  sizeLegendPos: "hidden",                     // Size legend position (hidden = none)
+  sizeLegendTitle: "Capacity (MW)",            // Size legend title
+  sizeLegendValues: "500, 2000",               // Size legend values, separated by commas
+
+  // ---- Map shapes ----
+  geometry: "Medium (Natural Earth 50m)",      // Country shapes, Simple: few islands and smooth coasts; Detailed: what Flourish used
+  mapDetail: 1,                                // Coastline detail, share of points kept (1 = all, lower = smoother)
+  mapMinIsland: 0,                             // Hide islands smaller than this, in km² (0 = show all; for scale: Mallorca is about 3,600, Rhodes 1,400)
+  noDataShow: "BFF countries only",            // Countries without data, hidden: only countries with data; BFF countries only: also BFF countries with no data; all countries: neighbours too
+  smallMode: "as they are",                    // Very small countries (list below), as they are: their real size; circle: a dot you can hover; zoomed box: an enlarged copy in a box
+  smallList: "MT",                             // Very small countries, ISO codes separated by commas (e.g. MT, LU)
+  smallSize: 5,                                // Size of the zoomed box (or circle), in % of the map width
+  smallDX: 5,                                  // Zoomed box position sideways from the country, in % of the map width: + right
+  smallDY: -1.5,                               // Zoomed box position up or down from the country, in % of the map width: + down
+
+  // ---- Projection and view ----
+  projection: "Natural Earth",                 // Map projection
+  mapCentreLon: 0,                             // Central meridian (longitude); 0 matches Flourish, around 15 straightens Europe
+  viewWest: -11,                               // View box: west edge (longitude)
+  viewEast: 44,                                // View box: east edge (longitude)
+  viewSouth: 33.5,                             // View box: south edge (latitude)
+  viewNorth: 68,                               // View box: north edge (latitude)
+  mapZoom: 1,                                  // Zoom (1 = the view box fits the map area)
+  mapShiftX: 0,                                // Move the map sideways, in % of its width: + right, - left
+  mapShiftY: 0,                                // Move the map up or down, in % of its height: + down, - up
+  mapHeight: 0.72,                             // Map height as a share of its width
+  mapHeightPhone: 0.85,                        // Map height on phones, as a share of its width (phones = narrower than the brand stackBelow width)
+  mapZoomPhone: 1,                             // Extra zoom on phones (1 = same as wide screens)
+
+  // ---- Map colours and borders ----
+  noDataFill: "#e4e5e7",                       // BFF countries without data
+  otherFill: "#eceef0",                        // Other countries (neighbours)
+  borderColor: "#ffffff",                      // Country borders
+  borderWidth: 1.2,                            // Border width in px
+  smallBoxColor: "#8a8a8a",                    // Zoomed box and its line
+
+  // ---- Hover and selection ----
+  hoverStyle: "outline",                       // What happens to the country under the pointer
+  hoverColor: "#000000",                       // Hover outline colour
+  hoverWidth: 1.5,                             // Hover outline width in px
+  fadeOpacity: 0.4,                            // How visible the other countries stay when faded (0 = invisible, 1 = no fade)
+  selectColor: "#000000",                      // Outline of the selected (clicked or searched) country
+  selectWidth: 2.5,                            // Selected outline width in px
+};
+// ==== SETTINGS END ====
+</script>
+<script src="../shared/v1/core.js"></script>
+<script src="../shared/bff-countries.js"></script>
+<script src="../shared/vendor/d3-array.min.js"></script>
+<script src="../shared/vendor/d3-geo.min.js"></script>
+<script src="../shared/vendor/topojson-client.min.js"></script>
+<script src="../shared/vendor/topojson-simplify.min.js"></script>
+<script src="../shared/v1/map.js"></script>
+<script>
+(function () {
+  /* ------------------------------------------------------------------
+   * DATA: live from the "G3" tab of the public Google Sheet. One row per plant:
+   *   Name, ISO (two-letter country code), Country, Lat, Lon (decimal degrees),
+   *   Status (a code, see STATUS_COLORS; the legend wording works too),
+   *   Capacity (MW)      the bubble size: the plant's total capacity (all statuses),
+   *   Operating, Mothballed, Announced, Pre-construction, Construction, Shelved, Cancelled, Retired (MW),
+   *   CHP, Owners, First unit start, Retired in, Planned retirement.
+   * Empty cells are simply left out of the popup.
+   * FALLBACK is shown only if the sheet can't be reached or doesn't have these columns.
+   * ------------------------------------------------------------------ */
+  var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
+  var SHEET_TAB = "G3";
+  var FALLBACK = [
+    "Name\tISO\tCountry\tLat\tLon\tStatus\tCapacity (MW)\tOperating (MW)\tMothballed (MW)\tAnnounced (MW)\tPre-construction (MW)\tConstruction (MW)\tShelved (MW)\tCancelled (MW)\tRetired (MW)\tCHP\tOwners\tFirst unit start\tRetired in\tPlanned retirement",
+    "Roskovec\tAL\tAlbania\t40.73782\t19.70341\tconstruction\t170\t\t\t\t\t170\t\t\t\tYes\tDEPA,GEK Terna,Gener 2\t2028\t\t2076",
+    "Vlora\tAL\tAlbania\t40.49018\t19.43549\tannounced\t350\t\t\t350\t\t\t\t\t\tYes\tKESH\t\t\tNot planned",
+    "Theiss\tAT\tAustria\t48.39486\t15.71015\toperating\t725\t485\t240\t\t\t\t\t\t\tYes\tEVN\t2003\t\tNot planned",
+    "Gratkorn Mill\tAT\tAustria\t47.13505\t15.33541\toperating\t70\t70\t\t\t\t\t\t\t\tYes\tSappi.\t2007\t\tNot planned",
+    "Graz\tAT\tAustria\t47.04841\t15.4367\toperating\t280\t280\t\t\t\t\t\t\t\tYes\tEnergie Steiermark\t\t\tNot planned",
+    "Magna Steyr\tAT\tAustria\t47.021\t15.4784\toperating\t30\t30\t\t\t\t\t\t\t\tYes\tMagna International\t1997\t\tNot planned",
+    "Laakirchen Paper Mill\tAT\tAustria\t47.98188\t13.82166\toperating\t61\t61\t\t\t\t\t\t\t\tYes\tEnergie Oberösterreich\t1993\t\tNot planned",
+    "Linz Mitte\tAT\tAustria\t48.29922\t14.32294\toperating\t217\t217\t\t\t\t\t\t\t\tYes\tLinz\t2004\t\tNot planned",
+    "Linz Süd\tAT\tAustria\t48.26789\t14.3469\toperating\t172\t172\t\t\t\t\t\t\t\tYes\tLinz\t2000\t\tNot planned",
+    "Werk Linz\tAT\tAustria\t48.299\t14.324\toperating\t153\t153\t\t\t\t\t\t\t\tYes\tVoestalpine\t1995\t\tNot planned",
+    "Mellach\tAT\tAustria\t46.90819\t15.49231\toperating\t1003\t1003\t\t\t\t\t\t\t\tYes\tVerbund\t2012\t\tNot planned",
+    "Salzburg Mitte\tAT\tAustria\t47.80929\t13.03819\toperating\t84\t84\t\t\t\t\t\t\t\tYes\tSalzburg AG\t2001\t\tNot planned",
+    "Steyrermuhl Paper Mill\tAT\tAustria\t47.97963\t13.81614\toperating\t40\t40\t\t\t\t\t\t\t\tYes\tHeinzel\t\t\tNot planned",
+    "Timelkam\tAT\tAustria\t48.0122\t13.5895\toperating\t405\t405\t\t\t\t\t\t\t\tYes\tEnergie Oberösterreich\t2008\t\tNot planned",
+    "Donaustadt\tAT\tAustria\t48.2\t16.4633\toperating\t395\t395\t\t\t\t\t\t\t\tYes\tWiener Stadtwerke\t2001\t\tNot planned",
+    "Leopoldau\tAT\tAustria\t48.2767\t16.4339\toperating\t140\t140\t\t\t\t\t\t\t\tYes\tWiener Stadtwerke\t1975\t\tNot planned",
+    "Simmering\tAT\tAustria\t48.1815\t16.4334\toperating\t1260\t1260\t\t\t\t\t\t\t\tYes\tWiener Stadtwerke\t2009\t\tNot planned",
+    "Krems Industriepark\tAT\tAustria\t48.40738\t15.63577\toperating\t41\t41\t\t\t\t\t\t\t\tYes\tMetadynea Austria\t1992\t\tNot planned",
+    "Aalst Tereos Syral\tBE\tBelgium\t50.93547\t4.04516\toperating\t45\t45\t\t\t\t\t\t\t\tYes\tEngie\t2000\t\tNot planned",
+    "Angleur\tBE\tBelgium\t50.6177\t5.5837\toperating\t178\t178\t\t\t\t\t\t\t\tYes\tPublilec,EDF\t1978\t\tNot planned",
+    "BASF Antwerp\tBE\tBelgium\t51.36544\t4.27067\tcancelled\t850\t\t\t\t\t\t\t850\t\tYes\tBASF\t\t\t",
+    "Covestro Oorderen\tBE\tBelgium\t51.29702\t4.31907\toperating\t43\t43\t\t\t\t\t\t\t\tYes\tEngie\t\t\tNot planned",
+    "Lillo Evonik\tBE\tBelgium\t51.30953\t4.30402\toperating\t85\t85\t\t\t\t\t\t\t\tYes\tE.ON,Engie\t1999\t\tNot planned",
+    "Bayer Monsanto Oud-Lillo\tBE\tBelgium\t51.31553\t4.28961\toperating\t43\t43\t\t\t\t\t\t\t\tYes\tEngie\t\t\tNot planned",
+    "Scheldelaan Exxonmobil\tBE\tBelgium\t51.254\t4.334\toperating\t140\t140\t\t\t\t\t\t\t\tYes\tExxon Mobil\t2009\t\tNot planned",
+    "Wilmarsdonk Total\tBE\tBelgium\t51.27106\t4.31885\toperating\t153.9\t153.9\t\t\t\t\t\t\t\tYes\tEngie\t\t\tNot planned",
+    "Zandvliet\tBE\tBelgium\t51.36895\t4.26419\toperating\t380\t380\t\t\t\t\t\t\t\tYes\tBASF,Engie\t2005\t\tNot planned",
+    "Saint-Ghislain\tBE\tBelgium\t50.4719\t3.8248\toperating\t385\t385\t\t\t\t\t\t\t\tYes\tEngie\t2001\t\tNot planned",
+    "Beveren Ineos Phenolchemie\tBE\tBelgium\t51.29091\t4.27025\toperating\t25\t25\t\t\t\t\t\t\t\tYes\tEngie\t1993\t\tNot planned",
+    "Zeebrugge 2 Fluxys\tBE\tBelgium\t51.35182\t3.20869\tretired\t40\t\t\t\t\t\t\t\t40\tYes\tEngie\t1987\t2024\t",
+    "Herdersbrug\tBE\tBelgium\t51.2629\t3.2112\toperating\t480\t480\t\t\t\t\t\t\t\tYes\tEngie\t1998\t\tNot planned",
+    "Marcinelle Energie\tBE\tBelgium\t50.4138\t4.4067\toperating\t413\t413\t\t\t\t\t\t\t\tYes\tTotalEnergies\t2011\t\tNot planned",
+    "Drogenbos\tBE\tBelgium\t50.8023\t4.299\toperating\t460\t460\t\t\t\t\t\t\t\tYes\tEngie\t1993\t\tNot planned",
+    "Les Awirs Flemalle\tBE\tBelgium\t50.58563\t5.41687\toperating\t875\t875\t\t\t\t\t\t\t\tYes\tEngie\t2025\t\tNot planned",
+    "Ham (Gent)\tBE\tBelgium\t51.0596\t3.7364\toperating\t159\t159\t\t\t\t\t\t\t\tYes\tPublilec,EDF\t1993\t\tNot planned",
+    "Ringvaart\tBE\tBelgium\t51.1049\t3.7257\toperating\t620\t385\t\t\t\t\t\t235\t\tYes\tPublilec,EDF\t1998\t\tNot planned",
+    "Izegem\tBE\tBelgium\t50.92378\t3.21298\toperating\t20\t20\t\t\t\t\t\t\t\tYes\tPublilec,EDF\t1995\t\tNot planned",
+    "Jemeppe-sur-Sambre\tBE\tBelgium\t50.44772\t4.66122\toperating\t106\t106\t\t\t\t\t\t\t\tYes\tIneos Group\t2000\t\tNot planned",
+    "Sappi Lanaken\tBE\tBelgium\t50.8827\t5.64195\tmothballed\t43\t\t43\t\t\t\t\t\t\tYes\tEngie\t\t\tNot planned",
+    "Manage Seneffe\tBE\tBelgium\t50.50981\t4.25373\tcancelled\t870\t\t\t\t\t\t\t870\t\tYes\tChubu Electric,Mitsubishi\t\t\t",
+    "Dils Energie\tBE\tBelgium\t51.05285\t5.74128\tcancelled\t920\t\t\t\t\t\t\t920\t\tYes\tRWE\t\t\t",
+    "Amercoeur\tBE\tBelgium\t50.4304\t4.3955\toperating\t766\t446\t\t\t\t\t\t320\t\tYes\tEngie\t2010\t\tNot planned",
+    "Seraing\tBE\tBelgium\t50.603\t5.4917\toperating\t1340\t470\t\t\t\t870\t\t\t\tYes\tPublilec,EDF\t1994\t\tNot planned",
+    "T-power Beringen\tBE\tBelgium\t51.0586\t5.1056\toperating\t1325\t425\t\t\t900\t\t\t\t\tYes\tTessenderlo\t2011\t\tNot planned",
+    "Vilvoorde\tBE\tBelgium\t50.9414\t4.4246\toperating\t1230\t255\t\t\t\t\t\t870\t105\tYes\tEngie\t2001\t\t2025",
+    "Inesco\tBE\tBelgium\t51.24125\t4.32567\toperating\t138\t138\t\t\t\t\t\t\t\tYes\tIneos Group\t2007\t\tNot planned",
+    "Arlanxeo Zwijndrecht\tBE\tBelgium\t51.2382\t4.3408\toperating\t58\t58\t\t\t\t\t\t\t\tYes\tEngie\t2010\t\tNot planned",
+    "Banja Luka\tBA\tBosnia & Herzegovina\t44.76931\t17.17389\tshelved\t600\t\t\t\t\t\t600\t\t\tYes\tnot found\t\t\tNot planned",
+    "Bosanski Brod\tBA\tBosnia & Herzegovina\t45.13741\t17.98321\tshelved\t100\t\t\t\t\t\t100\t\t\tYes\tJSC Zarubezhneft\t\t\tNot planned",
+    "ERS Gas-Fired CHP\tBA\tBosnia & Herzegovina\t44.09539\t18.11516\tshelved\t200\t\t\t\t\t\t200\t\t\tYes\tEPS\t\t\tNot planned",
+    "Prijedor\tBA\tBosnia & Herzegovina\t44.9886\t16.70915\tshelved\t600\t\t\t\t\t\t600\t\t\tYes\tnot found\t\t\tNot planned",
+    "KTG Zenica\tBA\tBosnia & Herzegovina\t44.20251\t17.91454\tshelved\t15\t\t\t\t\t\t15\t\t\tYes\tKTG\t\t\tNot planned",
+    "Kakanj\tBA\tBosnia & Herzegovina\t44.08963\t18.11387\tannounced\t175\t\t\t175\t\t\t\t\t\tYes\tEPBiH\t2029\t\tNot planned",
+    "Zvornik\tBA\tBosnia & Herzegovina\t44.38648\t19.10476\tannounced\t62.5\t\t\t62.5\t\t\t\t\t\tYes\tnot found\t2030\t\tNot planned",
+    "Neftochim Refinery\tBG\tBulgaria\t42.54129\t27.33875\toperating\t840\t600\t240\t\t\t\t\t\t\tYes\tLUKOIL\t1962\t\tNot planned",
+    "Bobov Dol\tBG\tBulgaria\t42.28582\t23.03283\tpre-construction\t38.9\t\t\t\t38.9\t\t\t\t\tYes\tEnergia MK\t2025\t\tNot planned",
+    "Maritsa Iztok-2\tBG\tBulgaria\t42.25405\t26.13401\tcancelled\t1000\t\t\t\t\t\t\t1000\t\tYes\tBulgarian Energy EAD\t\t\t",
+    "Toplofikacia Pleven\tBG\tBulgaria\t43.42117\t24.62531\toperating\t43\t43\t\t\t\t\t\t\t\tYes\tMetroni\t2007\t\tNot planned",
+    "Plovdiv North\tBG\tBulgaria\t42.18303\t24.74138\toperating\t50\t50\t\t\t\t\t\t\t\tYes\tEVN\t2011\t\tNot planned",
+    "Rupite\tBG\tBulgaria\t41.44215\t23.24136\tannounced\t276\t\t\t276\t\t\t\t\t\tYes\tVirtus Investment\t\t\tNot planned",
+    "Sofia Iztok\tBG\tBulgaria\t42.65152\t23.41722\toperating\t407\t167\t\t\t240\t\t\t\t\tYes\tToplofikacia Sofia\t1964\t\tNot planned",
+    "Sofia\tBG\tBulgaria\t42.71889\t23.32087\toperating\t312\t72\t\t\t240\t\t\t\t\tYes\tToplofikacia Sofia\t1962\t\tNot planned",
+    "Varna\tBG\tBulgaria\t43.19477\t27.76547\toperating\t1180\t210\t420\t\t550\t\t\t\t\tYes\tDanail Papazov\t1977\t\tNot planned",
+    "Jertovec\tHR\tCroatia\t46.03876\t16.17929\tmothballed\t78\t\t78\t\t\t\t\t\t\tYes\tHrvatska elektroprivreda (HEP)\t1980\t\tNot planned",
+    "Petrokemija Kutina\tHR\tCroatia\t45.47129\t16.79232\toperating\t35\t35\t\t\t\t\t\t\t\tYes\tPetrokemija Group\t1983\t\tNot planned",
+    "Legrad Hybrid Power Project\tHR\tCroatia\t46.2825\t16.7823\tpre-construction\t483\t\t\t\t483\t\t\t\t\tYes\tEEG Energy Group\t\t\tNot planned",
+    "Osijek\tHR\tCroatia\t45.542\t18.7449\toperating\t180\t95\t\t\t\t\t85\t\t\tYes\tHrvatska elektroprivreda (HEP)\t1976\t\tNot planned",
+    "Sisak\tHR\tCroatia\t45.45427\t16.41461\toperating\t235\t235\t\t\t\t\t\t\t\tYes\tHrvatska elektroprivreda (HEP)\t2015\t\tNot planned",
+    "Slavonski Brod\tHR\tCroatia\t45.14887\t18.06037\tpre-construction\t500\t\t\t\t500\t\t\t\t\tYes\tDelta Gas\t2027\t\tNot planned",
+    "El-To Zagreb\tHR\tCroatia\t45.80806\t15.94819\toperating\t197.8\t47.8\t\t\t\t150\t\t\t\tYes\tHrvatska elektroprivreda (HEP)\t1998\t\tNot planned",
+    "Te-To Zagreb\tHR\tCroatia\t45.78213\t16.01632\toperating\t420\t420\t\t\t\t\t\t\t\tYes\tHrvatska elektroprivreda (HEP)\t1979\t\tNot planned",
+    "Mari\tCY\tCyprus\t34.72945\t33.28253\tconstruction\t260\t\t\t\t\t260\t\t\t\tYes\tCyfield Group\t2025\t\tNot planned",
+    "Vasilikos\tCY\tCyprus\t34.72713\t33.28986\tconstruction\t160\t\t\t\t\t160\t\t\t\tYes\tEAC\t2024\t\tNot planned",
+    "Cerveny mlyn heating plant\tCZ\tCzech Republic\t49.21617\t16.60633\toperating\t95\t95\t\t\t\t\t\t\t\tYes\tTeplarny Brno AS\t1998\t\tNot planned",
+    "Spitalka\tCZ\tCzech Republic\t49.19643\t16.62257\toperating\t81\t81\t\t\t\t\t\t\t\tYes\tTeplarny Brno AS\t1930\t\tNot planned",
+    "Detmarovice\tCZ\tCzech Republic\t49.90718\t18.46456\tconstruction\t24\t\t\t\t\t24\t\t\t\tYes\tCEZ\t2026\t\tNot planned",
+    "Melnik\tCZ\tCzech Republic\t50.41313\t14.41582\tpre-construction\t1000\t\t\t800\t200\t\t\t\t\tYes\tCEZ\t2026\t\tNot planned",
+    "Kladno\tCZ\tCzech Republic\t50.1535\t14.12858\toperating\t51\t51\t\t\t\t\t\t\t\tYes\t\t2006\t\tNot planned",
+    "Kralupy Plant\tCZ\tCzech Republic\t50.25877\t14.3207\toperating\t101\t101\t\t\t\t\t\t\t\tYes\tSynthos Group\t1993\t\tNot planned",
+    "Kyjov CHP\tCZ\tCzech Republic\t49.00462\t17.12882\toperating\t23\t23\t\t\t\t\t\t\t\tYes\tLama Energy Group\t2001\t\tNot planned",
+    "Komorany heating plant\tCZ\tCzech Republic\t50.52229\t13.5721\tconstruction\t170\t\t\t\t85\t85\t\t\t\tYes\tEP Group\t2027\t\tNot planned",
+    "CCGT Pocerady\tCZ\tCzech Republic\t50.4267\t13.6747\toperating\t1888\t888\t\t\t1000\t\t\t\t\tYes\tCEZ\t2014\t\tNot planned",
+    "Prostejov\tCZ\tCzech Republic\t49.46247\t17.14352\toperating\t108\t58\t\t\t50\t\t\t\t\tYes\tCreditas Group\t2013\t\tNot planned",
+    "Vresova\tCZ\tCzech Republic\t50.25648\t12.6908\toperating\t400\t400\t\t\t\t\t\t\t\tYes\tSUAS Group\t1996\t\tNot planned",
+    "Chomutov\tCZ\tCzech Republic\t50.464\t13.4342\tpre-construction\t300\t\t\t\t300\t\t\t\t\tYes\tCreditas Group\t2027\t\tNot planned",
+    "CHP Trmice\tCZ\tCzech Republic\t50.6462\t13.9854\tpre-construction\t162\t\t\t\t162\t\t\t\t\tYes\tCEZ\t2029\t\tNot planned",
+    "Opatovice\tCZ\tCzech Republic\t50.12651\t15.79331\tconstruction\t195\t\t\t\t\t195\t\t\t\tYes\tEP Group\t2027\t\tNot planned",
+    "Plzen\tCZ\tCzech Republic\t49.75433\t13.39875\tpre-construction\t200\t\t\t\t200\t\t\t\t\tYes\tEP Group\t2029\t\tNot planned",
+    "Olomouc\tCZ\tCzech Republic\t49.57088\t17.30412\tpre-construction\t50\t\t\t\t50\t\t\t\t\tYes\tVeolia\t\t\tNot planned",
+    "Trinec\tCZ\tCzech Republic\t49.68443\t18.64853\tpre-construction\t62\t\t\t\t62\t\t\t\t\tYes\tMoravia Steel\t2030\t\tNot planned",
+    "H.C. Orsted\tDK\tDenmark\t55.65052\t12.53343\toperating\t21\t21\t\t\t\t\t\t\t\tYes\tOrsted\t2003\t\t2025",
+    "Esbjerg Reserve\tDK\tDenmark\t55.46181\t8.46562\toperating\t25\t25\t\t\t\t\t\t\t\tYes\tEntro Group\t2005\t\tNot planned",
+    "Grenaa Reserve\tDK\tDenmark\t56.42181\t10.89476\toperating\t25\t25\t\t\t\t\t\t\t\tYes\tEntro Group\t2008\t\tNot planned",
+    "Hillerod\tDK\tDenmark\t55.90676\t12.31205\tretired\t75\t\t\t\t\t\t\t\t75\tYes\tHillerød Forsyning\t1991\t2024\t",
+    "Hjorring Cogeneration\tDK\tDenmark\t57.46417\t9.98229\toperating\t59\t59\t\t\t\t\t\t\t\tYes\tHjorring Varmeforsyning\t1996\t\tNot planned",
+    "Horsens\tDK\tDenmark\t55.8519\t9.85766\toperating\t35\t35\t\t\t\t\t\t\t\tYes\tHorsens and Dagnæs-Bækkelund Varmeværk\t1991\t\tNot planned",
+    "DTU Cogeneration\tDK\tDenmark\t55.78469\t12.52276\toperating\t38\t38\t\t\t\t\t\t\t\tYes\tEquinor\t1998\t\tNot planned",
+    "Akzo Mariager\tDK\tDenmark\t56.68134\t10.04219\toperating\t25\t25\t\t\t\t\t\t\t\tYes\tNouryon\t1999\t\tNot planned",
+    "Fyns\tDK\tDenmark\t55.42941\t10.41021\toperating\t362\t362\t\t\t\t\t\t\t\tYes\tFjernvarme Fyn\t2024\t\t2030",
+    "Silkeborgvaerket\tDK\tDenmark\t56.201\t9.558\toperating\t108\t108\t\t\t\t\t\t\t\tYes\tSilkeborg Forsyning\t1995\t\tNot planned",
+    "Sonderborg Kraftvarmevaerk CHP\tDK\tDenmark\t54.93028\t9.78191\toperating\t52\t52\t\t\t\t\t\t\t\tYes\tSønderborg Fjernvarme Amba\t1996\t\tNot planned",
+    "Viborg\tDK\tDenmark\t56.47377\t9.41262\toperating\t57\t57\t\t\t\t\t\t\t\tYes\tEnergi Viborg\t1996\t\tNot planned",
+    "Iru\tEE\tEstonia\t59.4514\t24.9246\toperating\t196\t196\t\t\t\t\t\t\t\tYes\tEesti Energia\t1978\t\tNot planned",
+    "Kiisa ERPP\tEE\tEstonia\t59.24601\t24.70743\tmothballed\t250\t\t250\t\t\t\t\t\t\tYes\tElering\t2013\t\tNot planned",
+    "Narva peaking\tEE\tEstonia\t59.35377\t28.12163\tpre-construction\t100\t\t\t\t100\t\t\t\t\tYes\tEesti Energia\t2028\t\tNot planned",
+    "Suomenoja\tFI\tFinland\t60.14913\t24.71837\toperating\t279\t279\t\t\t\t\t\t\t\tYes\tFortum\t1989\t\tNot planned",
+    "Vuosaari\tFI\tFinland\t60.22032\t25.16966\toperating\t648\t648\t\t\t\t\t\t\t\tYes\tHelen.\t1991\t\tNot planned",
+    "Porvoo\tFI\tFinland\t60.3125\t25.5248\toperating\t70\t70\t\t\t\t\t\t\t\tYes\tRepublic of Finland\t1998\t\tNot planned",
+    "Porvoo Refinery\tFI\tFinland\t60.30734\t25.49704\toperating\t168.6\t168.6\t\t\t\t\t\t\t\tYes\tBorealis,Neste,Veolia\t2007\t\tNot planned",
+    "Kirkniemi Mill\tFI\tFinland\t60.19092\t23.94365\toperating\t104\t104\t\t\t\t\t\t\t\tYes\tSappi.\t1997\t\tNot planned",
+    "Hinkismaeki\tFI\tFinland\t60.87189\t26.70136\toperating\t45\t45\t\t\t\t\t\t\t\tYes\tKSS Energia\t1988\t\tNot planned",
+    "Nokia kombi\tFI\tFinland\t61.47432\t23.4966\toperating\t72\t72\t\t\t\t\t\t\t\tYes\tLeppäkosken Sähkö\t1997\t\tNot planned",
+    "Lielahti\tFI\tFinland\t61.51042\t23.67523\toperating\t142\t142\t\t\t\t\t\t\t\tYes\tTampereen kaupunki\t1988\t\tNot planned",
+    "Naistenlahti\tFI\tFinland\t61.50975\t23.77752\tmothballed\t129\t\t129\t\t\t\t\t\t\tYes\tTampereen kaupunki\t1971\t\tNot planned",
+    "M-real Tako Board mill\tFI\tFinland\t61.50072\t23.77218\toperating\t16.5\t16.5\t\t\t\t\t\t\t\tYes\tMetsä Group\t\t\tNot planned",
+    "Tavaux\tFR\tFrance\t47.05518\t5.39704\toperating\t141\t141\t\t\t\t\t\t\t\tYes\tEDF,Solvay\t1964\t\tNot planned",
+    "Sethelec D'Arles\tFR\tFrance\t43.67355\t4.60872\toperating\t45\t45\t\t\t\t\t\t\t\tYes\tEngie\t2002\t\tNot planned",
+    "Blenod\tFR\tFrance\t48.86898\t6.08415\toperating\t450.5\t450.5\t\t\t\t\t\t\t\tYes\tEDF\t2011\t\tNot planned",
+    "Bouchain\tFR\tFrance\t50.2987\t3.3156\toperating\t563\t563\t\t\t\t\t\t\t\tYes\tEDF\t2016\t\tNot planned",
+    "Combigolfe\tFR\tFrance\t43.4072\t4.8676\toperating\t435\t435\t\t\t\t\t\t\t\tYes\tEngie\t2010\t\tNot planned",
+    "Cycofos\tFR\tFrance\t43.42801\t4.88652\toperating\t451\t451\t\t\t\t\t\t\t\tYes\tEngie\t2009\t\tNot planned",
+    "Gennevilliers\tFR\tFrance\t48.93699\t2.26144\toperating\t203.3\t203.3\t\t\t\t\t\t\t\tYes\tEDF\t1992\t\tNot planned",
+    "Amfard\tFR\tFrance\t49.48\t0.22\toperating\t250\t250\t\t\t\t\t\t\t\tYes\tEDF,TotalEnergies,Chevron U.S.A.\t2003\t\tNot planned",
+    "Darblay\tFR\tFrance\t49.37681\t1.01467\tmothballed\t24\t\t24\t\t\t\t\t\t\tYes\tDCC Energy\t1980\t\tNot planned",
+    "Haubourdin\tFR\tFrance\t50.60627\t2.98325\toperating\t47\t47\t\t\t\t\t\t\t\tYes\tCargill Incorporated\t2000\t\tNot planned",
+    "Montereau\tFR\tFrance\t48.38028\t2.85111\toperating\t400\t400\t\t\t\t\t\t\t\tYes\tEDF\t2010\t\tNot planned",
+    "Lacq\tFR\tFrance\t43.412\t-0.63512\toperating\t20.9\t20.9\t\t\t\t\t\t\t\tYes\tTotalEnergies\t1995\t\tNot planned",
+    "Landivisiau\tFR\tFrance\t48.51013\t-4.07327\toperating\t446\t446\t\t\t\t\t\t\t\tYes\tAsterion Industrial Partners,TotalEnergies\t2021\t\tNot planned",
+    "La Madeleine\tFR\tFrance\t48.63913\t6.2671\toperating\t96\t96\t\t\t\t\t\t\t\tYes\tHumens Group\t1999\t\tNot planned",
+    "Champblain\tFR\tFrance\t45.21677\t4.81004\toperating\t44\t44\t\t\t\t\t\t\t\tYes\tSaica\t1999\t\tNot planned",
+    "Condat-Le-Lardin\tFR\tFrance\t45.12671\t1.23011\toperating\t87.2\t87.2\t\t\t\t\t\t\t\tYes\tLecta\t2000\t\tNot planned",
+    "Pont-de-Claix\tFR\tFrance\t45.12014\t5.70983\toperating\t78\t78\t\t\t\t\t\t\t\tYes\tSolvay\t1969\t\tNot planned",
+    "Lestrem\tFR\tFrance\t50.63469\t2.67962\toperating\t80\t80\t\t\t\t\t\t\t\tYes\tRoquette Freres\t2000\t\tNot planned",
+    "Mont-de-Terre\tFR\tFrance\t50.62116\t3.08913\toperating\t46\t46\t\t\t\t\t\t\t\tYes\tEDF\t2001\t\tNot planned",
+    "Ruhbogen\tFR\tFrance\t48.16888\t7.59951\toperating\t49.8\t49.8\t\t\t\t\t\t\t\tYes\tTereos\t2020\t\tNot planned",
+    "Lavera\tFR\tFrance\t43.38391\t5.0025\toperating\t106.4\t106.4\t\t\t\t\t\t\t\tYes\tIneos Group,PetroChina\t2000\t\tNot planned",
+    "Martigues-Ponteau\tFR\tFrance\t43.35822\t5.02112\toperating\t990\t990\t\t\t\t\t\t\t\tYes\tEDF\t2011\t\tNot planned",
+    "Meaux\tFR\tFrance\t48.95078\t2.92468\toperating\t28\t28\t\t\t\t\t\t\t\tYes\tCoriance\t2000\t\tNot planned",
+    "Nesle\tFR\tFrance\t49.76877\t2.90233\tmothballed\t48\t\t48\t\t\t\t\t\t\tYes\tTereos\t1997\t\tNot planned",
+    "Chambière\tFR\tFrance\t49.12926\t6.18357\tmothballed\t45\t\t45\t\t\t\t\t\t\tYes\tCity of Metz\t1992\t\tNot planned",
+    "Bilho\tFR\tFrance\t47.30711\t-2.13791\toperating\t45.7\t45.7\t\t\t\t\t\t\t\tYes\tEngie\t2000\t\tNot planned",
+    "Montoir-De-Bretagne\tFR\tFrance\t47.30721\t-2.13716\toperating\t478\t478\t\t\t\t\t\t\t\tYes\tEngie\t2010\t\tNot planned",
+    "Pont sur sambre\tFR\tFrance\t50.22915\t3.86807\toperating\t450\t450\t\t\t\t\t\t\t\tYes\tTotalEnergies\t2009\t\tNot planned",
+    "Dombasle\tFR\tFrance\t48.62826\t6.33711\tmothballed\t46\t\t46\t\t\t\t\t\t\tYes\tSolvay\t1999\t\tNot planned",
+    "Saint-Avold\tFR\tFrance\t49.14791\t6.69596\toperating\t867.8\t867.8\t\t\t\t\t\t\t\tYes\tTotalEnergies\t2009\t\tNot planned",
+    "Saint-Étienne-du-Rouvray\tFR\tFrance\t49.36522\t1.11589\toperating\t122\t122\t\t\t\t\t\t\t\tYes\tTaranis Energy\t2000\t\tNot planned",
+    "Saint Fons\tFR\tFrance\t45.68725\t4.84299\toperating\t88\t88\t\t\t\t\t\t\t\tYes\tSK Capital Partners\t1998\t\tNot planned",
+    "Saint-Ouen-sur-Seine\tFR\tFrance\t48.91174\t2.32764\toperating\t125\t125\t\t\t\t\t\t\t\tYes\tEngie\t2000\t\tNot planned",
+    "Morandes Power station\tFR\tFrance\t46.27271\t3.30086\toperating\t414.2\t414.2\t\t\t\t\t\t\t\tYes\tTotalEnergies\t2011\t\tNot planned",
+    "Peage-de-Roussillion-Sud\tFR\tFrance\t45.34981\t4.7961\toperating\t44\t44\t\t\t\t\t\t\t\tYes\tAdisseo\t1999\t\tNot planned",
+    "Croix-de-Metz\tFR\tFrance\t48.69336\t5.91468\toperating\t440\t440\t\t\t\t\t\t\t\tYes\tTotalEnergies\t2012\t\tNot planned",
+    "Vitry-sur-Seine cogeneration\tFR\tFrance\t48.78924\t2.41731\toperating\t100\t100\t\t\t\t\t\t\t\tYes\tEngie\t2001\t\tNot planned",
+    "Fos-sur-Mer\tFR\tFrance\t43.4256\t4.8452\toperating\t45\t45\t\t\t\t\t\t\t\tYes\tAir Liquide\t1999\t\tNot planned",
+    "Renaires\tFR\tFrance\t43.36092\t5.01706\toperating\t24.5\t24.5\t\t\t\t\t\t\t\tYes\tnot found\t2020\t\tNot planned",
+    "Saillat\tFR\tFrance\t45.87143\t0.8358\toperating\t15.5\t15.5\t\t\t\t\t\t\t\tYes\tEngie\t1985\t\tNot planned",
+    "Emile Huchet\tFR\tFrance\t49.1552\t6.70538\tpre-construction\t627\t\t\t\t627\t\t\t\t\tYes\tEP Group\t2027\t\tNot planned",
+    "Ahrensfelde\tDE\tGermany\t52.5896\t13.5586\tmothballed\t148.4\t\t148.4\t\t\t\t\t\t\tYes\tEP Group\t1990\t\tNot planned",
+    "Altbach/Deizisau\tDE\tGermany\t48.72734\t9.38164\toperating\t913\t248\t\t\t\t665\t\t\t\tYes\tEnBW\t1971\t\tNot planned",
+    "CHP station Buchmann Karton\tDE\tGermany\t49.20794\t7.93139\toperating\t23.8\t23.8\t\t\t\t\t\t\t\tYes\tKartonfabrik Buchmann\t1976\t\tNot planned",
+    "DS Smith Aschaffenburg Mill\tDE\tGermany\t49.9882\t9.1558\toperating\t31.6\t31.6\t\t\t\t\t\t\t\tYes\tE.ON\t2013\t\tNot planned",
+    "Augsburg\tDE\tGermany\t48.37446\t10.9039\toperating\t30.7\t30.7\t\t\t\t\t\t\t\tYes\tStadtwerke Augsburg\t1976\t\tNot planned",
+    "Augsburg-Ost combined heat and\tDE\tGermany\t48.4017\t10.93524\toperating\t20.4\t20.4\t\t\t\t\t\t\t\tYes\tStadtwerke Augsburg\t2004\t\tNot planned",
+    "UPM Augsburg\tDE\tGermany\t48.37926\t10.89912\tretired\t29.5\t\t\t\t\t\t\t\t29.5\tYes\tUPM-Kymmene\t1992\t2023\t",
+    "Baunatal\tDE\tGermany\t51.25589\t9.44841\toperating\t74.4\t74.4\t\t\t\t\t\t\t\tYes\tVolkswagen\t2013\t\tNot planned",
+    "Berlin Mitte\tDE\tGermany\t52.51172\t13.42092\toperating\t444\t444\t\t\t\t\t\t\t\tYes\tBEW\t1997\t\tNot planned",
+    "Berlin-Klingenberg\tDE\tGermany\t52.4889\t13.4968\toperating\t164\t164\t\t\t\t\t\t\t\tYes\tBEW\t1981\t\tNot planned",
+    "Berlin-Marzahn\tDE\tGermany\t52.51862\t13.37619\toperating\t189.5\t189.5\t\t\t\t\t\t\t\tYes\tBEW\t2020\t\tNot planned",
+    "Charlottenburg\tDE\tGermany\t52.5219\t13.3111\toperating\t144\t144\t\t\t\t\t\t\t\tYes\tBEW\t1976\t\tNot planned",
+    "Lichterfelde\tDE\tGermany\t52.4252\t13.3098\toperating\t300\t300\t\t\t\t\t\t\t\tYes\tBEW\t2019\t\tNot planned",
+    "Bernburg Alkali\tDE\tGermany\t51.80261\t11.75151\toperating\t143.7\t143.7\t\t\t\t\t\t\t\tYes\tSolvay\t1994\t\tNot planned",
+    "Schildescher Strasse\tDE\tGermany\t52.03386\t8.53846\toperating\t71.5\t71.5\t\t\t\t\t\t\t\tYes\tStadtwerke Bielefeld Group\t1966\t\tNot planned",
+    "Bitterfeld\tDE\tGermany\t51.62487\t12.30705\toperating\t110\t110\t\t\t\t\t\t\t\tYes\tenviaM\t2000\t\tNot planned",
+    "Wolfen\tDE\tGermany\t51.65694\t12.25805\toperating\t50\t50\t\t\t\t\t\t\t\tYes\tenviaM\t1996\t\tNot planned",
+    "Hiltrop\tDE\tGermany\t51.508\t7.2503\toperating\t43.4\t43.4\t\t\t\t\t\t\t\tYes\tEWMR\t1975\t\tNot planned",
+    "Bonn-Nord\tDE\tGermany\t50.7338\t7.0805\toperating\t133.3\t133.3\t\t\t\t\t\t\t\tYes\tStadtwerke Bonn (SWB)\t1998\t\tNot planned",
+    "Kirchmoeser\tDE\tGermany\t52.3942\t12.4181\toperating\t176\t176\t\t\t\t\t\t\t\tYes\tUniper\t1994\t\tNot planned",
+    "Brandenburg Havel\tDE\tGermany\t51.5122\t13.9711\toperating\t36.8\t36.8\t\t\t\t\t\t\t\tYes\tE.DIS\t1997\t\tNot planned",
+    "Braunschweig Mitte\tDE\tGermany\t52.27861\t10.51472\toperating\t186.5\t166.5\t\t\t\t\t\t\t20\tYes\tVeolia\t1971\t\tNot planned",
+    "Braunschweig Nord\tDE\tGermany\t52.27861\t10.51472\toperating\t25\t25\t\t\t\t\t\t\t\tYes\tVeolia\t1990\t\tNot planned",
+    "Mittelsbüren\tDE\tGermany\t53.12891\t8.68524\toperating\t444.5\t444.5\t\t\t\t\t\t\t\tYes\tEWE Aktiengesellschaft\t2014\t\tNot planned",
+    "Burghausen\tDE\tGermany\t48.18621\t12.84577\toperating\t233.9\t233.9\t\t\t\t\t\t\t\tYes\tWacker Chemie\t1979\t\tNot planned",
+    "Gendorf Works\tDE\tGermany\t48.1768\t12.7306\toperating\t72.5\t72.5\t\t\t\t\t\t\t\tYes\tInfraserv Gendorf\t1967\t\tNot planned",
+    "Darmstadt\tDE\tGermany\t49.8849\t8.6501\tmothballed\t93\t\t93\t\t\t\t\t\t\tYes\tHEAG\t2011\t\tNot planned",
+    "Dessau\tDE\tGermany\t51.82685\t12.23003\toperating\t39.1\t39.1\t\t\t\t\t\t\t\tYes\tStadtwerke Dessau\t1996\t\tNot planned",
+    "Dormagen\tDE\tGermany\t51.0791\t6.8287\toperating\t562\t562\t\t\t\t\t\t\t\tYes\tRWE\t2000\t\tNot planned",
+    "Nossener Bruecke\tDE\tGermany\t51.04212\t13.7086\toperating\t260\t260\t\t\t\t\t\t\t\tYes\tTechnische Werke Dresden\t1995\t\tNot planned",
+    "Duisburg III\tDE\tGermany\t51.39066\t6.74778\toperating\t274.6\t274.6\t\t\t\t\t\t\t\tYes\tDVV\t1974\t\tNot planned",
+    "Power station DK\tDE\tGermany\t51.42143\t6.74143\toperating\t22.1\t22.1\t\t\t\t\t\t\t\tYes\tHargreaves Services\t2011\t\tNot planned",
+    "Lausward\tDE\tGermany\t51.2214\t6.7313\toperating\t826.4\t826.4\t\t\t\t\t\t\t\tYes\tEnBW\t1974\t\tNot planned",
+    "Model Saxony Paper\tDE\tGermany\t51.45957\t12.58665\toperating\t46.8\t46.8\t\t\t\t\t\t\t\tYes\tModel Group\t2009\t\tNot planned",
+    "Eisenhüttenstadt\tDE\tGermany\t52.14366\t14.6419\toperating\t117.6\t61.6\t\t\t\t\t56\t\t\tYes\tArcelorMittal\t1954\t\tNot planned",
+    "Huntorf\tDE\tGermany\t53.18969\t8.40869\toperating\t321\t321\t\t\t\t\t\t\t\tYes\tUniper\t1978\t\tNot planned",
+    "Eltmann\tDE\tGermany\t49.984\t10.65137\toperating\t62.8\t62.8\t\t\t\t\t\t\t\tYes\tPalm Group\t2017\t\tNot planned",
+    "Emden\tDE\tGermany\t53.35444\t7.24915\tmothballed\t485\t\t485\t\t\t\t\t\t\tYes\tStatkraft\t1973\t\tNot planned",
+    "Erfurt-Ost\tDE\tGermany\t51.02177\t11.0355\toperating\t123.5\t123.5\t\t\t\t\t\t\t\tYes\tSWE Stadtwerke Erfurt\t1999\t\tNot planned",
+    "Erlangen\tDE\tGermany\t49.593\t11.0016\toperating\t44.6\t44.6\t\t\t\t\t\t\t\tYes\tErlanger Stadtwerke\t2005\t\tNot planned",
+    "Akzo Obernburg\tDE\tGermany\t49.82935\t9.14824\toperating\t112.7\t112.7\t\t\t\t\t\t\t\tYes\tKraftwerk Obernburg\t1956\t\tNot planned",
+    "Weisweiler\tDE\tGermany\t50.84015\t6.3083\toperating\t1200\t400\t\t\t800\t\t\t\t\tYes\tRWE\t2006\t\tNot planned",
+    "Flensburg\tDE\tGermany\t54.80522\t9.43017\toperating\t203.5\t203.5\t\t\t\t\t\t\t\tYes\tStadtwerke Flensburg\t1980\t\tNot planned",
+    "Industrial park Hoechst power\tDE\tGermany\t50.09178\t8.53105\toperating\t431.6\t414.2\t\t\t\t\t\t\t17.4\tYes\tInfraserv Höchst\t1956\t\tNot planned",
+    "Mainova West\tDE\tGermany\t50.09856\t8.65308\toperating\t273.9\t149.9\t\t\t\t124\t\t\t\tYes\tStadtwerke Frankfurt am Main (SWFH),Thüga\t1994\t\tNot planned",
+    "Niederrad\tDE\tGermany\t50.0856\t8.6279\toperating\t70\t70\t\t\t\t\t\t\t\tYes\tStadtwerke Frankfurt am Main (SWFH),Thüga\t2005\t\tNot planned",
+    "Freiburg\tDE\tGermany\t48.02095\t7.84203\toperating\t56.8\t56.8\t\t\t\t\t\t\t\tYes\tCerdia\t1998\t\tNot planned",
+    "Grenzach-Wyhlen\tDE\tGermany\t47.53971\t7.70692\toperating\t38.6\t38.6\t\t\t\t\t\t\t\tYes\tE.ON\t2017\t\tNot planned",
+    "Exxonmobil Production\tDE\tGermany\t52.41025\t9.81253\toperating\t30.2\t30.2\t\t\t\t\t\t\t\tYes\tExxon Mobil\t2014\t\tNot planned",
+    "Staudinger\tDE\tGermany\t50.0831\t8.9668\tannounced\t1512\t\t622\t890\t\t\t\t\t\tYes\tUniper\t1977\t\tNot planned",
+    "Hagen-Kabel\tDE\tGermany\t51.41287\t7.48725\tretired\t247\t\t\t\t\t\t\t\t247\tYes\tEnervie\t1981\t2025\t",
+    "Halle Dieselstrasse\tDE\tGermany\t51.481\t11.9643\toperating\t171.3\t171.3\t\t\t\t\t\t\t\tYes\tStadtwerke Halle\t2020\t\tNot planned",
+    "Halle Trotha\tDE\tGermany\t51.481\t11.9643\toperating\t68.4\t68.4\t\t\t\t\t\t\t\tYes\tStadtwerke Halle\t1994\t\tNot planned",
+    "Tiefstack\tDE\tGermany\t53.52702\t10.06561\toperating\t127\t127\t\t\t\t\t\t\t\tYes\tHamburger Energiewerke\t2009\t\tNot planned",
+    "Trianel Hamm\tDE\tGermany\t51.67419\t7.93035\toperating\t1352\t852\t\t500\t\t\t\t\t\tYes\tTrianel\t2007\t\tNot planned",
+    "GKL Linden\tDE\tGermany\t52.42\t9.648\toperating\t230\t230\t\t\t\t\t\t\t\tYes\tVVG Hannover\t1996\t\tNot planned",
+    "Cuno herdecke\tDE\tGermany\t51.40313\t7.4155\toperating\t423\t423\t\t\t\t\t\t\t\tYes\tEnervie,Statkraft\t2004\t\tNot planned",
+    "WI\tDE\tGermany\t50.89145\t9.99596\toperating\t109.6\t109.6\t\t\t\t\t\t\t\tYes\tK+S\t1962\t\tNot planned",
+    "Knapsack Gas\tDE\tGermany\t50.859\t6.841\toperating\t1446\t1326\t\t120\t\t\t\t\t\tYes\tStatkraft\t2007\t\tNot planned",
+    "Jena\tDE\tGermany\t50.89688\t11.5857\toperating\t241.9\t241.9\t\t\t\t\t\t\t\tYes\tKEBT\t1996\t\tNot planned",
+    "Juelich\tDE\tGermany\t50.91655\t6.37301\toperating\t24.2\t24.2\t\t\t\t\t\t\t\tYes\tPfeifer & Langen\t2004\t\tNot planned",
+    "Karcherstraße\tDE\tGermany\t49.43618\t7.7607\toperating\t59.8\t59.8\t\t\t\t\t\t\t\tYes\tStadtwerke Kaiserslautern\t2022\t\tNot planned",
+    "Rheinhafen steam\tDE\tGermany\t49.01486\t8.31307\tannounced\t1203\t\t353\t850\t\t\t\t\t\tYes\tEnBW\t1998\t\tNot planned",
+    "SW Karlsruhe\tDE\tGermany\t49.01366\t8.34694\toperating\t83\t33\t\t\t50\t\t\t\t\tYes\tKVVH\t1984\t\tNot planned",
+    "Kassel Kombi\tDE\tGermany\t51.2791\t9.48401\toperating\t56.6\t56.6\t\t\t\t\t\t\t\tYes\tKasseler Verkehrs und Versorgungs\t2005\t\tNot planned",
+    "Kelheim Fibers\tDE\tGermany\t48.90476\t11.90421\toperating\t54.8\t54.8\t\t\t\t\t\t\t\tYes\tKelheim Fibres\t1952\t\tNot planned",
+    "Kirchlengern\tDE\tGermany\t52.19622\t8.64744\toperating\t83\t83\t\t\t\t\t\t\t\tYes\tPaderborner Kommunalbetriebe\t1981\t\tNot planned",
+    "Merheim RheinEnergie\tDE\tGermany\t50.95606\t7.05021\toperating\t31.1\t31.1\t\t\t\t\t\t\t\tYes\tStadtwerke Köln\t2020\t\tNot planned",
+    "Merkenich (Nord)\tDE\tGermany\t51.0178\t6.9643\toperating\t123.7\t123.7\t\t\t\t\t\t\t\tYes\tStadtwerke Köln\t2004\t\tNot planned",
+    "Niehl\tDE\tGermany\t50.9749\t6.988\toperating\t865.9\t865.9\t\t\t\t\t\t\t\tYes\tStadtwerke Köln\t2005\t\tNot planned",
+    "Anlage Krefeld DT\tDE\tGermany\t51.3392\t6.6642\toperating\t39.7\t39.7\t\t\t\t\t\t\t\tYes\tCargill Incorporated\t1964\t\tNot planned",
+    "Chempark Krefeld-Uerdingen\tDE\tGermany\t51.36816\t6.6626\toperating\t74.5\t74.5\t\t\t\t\t\t\t\tYes\tCurrenta\t1967\t\tNot planned",
+    "Landesbergen\tDE\tGermany\t52.5581\t9.12005\tmothballed\t496\t\t496\t\t\t\t\t\t\tYes\tStatkraft\t1972\t\tNot planned",
+    "Leipzig Nord\tDE\tGermany\t51.3512\t12.3784\toperating\t178.2\t178.2\t\t\t\t\t\t\t\tYes\tLeipziger Gruppe\t1996\t\tNot planned",
+    "ILK\tDE\tGermany\t51.29976\t12.0193\toperating\t37\t37\t\t\t\t\t\t\t\tYes\tTotalEnergies\t1994\t\tNot planned",
+    "Leuna\tDE\tGermany\t51.2998\t12.0193\toperating\t169.2\t169.2\t\t\t\t\t\t\t\tYes\tInfraLeuna\t1994\t\tNot planned",
+    "Leverkusen\tDE\tGermany\t51.01421\t6.98645\toperating\t626.5\t52.5\t\t\t\t\t574\t\t\tYes\tCurrenta,Asterion Industrial Partners\t1971\t\tNot planned",
+    "Emsland\tDE\tGermany\t52.48188\t7.30666\toperating\t1877\t1877\t\t\t\t\t\t\t\tYes\tRWE\t1974\t\tNot planned",
+    "Greifswald\tDE\tGermany\t54.07028\t13.39513\tretired\t38.2\t\t\t\t\t\t\t\t38.2\tYes\tE.ON,SEFE\t2013\t2025\t",
+    "Ludwigshafen Mitte\tDE\tGermany\t49.51385\t8.43159\toperating\t497.5\t497.5\t\t\t\t\t\t\t\tYes\tBASF\t2005\t\tNot planned",
+    "Ludwigshafen Sued\tDE\tGermany\t49.49852\t8.43423\toperating\t410\t410\t\t\t\t\t\t\t\tYes\tBASF\t1997\t\tNot planned",
+    "Mainz\tDE\tGermany\t50.0264\t8.2379\toperating\t1174.3\t620.3\t250\t\t304\t\t\t\t\tYes\tMainzer Stadtwerke\t1977\t\tNot planned",
+    "Essity Operations Mannheim\tDE\tGermany\t49.52878\t8.46874\toperating\t45.5\t45.5\t\t\t\t\t\t\t\tYes\tEssity\t1969\t\tNot planned",
+    "Chemiepark Marl III\tDE\tGermany\t51.67562\t7.09016\tretired\t184.7\t\t\t\t\t\t\t\t184.7\tYes\tEvonik\t1973\t2025\t",
+    "Chemiepark Marl IV\tDE\tGermany\t51.6804\t7.0969\toperating\t58\t58\t\t\t\t\t\t\t\tYes\tEvonik\t2016\t\tNot planned",
+    "München Sued\tDE\tGermany\t48.114\t11.556\toperating\t692.7\t613\t\t\t\t\t\t\t79.7\tYes\tStadtwerke München\t1980\t\tNot planned",
+    "SWM Freimann\tDE\tGermany\t48.18775\t11.59615\toperating\t101.8\t101.8\t\t\t\t\t\t\t\tYes\tStadtwerke München\t2021\t\tNot planned",
+    "Muenster Port\tDE\tGermany\t51.9501\t7.6413\toperating\t100.9\t97.2\t\t\t\t\t\t\t3.7\tYes\tStadtwerke Münster\t2005\t\tNot planned",
+    "Neubrandenburg\tDE\tGermany\t53.5745\t13.2951\toperating\t73.3\t73.3\t\t\t\t\t\t\t\tYes\tNeubrandenburger Stadtwerke,VASA Kraftwerkepool\t1997\t\tNot planned",
+    "Bayernoil Refinery\tDE\tGermany\t48.78789\t11.75617\tmothballed\t25.4\t\t25.4\t\t\t\t\t\t\tYes\tRosneft\t1996\t\tNot planned",
+    "Franken 1\tDE\tGermany\t49.4208\t11.0077\toperating\t823\t823\t\t\t\t\t\t\t\tYes\tUniper\t1973\t\tNot planned",
+    "Sandreuth\tDE\tGermany\t49.43641\t11.06288\toperating\t199.9\t199.9\t\t\t\t\t\t\t\tYes\tN-ERGIE\t1981\t\tNot planned",
+    "Oberhausen\tDE\tGermany\t51.47067\t6.8616\toperating\t30.3\t30.3\t\t\t\t\t\t\t\tYes\tEnergieversorgung Oberhausen\t1971\t\tNot planned",
+    "Pforzheim\tDE\tGermany\t48.8973\t8.7245\toperating\t51\t51\t\t\t\t\t\t\t\tYes\tSWP Stadtwerke Pforzheim\t2021\t\tNot planned",
+    "Philippsthal\tDE\tGermany\t50.84337\t9.97098\toperating\t119.7\t119.7\t\t\t\t\t\t\t\tYes\tK+S\t1962\t\tNot planned",
+    "Plattling\tDE\tGermany\t48.79826\t12.87035\toperating\t120.5\t120.5\t\t\t\t\t\t\t\tYes\tE.ON\t2010\t\tNot planned",
+    "Potsdam-Sued\tDE\tGermany\t52.36681\t13.11208\toperating\t81.8\t81.8\t\t\t\t\t\t\t\tYes\tStadtwerke Potsdam\t1996\t\tNot planned",
+    "Solvay Rb\tDE\tGermany\t51.57084\t6.57188\toperating\t54\t54\t\t\t\t\t\t\t\tYes\tSolvay\t1996\t\tNot planned",
+    "Marienehe\tDE\tGermany\t54.12545\t12.0819\toperating\t108\t108\t\t\t\t\t\t\t\tYes\tStadtwerke Rostock\t1996\t\tNot planned",
+    "Anlage Ruesselsheim\tDE\tGermany\t49.99545\t8.39445\toperating\t112.5\t112.5\t\t\t\t\t\t\t\tYes\tStellantis\t1999\t\tNot planned",
+    "Roemerbruecke\tDE\tGermany\t49.224\t7.01539\toperating\t179.5\t179.5\t\t\t\t\t\t\t\tYes\tEngie\t1988\t\tNot planned",
+    "ZF SBR thermal\tDE\tGermany\t49.21185\t6.97581\toperating\t38.6\t38.6\t\t\t\t\t\t\t\tYes\tStadtwerke Saarbrücken\t2012\t\tNot planned",
+    "UPM Schongau\tDE\tGermany\t47.8081\t10.90235\toperating\t147.1\t83.1\t64\t\t\t\t\t\t\tYes\tUPM-Kymmene\t1968\t\tNot planned",
+    "BASF Schwarzheide\tDE\tGermany\t53.12425\t8.7388\toperating\t129.5\t129.5\t\t\t\t\t\t\t\tYes\tBASF\t1994\t\tNot planned",
+    "Schwerin Sued\tDE\tGermany\t53.57686\t11.39624\toperating\t73\t73\t\t\t\t\t\t\t\tYes\tStadtwerke Schwerin (SWS)\t1994\t\tNot planned",
+    "Mercedes-Benz plant Sindelfingen\tDE\tGermany\t48.70315\t8.99127\toperating\t99.6\t99.6\t\t\t\t\t\t\t\tYes\tMercedes-Benz\t1963\t\tNot planned",
+    "Stade\tDE\tGermany\t53.63511\t9.48307\toperating\t161.9\t161.9\t\t\t\t\t\t\t\tYes\tDow\t1975\t\tNot planned",
+    "Stassfurt\tDE\tGermany\t51.86565\t11.57286\toperating\t100\t100\t\t\t\t\t\t\t\tYes\tCiech\t1997\t\tNot planned",
+    "Irsching 4\tDE\tGermany\t48.767\t11.58\toperating\t561\t561\t\t\t\t\t\t\t\tYes\tUniper\t2011\t\tNot planned",
+    "Irsching 5\tDE\tGermany\t48.767\t11.58\toperating\t846\t846\t\t\t\t\t\t\t\tYes\tN-ERGIE,Uniper\t2010\t\tNot planned",
+    "Veits peaker plant\tDE\tGermany\t47.65053\t10.26162\toperating\t20\t20\t\t\t\t\t\t\t\tYes\tAllgäuer Überlandwerk\t1988\t\tNot planned",
+    "Gersteinwerk\tDE\tGermany\t51.67523\t7.71619\toperating\t2188\t101\t1287\t\t800\t\t\t\t\tYes\tRWE\t1972\t\tNot planned",
+    "Basell Polyolefine\tDE\tGermany\t50.83285\t6.96534\toperating\t51.9\t51.9\t\t\t\t\t\t\t\tYes\tLyondellBasell Industries\t1996\t\tNot planned",
+    "Infraserv Wiesbaden\tDE\tGermany\t50.03364\t8.24481\toperating\t78.1\t78.1\t\t\t\t\t\t\t\tYes\tInfraserv Wiesbaden\t1977\t\tNot planned",
+    "Wolfsburg Sued\tDE\tGermany\t52.41673\t10.79592\toperating\t98.8\t98.8\t\t\t\t\t\t\t\tYes\tVolkswagen\t2021\t\tNot planned",
+    "Woerth thermal\tDE\tGermany\t49.07065\t8.29983\toperating\t58\t58\t\t\t\t\t\t\t\tYes\tPalm Group\t2007\t\tNot planned",
+    "Barmen\tDE\tGermany\t51.2689\t7.2003\toperating\t87\t87\t\t\t\t\t\t\t\tYes\tEngie\t2005\t\tNot planned",
+    "Friedensbruecke\tDE\tGermany\t49.80065\t9.92389\toperating\t149\t149\t\t\t\t\t\t\t\tYes\tWVV\t1971\t\tNot planned",
+    "Zielitz\tDE\tGermany\t52.29973\t11.6733\toperating\t75.9\t75.9\t\t\t\t\t\t\t\tYes\tK+S\t1980\t\tNot planned",
+    "Thyrow\tDE\tGermany\t52.23052\t13.31264\tmothballed\t186.8\t\t186.8\t\t\t\t\t\t\tYes\tEP Group\t1987\t\tNot planned",
+    "Biblis\tDE\tGermany\t49.70921\t8.40698\toperating\t374\t374\t\t\t\t\t\t\t\tYes\tRWE\t2023\t\tNot planned",
+    "BHKW Schwarzer Weg\tDE\tGermany\t50.79748\t6.11389\toperating\t21.5\t21.5\t\t\t\t\t\t\t\tYes\tStadtwerke Aachen\t2023\t\tNot planned",
+    "Aalen\tDE\tGermany\t48.82111\t10.1181\toperating\t77.1\t77.1\t\t\t\t\t\t\t\tYes\tPalm Group\t2021\t\tNot planned",
+    "Hastedt\tDE\tGermany\t53.05915\t8.87324\toperating\t106\t106\t\t\t\t\t\t\t\tYes\tStadtwerke Bonn (SWB)\t2023\t\tNot planned",
+    "Cottbus CHP\tDE\tGermany\t51.76274\t14.3454\toperating\t98.5\t98.5\t\t\t\t\t\t\t\tYes\tStadtwerke Cottbus\t1999\t\tNot planned",
+    "Emsland Mill\tDE\tGermany\t52.97805\t7.36087\toperating\t85.3\t85.3\t\t\t\t\t\t\t\tYes\tUPM-Kymmene\t2022\t\tNot planned",
+    "Scholven\tDE\tGermany\t51.60064\t7.00461\toperating\t1008\t138\t\t870\t\t\t\t\t\tYes\tUniper\t2024\t\tNot planned",
+    "Herne\tDE\tGermany\t51.55139\t7.18889\toperating\t657\t657\t\t\t\t\t\t\t\tYes\tAsterion Industrial Partners\t2022\t\tNot planned",
+    "INEOS Köln\tDE\tGermany\t51.06794\t6.84546\toperating\t29.6\t29.6\t\t\t\t\t\t\t\tYes\tIneos Group\t2022\t\tNot planned",
+    "Leipheim\tDE\tGermany\t48.43572\t10.23481\toperating\t860\t310\t\t550\t\t\t\t\t\tYes\tEP Group\t2023\t\tNot planned",
+    "Leipzig Süd\tDE\tGermany\t51.29746\t12.38424\toperating\t135\t135\t\t\t\t\t\t\t\tYes\tLeipziger Gruppe\t2022\t\tNot planned",
+    "Chemiepark Marl VI\tDE\tGermany\t51.6804\t7.0969\toperating\t180.8\t180.8\t\t\t\t\t\t\t\tYes\tEvonik\t2022\t\tNot planned",
+    "Chemiepark Marl VII\tDE\tGermany\t51.6804\t7.0969\toperating\t90.4\t90.4\t\t\t\t\t\t\t\tYes\tEvonik\t2022\t\tNot planned",
+    "Fernwärme Ulm\tDE\tGermany\t48.39655\t9.96472\toperating\t20.5\t20.5\t\t\t\t\t\t\t\tYes\tEnBW\t2022\t\tNot planned",
+    "Irsching 6\tDE\tGermany\t48.767\t11.58\toperating\t300\t300\t\t\t\t\t\t\t\tYes\tUniper\t2023\t\tNot planned",
+    "Weig Community\tDE\tGermany\t50.32113\t7.23391\tmothballed\t62.7\t\t62.7\t\t\t\t\t\t\tYes\tMoritz J. Weig & Co\t2015\t\tNot planned",
+    "Völklingen-Fenne\tDE\tGermany\t49.24937\t6.88065\toperating\t170\t20\t\t150\t\t\t\t\t\tYes\tAsterion Industrial Partners\t2021\t\tNot planned",
+    "Dresden-Reick\tDE\tGermany\t51.02462\t13.78488\toperating\t93.6\t93.6\t\t\t\t\t\t\t\tYes\tTechnische Werke Dresden\t2004\t\tNot planned",
+    "Griesheim Reserve\tDE\tGermany\t49.86143\t8.56764\tshelved\t500\t\t\t\t\t\t500\t\t\tYes\tCopenhagen Infrastructure Partners\t\t\tNot planned",
+    "Gundelfingen Reserve\tDE\tGermany\t48.55327\t10.3674\tshelved\t1200\t\t\t\t\t\t1200\t\t\tYes\tCopenhagen Infrastructure Partners\t\t\tNot planned",
+    "Heilbronn\tDE\tGermany\t49.17528\t9.20743\tconstruction\t675\t\t\t\t\t675\t\t\t\tYes\tEnBW\t2027\t\tNot planned",
+    "Janschwalde\tDE\tGermany\t51.83567\t14.45781\tannounced\t900\t\t\t900\t\t\t\t\t\tYes\tEP Group\t2029\t\tNot planned",
+    "Lippendorf\tDE\tGermany\t51.18454\t12.37285\tpre-construction\t875\t\t\t\t875\t\t\t\t\tYes\tEP Group\t2029\t\tNot planned",
+    "München Nord\tDE\tGermany\t48.18117\t11.6398\toperating\t730\t365\t\t\t\t\t\t365\t\tYes\tStadtwerke München\t2024\t\t2035",
+    "EDF Premnitz\tDE\tGermany\t52.53367\t12.34867\tshelved\t400\t\t\t\t\t\t400\t\t\tYes\tEDF\t\t\tNot planned",
+    "Schwarze Pumpe\tDE\tGermany\t51.53786\t14.35349\tpre-construction\t850\t\t\t\t850\t\t\t\t\tYes\tEP Group\t2028\t\tNot planned",
+    "Stuttgart-Muenster\tDE\tGermany\t48.81384\t9.21919\toperating\t124\t124\t\t\t\t\t\t\t\tYes\tEnBW\t2025\t\tNot planned",
+    "Dradenau\tDE\tGermany\t53.51808\t9.9147\tconstruction\t180\t\t\t\t\t180\t\t\t\tYes\tHamburger Energiewerke\t2026\t\tNot planned",
+    "Wolfsburg West\tDE\tGermany\t52.44154\t10.76507\toperating\t195\t195\t\t\t\t\t\t\t\tYes\tVolkswagen\t2023\t\tNot planned",
+    "Frankfurt Oder\tDE\tGermany\t52.31822\t14.53152\toperating\t50.5\t50.5\t\t\t\t\t\t\t\tYes\tStadtwerke Frankfurt (Oder)\t2022\t\tNot planned",
+    "Chemnitz-Nord\tDE\tGermany\t50.8326\t12.92421\toperating\t87.7\t87.7\t\t\t\t\t\t\t\tYes\tEins Energie in Sachsen\t2023\t\tNot planned",
+    "Chemnitz-Sud\tDE\tGermany\t50.8326\t12.92421\toperating\t63.7\t63.7\t\t\t\t\t\t\t\tYes\tEins Energie in Sachsen\t2022\t\tNot planned",
+    "ADM Hamburg cogeneration plant\tDE\tGermany\t53.52024\t9.94468\toperating\t23.7\t23.7\t\t\t\t\t\t\t\tYes\tArcher-Daniel-Midland\t2008\t\tNot planned",
+    "AOS GmbH\tDE\tGermany\t53.6575\t9.502\toperating\t30.7\t30.7\t\t\t\t\t\t\t\tYes\tDADCO\t2012\t\tNot planned",
+    "Bad Salzungen\tDE\tGermany\t50.80041\t10.2211\toperating\t19.8\t19.8\t\t\t\t\t\t\t\tYes\tKEBT\t1993\t\tNot planned",
+    "BarBy\tDE\tGermany\t51.98522\t11.87792\toperating\t17.8\t17.8\t\t\t\t\t\t\t\tYes\tCargill Incorporated\t2013\t\tNot planned",
+    "Bayer Berlin\tDE\tGermany\t52.54051\t13.36879\toperating\t15.1\t15.1\t\t\t\t\t\t\t\tYes\tBayer\t1973\t\tNot planned",
+    "BMW Dingolfing\tDE\tGermany\t48.64948\t12.47111\toperating\t29.6\t29.6\t\t\t\t\t\t\t\tYes\tBMW\t2014\t\tNot planned",
+    "BMW Landshut\tDE\tGermany\t48.55749\t12.1495\toperating\t17.2\t17.2\t\t\t\t\t\t\t\tYes\tBMW\t2018\t\tNot planned",
+    "BTB Berlin\tDE\tGermany\t52.42706\t13.52782\toperating\t25.4\t25.4\t\t\t\t\t\t\t\tYes\tBTB Berlin\t2010\t\tNot planned",
+    "Caterpillar Mannheim\tDE\tGermany\t49.50026\t8.47268\toperating\t21.8\t21.8\t\t\t\t\t\t\t\tYes\tCaterpillar\t1939\t\tNot planned",
+    "Cosun Beet Company\tDE\tGermany\t53.85452\t13.70918\toperating\t15\t15\t\t\t\t\t\t\t\tYes\tRoyal Cosun\t1993\t\tNot planned",
+    "Crespel & Deiters Ibbenbüren\tDE\tGermany\t52.26498\t7.70597\toperating\t16.7\t14.9\t\t\t\t\t\t\t1.8\tYes\tCrespel & Deiters\t1994\t\tNot planned",
+    "Dresden-Wilschdorf\tDE\tGermany\t51.12628\t13.71211\toperating\t111.1\t68.9\t\t\t42.2\t\t\t\t\tYes\tGlobalFoundries\t1998\t\tNot planned",
+    "Drewsen\tDE\tGermany\t52.62545\t10.24607\toperating\t16\t16\t\t\t\t\t\t\t\tYes\tDREWSEN Spezialpapiere\t2000\t\tNot planned",
+    "Duisburg Mitte\tDE\tGermany\t51.42856\t6.7542\toperating\t31.3\t31.3\t\t\t\t\t\t\t\tYes\tDVV\t2023\t\tNot planned",
+    "Dusseldorf Henkel\tDE\tGermany\t51.17632\t6.83705\toperating\t43.3\t43.3\t\t\t\t\t\t\t\tYes\tHenkel\t1963\t\tNot planned",
+    "Dusseldorf Mercedes\tDE\tGermany\t51.25427\t6.7876\toperating\t21\t21\t\t\t\t\t\t\t\tYes\tMercedes-Benz\t2012\t\tNot planned",
+    "Energiezentrum Mohn Media\tDE\tGermany\t51.90733\t8.40884\toperating\t24.9\t24.9\t\t\t\t\t\t\t\tYes\tBertelsmann\t1994\t\tNot planned",
+    "Evonik Rheinfelden\tDE\tGermany\t47.56847\t7.8052\toperating\t15.7\t15.7\t\t\t\t\t\t\t\tYes\tEvonik\t1979\t\tNot planned",
+    "Felix Schoeller Sachsen\tDE\tGermany\t50.86984\t13.3935\toperating\t15.7\t15.7\t\t\t\t\t\t\t\tYes\tFelix Schoeller\t1976\t\tNot planned",
+    "Georg-August-Universität Göttingen\tDE\tGermany\t51.554\t9.93372\toperating\t18.8\t18.8\t\t\t\t\t\t\t\tYes\tUniversität Göttingen\t1998\t\tNot planned",
+    "Gera-Lusan\tDE\tGermany\t50.84548\t12.07878\toperating\t17.5\t17.5\t\t\t\t\t\t\t\tYes\tEngie\t2018\t\tNot planned",
+    "Gera-Tinz\tDE\tGermany\t50.8942\t12.07453\toperating\t22.4\t22.4\t\t\t\t\t\t\t\tYes\tEngie\t2018\t\tNot planned",
+    "Gunvor Ingolstadt Refinery\tDE\tGermany\t48.78902\t11.47331\toperating\t25\t25\t\t\t\t\t\t\t\tYes\tGunvor\t1964\t\tNot planned",
+    "H&R chemicals\tDE\tGermany\t52.31507\t7.35241\toperating\t15\t15\t\t\t\t\t\t\t\tYes\tH&R\t1977\t\tNot planned",
+    "Heating Humboldtstr.\tDE\tGermany\t54.32739\t10.12579\toperating\t21.5\t21.5\t\t\t\t\t\t\t\tYes\tMVV Energie\t2005\t\tNot planned",
+    "Heidenheim Voith\tDE\tGermany\t48.66917\t10.15034\toperating\t20.1\t20.1\t\t\t\t\t\t\t\tYes\tVoith\t1999\t\tNot planned",
+    "Hillegossen\tDE\tGermany\t52.00032\t8.61406\toperating\t23.4\t9.3\t14.1\t\t\t\t\t\t\tYes\tStadtwerke Bielefeld Group\t2005\t\tNot planned",
+    "Ineos Moers\tDE\tGermany\t51.4693\t6.6436\toperating\t19.5\t19.5\t\t\t\t\t\t\t\tYes\tIneos Group\t1974\t\tNot planned",
+    "Jass Werk Fulda\tDE\tGermany\t50.56725\t9.67944\toperating\t35.3\t35.3\t\t\t\t\t\t\t\tYes\tPapierfabrik Adolf Jass\t1982\t\tNot planned",
+    "Kiel\tDE\tGermany\t54.34144\t10.17941\toperating\t189.1\t189.1\t\t\t\t\t\t\t\tYes\tMVV Energie\t2018\t\tNot planned",
+    "Klein Wanzleben\tDE\tGermany\t52.07009\t11.38531\toperating\t24.7\t24.7\t\t\t\t\t\t\t\tYes\tNordzucker\t1994\t\tNot planned",
+    "Kronos Titan\tDE\tGermany\t53.52928\t8.5476\toperating\t17.1\t17.1\t\t\t\t\t\t\t\tYes\tKronos\t2013\t\tNot planned",
+    "Leppersdorf\tDE\tGermany\t51.1514\t13.9776\toperating\t35.6\t35.6\t\t\t\t\t\t\t\tYes\tUnternehmensgruppe Theo Müller\t2014\t\tNot planned",
+    "Man Energy\tDE\tGermany\t48.37997\t10.89831\toperating\t20.9\t20.9\t\t\t\t\t\t\t\tYes\tVolkswagen\t2005\t\tNot planned",
+    "MM Neuss recycling\tDE\tGermany\t51.22013\t6.6978\toperating\t42\t42\t\t\t\t\t\t\t\tYes\tMM,E.ON\t1971\t\tNot planned",
+    "MPE\tDE\tGermany\t52.00032\t8.61406\toperating\t15.1\t15.1\t\t\t\t\t\t\t\tYes\tStadtwerke Bielefeld Group\t2021\t\tNot planned",
+    "Nordzucker Hohenhameln\tDE\tGermany\t52.23278\t10.03351\toperating\t17.6\t17.6\t\t\t\t\t\t\t\tYes\tNordzucker\t2008\t\tNot planned",
+    "Nordzucker Nordstemmen\tDE\tGermany\t52.17121\t9.79165\toperating\t26\t26\t\t\t\t\t\t\t\tYes\tNordzucker\t1988\t\tNot planned",
+    "OMV Refinery Burghausen\tDE\tGermany\t48.19341\t12.8297\toperating\t15.7\t15.7\t\t\t\t\t\t\t\tYes\tOMV Aktiengesellschaft\t1969\t\tNot planned",
+    "Papier- Und Kartonfabrik Varel (PVK)\tDE\tGermany\t53.4032\t8.1282\toperating\t61.1\t61.1\t\t\t\t\t\t\t\tYes\tPapier- u. Kartonfabrik Varel\t1965\t\tNot planned",
+    "Pfaffenwald\tDE\tGermany\t48.75037\t9.11039\toperating\t35.1\t35.1\t\t\t\t\t\t\t\tYes\tUniversität Stuttgart\t1963\t\tNot planned",
+    "Roehm\tDE\tGermany\t49.65442\t8.36468\toperating\t18.8\t18.8\t\t\t\t\t\t\t\tYes\tAdvent International\t1990\t\tNot planned",
+    "Sasol Brunsbuttel\tDE\tGermany\t53.91448\t9.16243\toperating\t17.1\t17.1\t\t\t\t\t\t\t\tYes\tSasol\t1987\t\tNot planned",
+    "Smurfit Kappa Herzberg\tDE\tGermany\t51.66168\t10.35245\toperating\t22.1\t22.1\t\t\t\t\t\t\t\tYes\tSmurfit Kappa Group\t1955\t\tNot planned",
+    "Smurfit Kappa Hoya\tDE\tGermany\t52.80928\t9.15505\toperating\t16\t16\t\t\t\t\t\t\t\tYes\tSmurfit Kappa Group\t1996\t\tNot planned",
+    "Smurfit Zulpich\tDE\tGermany\t50.70594\t6.65124\toperating\t29.2\t29.2\t\t\t\t\t\t\t\tYes\tSmurfit Kappa Group\t1996\t\tNot planned",
+    "St. Wendel\tDE\tGermany\t49.46418\t7.1489\toperating\t19.5\t19.5\t\t\t\t\t\t\t\tYes\tFresenius\t2014\t\tNot planned",
+    "Steinitz\tDE\tGermany\t52.82837\t11.10421\toperating\t23.2\t23.2\t\t\t\t\t\t\t\tYes\tNeptune Energy\t1994\t\tNot planned",
+    "Stuttgart-Gaisburg\tDE\tGermany\t48.78465\t9.22858\toperating\t29.2\t29.2\t\t\t\t\t\t\t\tYes\tEnBW\t2018\t\tNot planned",
+    "Universitat Freiburg\tDE\tGermany\t48.00885\t7.83715\toperating\t28.4\t28.4\t\t\t\t\t\t\t\tYes\tUniversitätsklinikum Freiburg\t1970\t\tNot planned",
+    "Unterbreizbach\tDE\tGermany\t50.8132\t9.9775\toperating\t33.8\t33.8\t\t\t\t\t\t\t\tYes\tK+S\t1964\t\tNot planned",
+    "Volkswagen Sachsen\tDE\tGermany\t50.79391\t12.48426\toperating\t16.5\t16.5\t\t\t\t\t\t\t\tYes\tVolkswagen\t2014\t\tNot planned",
+    "Bergkamen\tDE\tGermany\t51.63668\t7.6206\tpre-construction\t880\t\t\t\t880\t\t\t\t\tYes\tAsterion Industrial Partners\t2030\t\tNot planned",
+    "Mehrum\tDE\tGermany\t52.31511\t10.09376\tannounced\t1200\t\t\t1200\t\t\t\t\t\tYes\tEP Group\t\t\tNot planned",
+    "Smurfit Kappa Wrexen\tDE\tGermany\t51.50655\t8.9794\toperating\t17.5\t17.5\t\t\t\t\t\t\t\tYes\tSmurfit Kappa Group\t2024\t\tNot planned",
+    "IQ Energy Center\tDE\tGermany\t50.09045\t8.59151\tpre-construction\t61\t\t\t\t61\t\t\t\t\tYes\tE.ON\t2029\t\tNot planned",
+    "Hanau joint\tDE\tGermany\t50.09424\t8.95945\tconstruction\t31.2\t\t\t\t\t31.2\t\t\t\tYes\tStadtwerke Frankfurt am Main (SWFH),Thüga,BeteiligungsHolding Hanau\t2026\t\tNot planned",
+    "Gundremmingen peaker plant\tDE\tGermany\t48.51244\t10.4077\tpre-construction\t124\t\t\t\t124\t\t\t\t\tYes\tRWE\t\t\tNot planned",
+    "Zolling thermal\tDE\tGermany\t48.45549\t11.79612\tpre-construction\t841.6\t\t\t800\t41.6\t\t\t\t\tYes\tRiverstone Holdings\t2027\t\tNot planned",
+    "Bexbach\tDE\tGermany\t49.36345\t7.2371\tannounced\t900\t\t\t900\t\t\t\t\t\tYes\tAsterion Industrial Partners\t\t\tNot planned",
+    "Quierschied-Weiher\tDE\tGermany\t49.33528\t7.03056\tannounced\t600\t\t\t600\t\t\t\t\t\tYes\tAsterion Industrial Partners\t\t\tNot planned",
+    "Voerde\tDE\tGermany\t51.5791\t6.68588\tannounced\t850\t\t\t850\t\t\t\t\t\tYes\tRWE\t2030\t\tNot planned",
+    "Schkopau\tDE\tGermany\t51.40097\t11.94929\tpre-construction\t900\t\t\t\t900\t\t\t\t\tYes\tEP Group\t\t\tNot planned",
+    "RWE Burghaussen\tDE\tGermany\t48.19551\t12.82524\tannounced\t950\t\t\t950\t\t\t\t\t\tYes\tRWE\t2030\t\tNot planned",
+    "Agios Nikolaos\tGR\tGreece\t38.3585\t22.6883\toperating\t1568.7\t1568.7\t\t\t\t\t\t\t\tYes\tMetlen Energy & Metals\t2008\t\tNot planned",
+    "Alexandroupolis Industrial Area\tGR\tGreece\t40.84917\t25.8578\tconstruction\t840\t\t\t\t\t840\t\t\t\tYes\tDEPA,PPC\t2027\t\tNot planned",
+    "Aliveri\tGR\tGreece\t38.3896\t24.0524\toperating\t417\t417\t\t\t\t\t\t\t\tYes\tPPC\t2013\t\tNot planned",
+    "ElvalHalcor Thisvi\tGR\tGreece\t38.23763\t22.95894\tshelved\t651\t\t\t\t\t\t651\t\t\tYes\tElvalHalcor\t2024\t\tNot planned",
+    "Thermo Komotini\tGR\tGreece\t41.11813\t25.38942\toperating\t877\t877\t\t\t\t\t\t\t\tYes\tMotor Oil,GEK Terna\t2024\t\tNot planned",
+    "Karatzis Larissa\tGR\tGreece\t39.63107\t22.38913\tshelved\t665\t\t\t\t\t\t665\t\t\tYes\tKaratzis\t2024\t\tNot planned",
+    "Kardia\tGR\tGreece\t40.41063\t21.78615\tconstruction\t76.3\t\t\t\t\t76.3\t\t\t\tYes\tPPC\t2026\t\tNot planned",
+    "Komotini\tGR\tGreece\t41.0646\t25.4899\toperating\t472\t472\t\t\t\t\t\t\t\tYes\tPPC\t2002\t\tNot planned",
+    "Korinthos\tGR\tGreece\t37.924\t23.06855\toperating\t433.5\t433.5\t\t\t\t\t\t\t\tYes\tMetlen Energy & Metals,Motor Oil\t2012\t\tNot planned",
+    "Larissa Thermoelectric\tGR\tGreece\t39.68861\t22.47389\tpre-construction\t882\t\t\t\t882\t\t\t\t\tYes\tClavenia,DEPA,EUSIF Larissa,Volton\t2028\t\tNot planned",
+    "Lavrio\tGR\tGreece\t37.7463\t24.0666\toperating\t923\t923\t\t\t\t\t\t\t\tYes\tPPC\t1997\t\tNot planned",
+    "Megalopoli\tGR\tGreece\t37.41745\t22.10789\toperating\t811\t811\t\t\t\t\t\t\t\tYes\tPPC\t2015\t\tNot planned",
+    "Ptolemaida\tGR\tGreece\t40.40971\t21.78757\tpre-construction\t438.7\t\t\t143.7\t295\t\t\t\t\tYes\tPPC\t2027\t\tNot planned",
+    "Thessaloniki\tGR\tGreece\t40.6879\t22.88402\toperating\t1244\t418\t\t\t826\t\t\t\t\tYes\tHelleniq Energy\t2006\t\tNot planned",
+    "Thisvi\tGR\tGreece\t38.2369\t22.949\toperating\t410\t410\t\t\t\t\t\t\t\tYes\tHelleniq Energy\t2010\t\tNot planned",
+    "Thiva Heron\tGR\tGreece\t38.27951\t23.33051\toperating\t580.7\t433.7\t\t\t\t\t\t\t147\tYes\tGEK Terna\t2004\t\tNot planned",
+    "Tithorea\tGR\tGreece\t38.58606\t22.66777\tpre-construction\t153\t\t\t\t153\t\t\t\t\tYes\tGEK Terna\t\t\tNot planned",
+    "Korinthos Refinery\tGR\tGreece\t37.92084\t23.0665\toperating\t142\t85\t\t\t\t57\t\t\t\tYes\tMotor Oil\t1985\t\tNot planned",
+    "Agios Dimitrios\tGR\tGreece\t40.39419\t21.92489\tpre-construction\t100\t\t\t\t100\t\t\t\t\tYes\tPPC\t\t\tNot planned",
+    "Heron 1 mobile\tGR\tGreece\t35.1783\t24.97202\toperating\t147\t147\t\t\t\t\t\t\t\tYes\tGEK Terna\t2004\t\tNot planned",
+    "Ajka\tHU\tHungary\t47.095\t17.556\toperating\t116\t116\t\t\t\t\t\t\t\tYes\tMVM Zrt.\t2011\t\tNot planned",
+    "Csepel\tHU\tHungary\t47.428\t19.0525\toperating\t410\t410\t\t\t\t\t\t\t\tYes\tAlpiq\t2000\t\tNot planned",
+    "Debrecen\tHU\tHungary\t47.51682\t21.62824\toperating\t95\t95\t\t\t\t\t\t\t\tYes\tVeolia\t2000\t\tNot planned",
+    "Dunamenti\tHU\tHungary\t47.3283\t18.9169\toperating\t758\t758\t\t\t\t\t\t\t\tYes\tMET Group,MVM Zrt.\t1994\t\tNot planned",
+    "Gönyűi\tHU\tHungary\t47.7384\t17.8033\toperating\t433\t433\t\t\t\t\t\t\t\tYes\tVeolia\t2011\t\tNot planned",
+    "ISD Power station\tHU\tHungary\t46.94438\t18.94378\toperating\t64.5\t64.5\t\t\t\t\t\t\t\tYes\tISD Dunaferr ZRT\t1951\t\tNot planned",
+    "Kelenföldi Erőmű\tHU\tHungary\t47.4624\t19.0563\toperating\t178\t178\t\t\t\t\t\t\t\tYes\tVeolia\t2006\t\tNot planned",
+    "Kispesti Erőmű\tHU\tHungary\t47.4568\t19.1673\toperating\t109\t109\t\t\t\t\t\t\t\tYes\tVeolia\t2004\t\tNot planned",
+    "Matra\tHU\tHungary\t47.7886\t20.066\toperating\t600\t60\t\t\t\t540\t\t\t\tYes\tMVM Zrt.\t2007\t\tNot planned",
+    "Miskolc Hold\tHU\tHungary\t48.09488\t20.74725\toperating\t64\t64\t\t\t\t\t\t\t\tYes\tMVM Zrt.\t2020\t\tNot planned",
+    "North Buda\tHU\tHungary\t47.56421\t19.03784\toperating\t50\t50\t\t\t\t\t\t\t\tYes\tMVM Zrt.\t2007\t\tNot planned",
+    "Nyíregyházi\tHU\tHungary\t47.957\t21.699\toperating\t47\t47\t\t\t\t\t\t\t\tYes\tVeolia\t2007\t\tNot planned",
+    "Tatabánya\tHU\tHungary\t47.55969\t18.42878\toperating\t18\t18\t\t\t\t\t\t\t\tYes\tTatabánya Erőmű Kft-t\t2004\t\tNot planned",
+    "Tisza\tHU\tHungary\t47.91729\t21.07698\tconstruction\t1000\t\t\t\t\t1000\t\t\t\tYes\tMVM Zrt.\t2029\t\tNot planned",
+    "TVK Industrial\tHU\tHungary\t47.9144\t21.0236\toperating\t36\t36\t\t\t\t\t\t\t\tYes\tMOL.\t2005\t\tNot planned",
+    "Újpesti\tHU\tHungary\t47.554\t19.1023\toperating\t110\t110\t\t\t\t\t\t\t\tYes\tVeolia\t2002\t\tNot planned",
+    "Borsodchem\tHU\tHungary\t48.2453\t20.6476\toperating\t58\t58\t\t\t\t\t\t\t\tYes\tBorsodChem Zrt\t2001\t\tNot planned",
+    "Aghada\tIE\tIreland\t51.8347\t-8.2362\toperating\t1018\t719\t\t\t299\t\t\t\t\tYes\tESB\t1980\t\tNot planned",
+    "Arklow DUB30 Echelon\tIE\tIreland\t52.77401\t-6.17316\tshelved\t90\t\t\t\t\t\t90\t\t\tYes\tEchelon Data Centres\t\t\tNot planned",
+    "Arklow DUB20 Echelon\tIE\tIreland\t52.8119\t-6.1313\tpre-construction\t249\t\t\t\t249\t\t\t\t\tYes\tEchelon Data Centres\t2027\t\tNot planned",
+    "Castlelost Flexgen\tIE\tIreland\t53.3994\t-7.3207\tconstruction\t275\t\t\t\t\t275\t\t\t\tYes\tVitol,Lumcloon Energy\t2024\t\tNot planned",
+    "Clondalkin DUB10 Echelon\tIE\tIreland\t53.33104\t-6.38345\tconstruction\t204\t\t\t\t\t204\t\t\t\tYes\tEchelon Data Centres\t2024\t\tNot planned",
+    "Corduff Flexgen\tIE\tIreland\t53.3911\t-6.3748\toperating\t65\t65\t\t\t\t\t\t\t\tYes\tESB\t2024\t\tNot planned",
+    "Cushaling\tIE\tIreland\t53.29034\t-7.08705\tpre-construction\t204.9\t\t\t\t204.9\t\t\t\t\tYes\tBord na Móna\t2026\t\tNot planned",
+    "Derrygreenagh\tIE\tIreland\t53.39237\t-7.2567\tpre-construction\t710\t\t\t\t710\t\t\t\t\tYes\tBord na Móna\t\t\tNot planned",
+    "Dublin Bay\tIE\tIreland\t53.34\t-6.2049\toperating\t415\t415\t\t\t\t\t\t\t\tYes\tESB\t2002\t\tNot planned",
+    "Grange Castle Business Park\tIE\tIreland\t53.32254\t-6.44026\tconstruction\t170\t\t\t\t\t170\t\t\t\tYes\tMicrosoft\t\t\tNot planned",
+    "Grange Castle DUB40 Echelon\tIE\tIreland\t53.31927\t-6.46459\tpre-construction\t116\t\t\t\t116\t\t\t\t\tYes\tEchelon Data Centres\t2027\t\tNot planned",
+    "Great Island\tIE\tIreland\t52.281\t-6.991\toperating\t464\t464\t\t\t\t\t\t\t\tYes\tSSE\t2015\t\tNot planned",
+    "Huntstown\tIE\tIreland\t53.4119\t-6.3261\toperating\t869\t797\t\t\t72\t\t\t\t\tYes\tI Squared Capital\t2002\t\tNot planned",
+    "Kilshane\tIE\tIreland\t53.4163\t-6.3244\tconstruction\t900\t\t\t\t600\t300\t\t\t\tYes\tLCC Group\t2028\t\tNot planned",
+    "Shannon LNG\tIE\tIreland\t52.58099\t-9.44246\tpre-construction\t600\t\t\t\t600\t\t\t\t\tYes\tNew Fortress Energy\t2026\t\tNot planned",
+    "Monksland\tIE\tIreland\t53.42285\t-7.98857\tconstruction\t100\t\t\t\t\t100\t\t\t\tYes\tCentrica,Mountside Partners\t2024\t\tNot planned",
+    "North Wall\tIE\tIreland\t53.3502\t-6.2111\toperating\t316\t210\t106\t\t\t\t\t\t\tYes\tESB\t1982\t\tNot planned",
+    "Poolbeg\tIE\tIreland\t53.3396\t-6.1867\toperating\t854\t555\t\t\t\t299\t\t\t\tYes\tESB\t1994\t\tNot planned",
+    "Rhode\tIE\tIreland\t53.35914\t-7.21306\toperating\t104\t104\t\t\t\t\t\t\t\tYes\tSSE\t2004\t\tNot planned",
+    "Ringsend Flexgen\tIE\tIreland\t53.33868\t-6.20486\toperating\t65\t65\t\t\t\t\t\t\t\tYes\tESB\t2024\t\tNot planned",
+    "Sealrock\tIE\tIreland\t52.6324\t-9.0596\toperating\t170\t170\t\t\t\t\t\t\t\tYes\tRUSAL\t2006\t\tNot planned",
+    "Tynagh\tIE\tIreland\t53.1658\t-8.381\toperating\t734\t384\t\t\t350\t\t\t\t\tYes\tEP Group,TotalEnergies\t2006\t\tNot planned",
+    "Whitegate\tIE\tIreland\t51.8161\t-8.2511\toperating\t445\t445\t\t\t\t\t\t\t\tYes\tCentrica\t2010\t\tNot planned",
+    "Bellacorick\tIE\tIreland\t54.1208\t-9.5778\tpre-construction\t114\t\t\t\t114\t\t\t\t\tYes\tConstant Energy\t2026\t\tNot planned",
+    "Profile Park\tIE\tIreland\t53.3139\t-6.4489\tconstruction\t100\t\t\t\t\t100\t\t\t\tYes\tCentrica,Mountside Partners\t2025\t\tNot planned",
+    "Cashla Peaker Plant\tIE\tIreland\t53.30131\t-8.80173\tpre-construction\t334\t\t\t\t334\t\t\t\t\tYes\tCentrica\t2029\t\tNot planned",
+    "Coolpowra Power Station\tIE\tIreland\t53.13045\t-8.26519\tpre-construction\t1155\t\t\t\t1155\t\t\t\t\tYes\tLumcloon Energy\t\t\tNot planned",
+    "Kentstown\tIE\tIreland\t53.6443\t-6.5431\tpre-construction\t180\t\t\t\t180\t\t\t\t\tYes\tART Generation\t\t\tNot planned",
+    "Platin\tIE\tIreland\t53.68179\t-6.38626\tconstruction\t180\t\t\t\t\t180\t\t\t\tYes\tSSE\t2028\t\tNot planned",
+    "Grange Backup Power station\tIE\tIreland\t53.32914\t-6.44596\toperating\t111\t111\t\t\t\t\t\t\t\tYes\tSDCL\t2025\t\tNot planned",
+    "Ferrero cogeneration\tIT\tItaly\t44.703\t8.027\toperating\t49\t49\t\t\t\t\t\t\t\tYes\tFerrero\t2006\t\tNot planned",
+    "Altomonte\tIT\tItaly\t39.7118\t16.215\toperating\t808\t808\t\t\t\t\t\t\t\tYes\tEDF\t2006\t\tNot planned",
+    "Aprilia\tIT\tItaly\t41.5616\t12.6337\toperating\t787\t787\t\t\t\t\t\t\t\tYes\tF2i\t2012\t\tNot planned",
+    "Larino\tIT\tItaly\t41.81949\t14.96602\toperating\t550\t250\t\t\t\t\t\t300\t\tYes\tEnel\t1992\t\t2040",
+    "Atessa Fiat Sevel\tIT\tItaly\t42.14743\t14.45917\toperating\t34\t34\t\t\t\t\t\t\t\tYes\tEDF\t2008\t\tNot planned",
+    "Augusta\tIT\tItaly\t37.22038\t15.17781\toperating\t44\t44\t\t\t\t\t\t\t\tYes\tSasol\t\t\tNot planned",
+    "Avezzano Burgo\tIT\tItaly\t41.99558\t13.43856\toperating\t84\t84\t\t\t\t\t\t\t\tYes\tBurgo Group\t1999\t\tNot planned",
+    "Benevento\tIT\tItaly\t41.14944\t14.8303\tannounced\t350\t\t\t350\t\t\t\t\t\tYes\tLuminosa Energia\t\t\tNot planned",
+    "Borgo Trento\tIT\tItaly\t45.44848\t10.98074\toperating\t29\t29\t\t\t\t\t\t\t\tYes\tAgsm Verona\t1994\t\tNot planned",
+    "Lamarmora\tIT\tItaly\t45.51598\t10.21096\toperating\t139\t139\t\t\t\t\t\t\t\tYes\tA2A\t1978\t\tNot planned",
+    "Bussi\tIT\tItaly\t42.2002\t13.8398\toperating\t122\t122\t\t\t\t\t\t\t\tYes\tEDF\t1994\t\tNot planned",
+    "Candela\tIT\tItaly\t41.2014\t15.4762\toperating\t401\t401\t\t\t\t\t\t\t\tYes\tEDF\t2005\t\tNot planned",
+    "Cassano D'Adda\tIT\tItaly\t45.5115\t9.5098\toperating\t1878\t958\t\t\t920\t\t\t\t\tYes\tA2A\t2006\t\tNot planned",
+    "Cassano Spinola\tIT\tItaly\t44.76046\t8.85529\toperating\t50\t50\t\t\t\t\t\t\t\tYes\tRoquette Freres\t2003\t\tNot planned",
+    "La Casella\tIT\tItaly\t45.0904\t9.4805\toperating\t2432\t1562\t\t\t\t\t\t870\t\tYes\tEnel\t2002\t\t2040",
+    "Castelmassa\tIT\tItaly\t45.02131\t11.31159\toperating\t53\t53\t\t\t\t\t\t\t\tYes\tEnel\t1994\t\tNot planned",
+    "Celano\tIT\tItaly\t42.04813\t13.53618\tmothballed\t175\t\t175\t\t\t\t\t\t\tYes\tB2G Italy\t1999\t\tNot planned",
+    "Barilla\tIT\tItaly\t44.824\t10.376\toperating\t35\t35\t\t\t\t\t\t\t\tYes\tEDF\t2008\t\tNot planned",
+    "Chivasso\tIT\tItaly\t45.1856\t7.9016\toperating\t1208\t1208\t\t\t\t\t\t\t\tYes\tA2A\t2004\t\tNot planned",
+    "Torrevaldaliga Nord\tIT\tItaly\t42.1269\t11.7583\tcancelled\t800\t\t\t\t\t\t\t800\t\tYes\tEnel\t\t\t",
+    "Torrevaldaliga Sud\tIT\tItaly\t42.1241\t11.7624\toperating\t2040\t1140\t\t\t\t\t\t900\t\tYes\tEngie\t2004\t\tNot planned",
+    "Termica Colleferro\tIT\tItaly\t41.73533\t12.97072\toperating\t44\t44\t\t\t\t\t\t\t\tYes\tAvio,Maccaferri\t2012\t\tNot planned",
+    "Cologno Monzese\tIT\tItaly\t45.53356\t9.26311\toperating\t50\t50\t\t\t\t\t\t\t\tYes\tA2A\t1998\t\tNot planned",
+    "Tenaris Dalmine\tIT\tItaly\t45.63919\t9.60481\toperating\t120\t120\t\t\t\t\t\t\t\tYes\tTenaris\t2007\t\tNot planned",
+    "Malpensa\tIT\tItaly\t45.62833\t8.7135\toperating\t74.5\t74.5\t\t\t\t\t\t\t\tYes\tA2A\t2008\t\tNot planned",
+    "Ferrara Erbognone\tIT\tItaly\t44.86406\t11.59439\toperating\t780\t780\t\t\t\t\t\t\t\tYes\tEni\t2004\t\tNot planned",
+    "Ferrera Erbognone Refinery\tIT\tItaly\t45.09963\t8.86632\toperating\t1030\t1030\t\t\t\t\t\t\t\tYes\tEni\t2004\t\tNot planned",
+    "Lucca Paper Mill\tIT\tItaly\t43.82341\t10.60194\toperating\t100\t100\t\t\t\t\t\t\t\tYes\tDS Smith\t1998\t\tNot planned",
+    "Andrea Palladio di Fusina\tIT\tItaly\t45.4314\t12.2468\toperating\t840\t840\t\t\t\t\t\t\t\tYes\tEnel\t2025\t\t2040",
+    "Genova Sampierdarena\tIT\tItaly\t44.42868\t8.88469\toperating\t25\t25\t\t\t\t\t\t\t\tYes\tIren\t1990\t\tNot planned",
+    "Pace Del Mela\tIT\tItaly\t38.2009\t15.29811\toperating\t65\t65\t\t\t\t\t\t\t\tYes\tDuferco\t2024\t\tNot planned",
+    "Gissi\tIT\tItaly\t42.0502\t14.5639\toperating\t840\t840\t\t\t\t\t\t\t\tYes\tA2A\t2008\t\tNot planned",
+    "Hera Casalegno\tIT\tItaly\t44.36995\t11.70129\toperating\t86\t86\t\t\t\t\t\t\t\tYes\tHera\t2009\t\tNot planned",
+    "La Spezia\tIT\tItaly\t44.11121\t9.87488\tmothballed\t1522\t\t682\t\t\t\t\t840\t\tYes\tEnel\t2000\t\t2040",
+    "Leini\tIT\tItaly\t45.163\t7.7505\toperating\t390\t390\t\t\t\t\t\t\t\tYes\tEngie\t2007\t\tNot planned",
+    "Livorno Ferraris\tIT\tItaly\t45.28173\t8.08492\toperating\t805\t805\t\t\t\t\t\t\t\tYes\tEP Group,TotalEnergies,BKW\t2008\t\tNot planned",
+    "Brindisi Sud\tIT\tItaly\t40.56364\t18.03221\tshelved\t1680\t\t\t\t\t\t1680\t\t\tYes\tEnel\t\t\tNot planned",
+    "Mantova\tIT\tItaly\t45.15026\t10.83491\toperating\t836\t780\t56\t\t\t\t\t\t\tYes\tEni\t2005\t\tNot planned",
+    "Santa Barbara\tIT\tItaly\t43.565\t11.4777\toperating\t396\t396\t\t\t\t\t\t\t\tYes\tEnel\t2006\t\t2040",
+    "Melfi Fiat Sata\tIT\tItaly\t41.07594\t15.71406\toperating\t32\t32\t\t\t\t\t\t\t\tYes\tEDF\t2008\t\tNot planned",
+    "Milazzo\tIT\tItaly\t38.19779\t15.26759\toperating\t155\t155\t\t\t\t\t\t\t\tYes\tEni\t1999\t\tNot planned",
+    "Modugno\tIT\tItaly\t41.1025\t16.756\toperating\t800\t800\t\t\t\t\t\t\t\tYes\tF2i\t2010\t\tNot planned",
+    "Moncalieri\tIT\tItaly\t44.993\t7.6755\toperating\t790\t790\t\t\t\t\t\t\t\tYes\tIren\t2005\t\tNot planned",
+    "Monfalcone\tIT\tItaly\t45.7979\t13.5455\tconstruction\t880\t\t\t\t\t880\t\t\t\tYes\tA2A\t2027\t\tNot planned",
+    "Montalto Di Castro\tIT\tItaly\t42.3572\t11.5373\toperating\t1090\t610\t\t\t\t\t\t\t480\tYes\tEnel\t1997\t\t2040",
+    "Napoli Levante\tIT\tItaly\t40.8339\t14.3006\toperating\t387\t387\t\t\t\t\t\t\t\tYes\tEngie\t2009\t\tNot planned",
+    "Novel\tIT\tItaly\t45.457\t8.6496\toperating\t100\t100\t\t\t\t\t\t\t\tYes\tAlpiq,Radici Group\t2004\t\tNot planned",
+    "CTE Tamarete\tIT\tItaly\t42.32325\t14.37755\toperating\t104\t104\t\t\t\t\t\t\t\tYes\tBKW\t2013\t\tNot planned",
+    "Ostiglia\tIT\tItaly\t45.0603\t11.1374\toperating\t2044\t1164\t\t\t\t880\t\t\t\tYes\tEP Group,TotalEnergies\t2003\t\tNot planned",
+    "Pietrafitta\tIT\tItaly\t42.9954\t12.1995\toperating\t376\t376\t\t\t\t\t\t\t\tYes\tEnel\t2003\t\t2040",
+    "Brindisi Nord\tIT\tItaly\t40.6293\t18.0033\toperating\t1143\t1143\t\t\t\t\t\t\t\tYes\tEni\t2005\t\tNot planned",
+    "Piacenza\tIT\tItaly\t45.0543\t9.7086\toperating\t841\t841\t\t\t\t\t\t\t\tYes\tA2A\t2006\t\tNot planned",
+    "Cassino\tIT\tItaly\t41.4764\t13.75315\toperating\t100\t100\t\t\t\t\t\t\t\tYes\tShell\t1997\t\tNot planned",
+    "Ponti sul Mincio\tIT\tItaly\t45.3993\t10.7142\toperating\t380\t380\t\t\t\t\t\t\t\tYes\tA2A\t1983\t\tNot planned",
+    "Porto Corsini\tIT\tItaly\t44.4836\t12.2652\toperating\t812\t812\t\t\t\t\t\t\t\tYes\tEnel\t2002\t\t2040",
+    "Porto Empedocle\tIT\tItaly\t37.28757\t13.52117\toperating\t78\t78\t\t\t\t\t\t\t\tYes\tEnel\t2015\t\t2040",
+    "Fiume Santo\tIT\tItaly\t40.8461\t8.3068\tpre-construction\t560\t\t\t\t560\t\t\t\t\tYes\tEP Group\t\t\tNot planned",
+    "Porto Viro\tIT\tItaly\t45.0178\t12.2408\toperating\t125\t125\t\t\t\t\t\t\t\tYes\tEDF\t1995\t\tNot planned",
+    "Presenzano Edison\tIT\tItaly\t41.37662\t14.07642\toperating\t770\t770\t\t\t\t\t\t\t\tYes\tEDF\t2023\t\tNot planned",
+    "ISAB Energy\tIT\tItaly\t37.1266\t15.2175\toperating\t512\t512\t\t\t\t\t\t\t\tYes\tLUKOIL\t1999\t\tNot planned",
+    "Priolo Gargallo thermoelectric\tIT\tItaly\t37.17949\t15.19632\toperating\t480\t480\t\t\t\t\t\t\t\tYes\tAchernar Assets\t2010\t\tNot planned",
+    "NuCe Sud\tIT\tItaly\t37.12451\t15.20911\toperating\t99\t99\t\t\t\t\t\t\t\tYes\tERG\t2005\t\tNot planned",
+    "Priolo Gargallo\tIT\tItaly\t37.14\t15.2159\toperating\t790\t790\t\t\t\t\t\t\t\tYes\tEnel\t2010\t\t2040",
+    "Ravenna\tIT\tItaly\t44.44378\t12.23618\toperating\t1756\t916\t\t\t840\t\t\t\t\tYes\tEni,Sixth Street\t2004\t\tNot planned",
+    "Reggio Emilia New Energy Pole\tIT\tItaly\t44.70173\t10.56823\toperating\t81.5\t81.5\t\t\t\t\t\t\t\tYes\tIren\t2005\t\tNot planned",
+    "Alto Garda\tIT\tItaly\t45.88688\t10.85334\tmothballed\t54\t\t54\t\t\t\t\t\t\tYes\tLecta\t2008\t\tNot planned",
+    "Rizziconi\tIT\tItaly\t38.4453\t15.99\toperating\t768\t768\t\t\t\t\t\t\t\tYes\tAxpo\t2008\t\tNot planned",
+    "Rosen\tIT\tItaly\t43.38134\t10.44855\toperating\t330\t330\t\t\t\t\t\t\t\tYes\tSolvay,Finnmeccanica,Marubeni\t1997\t\tNot planned",
+    "Rossano\tIT\tItaly\t39.6218\t16.6084\toperating\t224\t224\t\t\t\t\t\t\t\tYes\tEnel\t1995\t\t2040",
+    "Bolgiano\tIT\tItaly\t45.41634\t9.28332\toperating\t61\t61\t\t\t\t\t\t\t\tYes\tEni\t2015\t\tNot planned",
+    "San Filippo del Mela\tIT\tItaly\t38.20216\t15.28317\tpre-construction\t110.6\t\t\t\t110.6\t\t\t\t\tYes\tA2A\t\t\tNot planned",
+    "Duino Mill\tIT\tItaly\t45.793\t13.583\toperating\t120\t120\t\t\t\t\t\t\t\tYes\tBurgo Group\t2009\t\tNot planned",
+    "San Severo Enplus\tIT\tItaly\t41.6262\t15.42256\toperating\t443\t443\t\t\t\t\t\t\t\tYes\tAlpiq\t2011\t\tNot planned",
+    "Scandale\tIT\tItaly\t39.1022\t17.0325\toperating\t814\t814\t\t\t\t\t\t\t\tYes\tA2A,EP Group,TotalEnergies\t2010\t\tNot planned",
+    "Sermide\tIT\tItaly\t45.0265\t11.2522\toperating\t1158\t1158\t\t\t\t\t\t\t\tYes\tA2A\t2004\t\tNot planned",
+    "Sesto San Giovanni\tIT\tItaly\t45.5417\t9.2539\toperating\t111\t111\t\t\t\t\t\t\t\tYes\tEDF\t1994\t\tNot planned",
+    "Simeri Crichi\tIT\tItaly\t38.8759\t16.6569\toperating\t885\t885\t\t\t\t\t\t\t\tYes\tEDF\t2008\t\tNot planned",
+    "Sora\tIT\tItaly\t41.7\t13.58373\toperating\t42\t42\t\t\t\t\t\t\t\tYes\tBurgo Group\t2008\t\tNot planned",
+    "Sparanise\tIT\tItaly\t41.1783\t14.1129\toperating\t1700\t760\t\t\t\t\t\t940\t\tYes\tAxpo\t2007\t\tNot planned",
+    "Spinetta Marengo\tIT\tItaly\t44.88607\t8.65822\toperating\t29\t29\t\t\t\t\t\t\t\tYes\tSolvay,not found\t1994\t\tNot planned",
+    "Livorno\tIT\tItaly\t43.584\t10.33809\toperating\t203\t203\t\t\t\t\t\t\t\tYes\tEni,Sixth Street\t1991\t\tNot planned",
+    "Serene Sulmona\tIT\tItaly\t42.07722\t13.90195\toperating\t48\t48\t\t\t\t\t\t\t\tYes\tShell\t1998\t\tNot planned",
+    "Taranto\tIT\tItaly\t40.49926\t17.19712\toperating\t102.5\t48.5\t\t\t54\t\t\t\t\tYes\tEni\t\t\tNot planned",
+    "Tavazzano\tIT\tItaly\t45.3325\t9.4364\toperating\t1970\t1970\t\t\t\t\t\t\t\tYes\tEP Group,TotalEnergies\t2005\t\tNot planned",
+    "Termini Imerese\tIT\tItaly\t37.96801\t13.75079\toperating\t1404\t1084\t\t\t\t\t\t\t320\tYes\tEnel\t\t\t2040",
+    "Termoli\tIT\tItaly\t41.9369\t15.0004\toperating\t770\t770\t\t\t\t\t\t\t\tYes\tF2i\t2006\t\tNot planned",
+    "Terni\tIT\tItaly\t42.554\t12.6176\toperating\t95\t95\t\t\t\t\t\t\t\tYes\tEDF\t2000\t\tNot planned",
+    "Teverola\tIT\tItaly\t41.00915\t14.2286\toperating\t404\t404\t\t\t\t\t\t\t\tYes\tRepower\t1997\t\tNot planned",
+    "Torino Mirafiori\tIT\tItaly\t45.02666\t7.63078\toperating\t206.9\t206.9\t\t\t\t\t\t\t\tYes\tEDF\t1990\t\tNot planned",
+    "Torino Nord\tIT\tItaly\t45.10383\t7.61308\toperating\t390\t390\t\t\t\t\t\t\t\tYes\tIren\t2011\t\tNot planned",
+    "Torviscosa\tIT\tItaly\t45.817\t13.2891\toperating\t1625\t760\t\t\t865\t\t\t\t\tYes\tEDF\t2006\t\tNot planned",
+    "Trapani\tIT\tItaly\t37.87674\t12.58922\toperating\t215.6\t215.6\t\t\t\t\t\t\t\tYes\tEP Group,TotalEnergies\t1987\t\tNot planned",
+    "Servola\tIT\tItaly\t45.61949\t13.78295\toperating\t115\t115\t\t\t\t\t\t\t\tYes\tFinarvedi Spa\t2022\t\tNot planned",
+    "Leri Cavour Trino\tIT\tItaly\t45.19433\t8.29732\tcancelled\t870\t\t\t\t\t\t\t870\t\tYes\tEnel\t\t\t",
+    "Bertonico - Turano Lodigliano\tIT\tItaly\t45.2268\t9.6377\toperating\t800\t800\t\t\t\t\t\t\t\tYes\tF2i\t2011\t\tNot planned",
+    "Bertonico Peaker\tIT\tItaly\t45.22825\t9.63985\tcancelled\t330\t\t\t\t\t\t\t330\t\tYes\tF2i\t\t\t",
+    "Turbigo\tIT\tItaly\t45.52051\t8.74128\toperating\t1285\t1285\t\t\t\t\t\t\t\tYes\tIren\t2007\t\tNot planned",
+    "Vado Ligure\tIT\tItaly\t44.2755\t8.4305\toperating\t1682\t782\t\t\t\t\t\t900\t\tYes\tEngie\t2007\t\tNot planned",
+    "Marghera Azotati\tIT\tItaly\t45.4511\t12.2239\toperating\t237\t237\t\t\t\t\t\t\t\tYes\tEDF\t1993\t\tNot planned",
+    "Marghera Levante\tIT\tItaly\t45.4458\t12.2552\toperating\t1546\t1546\t\t\t\t\t\t\t\tYes\tEDF\t2001\t\tNot planned",
+    "Vercelli\tIT\tItaly\t45.297\t8.41\toperating\t40\t40\t\t\t\t\t\t\t\tYes\tAlpiq\t2004\t\tNot planned",
+    "Verzuolo\tIT\tItaly\t44.5947\t7.4858\toperating\t140\t140\t\t\t\t\t\t\t\tYes\tSmurfit Kappa Group\t2002\t\tNot planned",
+    "Tolmezzo\tIT\tItaly\t46.40701\t12.93857\toperating\t20\t20\t\t\t\t\t\t\t\tYes\tBurgo Group\t2022\t\tNot planned",
+    "Voghera\tIT\tItaly\t45.0296\t8.9723\toperating\t404\t404\t\t\t\t\t\t\t\tYes\tEngie\t2005\t\tNot planned",
+    "Jesi\tIT\tItaly\t43.5537\t13.285\toperating\t145\t145\t\t\t\t\t\t\t\tYes\tEDF\t2002\t\tNot planned",
+    "San Quirico\tIT\tItaly\t44.92466\t10.30298\tcancelled\t870\t\t\t\t\t\t\t870\t\tYes\tEDF\t\t\t",
+    "Cassino CHP\tIT\tItaly\t41.49024\t13.83353\toperating\t33\t33\t\t\t\t\t\t\t\tYes\tIKAV\t2022\t\tNot planned",
+    "Castellanza CHP\tIT\tItaly\t45.60491\t8.89263\toperating\t64.5\t64.5\t\t\t\t\t\t\t\tYes\tIKAV\t2022\t\tNot planned",
+    "Fiumicio Airport\tIT\tItaly\t41.7995\t12.2625\toperating\t28\t28\t\t\t\t\t\t\t\tYes\tFiumicino Energia\t2013\t\tNot planned",
+    "Gorizia CHP\tIT\tItaly\t45.94017\t13.61967\toperating\t64.5\t64.5\t\t\t\t\t\t\t\tYes\tIKAV\t2022\t\tNot planned",
+    "Melfi CHP\tIT\tItaly\t41.07792\t15.68567\toperating\t81\t81\t\t\t\t\t\t\t\tYes\tIKAV\t2022\t\tNot planned",
+    "Piombino CHP\tIT\tItaly\t42.92928\t10.53104\toperating\t65\t49\t\t\t\t16\t\t\t\tYes\tIKAV\t2022\t\tNot planned",
+    "Ravenna CHP\tIT\tItaly\t44.4662\t12.2462\toperating\t35\t35\t\t\t\t\t\t\t\tYes\tMarcegaglia Group\t2022\t\tNot planned",
+    "Sannazzaro Refinery\tIT\tItaly\t45.1015\t8.8777\toperating\t260\t260\t\t\t\t\t\t\t\tYes\tEni\t2006\t\tNot planned",
+    "Sulmona CHP\tIT\tItaly\t42.04746\t13.92676\toperating\t42\t42\t\t\t\t\t\t\t\tYes\tIKAV\t2022\t\tNot planned",
+    "Valbasento\tIT\tItaly\t40.42452\t16.55728\toperating\t65\t65\t\t\t\t\t\t\t\tYes\tTecnoparco Valbasento\t1999\t\tNot planned",
+    "Roselectra\tIT\tItaly\t43.38134\t10.44855\toperating\t406\t406\t\t\t\t\t\t\t\tYes\tEngie\t2007\t\tNot planned",
+    "Termoli CHP\tIT\tItaly\t41.9369\t15.0004\toperating\t72\t72\t\t\t\t\t\t\t\tYes\tIKAV\t2023\t\tNot planned",
+    "Imanta\tLV\tLatvia\t56.96269\t24.03559\toperating\t48\t48\t\t\t\t\t\t\t\tYes\tRiga City Council\t2006\t\tNot planned",
+    "Riga CHPP-1\tLV\tLatvia\t56.9904\t24.1788\toperating\t158\t158\t\t\t\t\t\t\t\tYes\tLatvenergo\t2005\t\tNot planned",
+    "Riga CHPP-2\tLV\tLatvia\t56.918\t24.2766\toperating\t881\t881\t\t\t\t\t\t\t\tYes\tLatvenergo\t2009\t\tNot planned",
+    "Elektrėnai complex\tLT\tLithuania\t54.7701\t24.6474\toperating\t1045\t1045\t\t\t\t\t\t\t\tYes\tIgnitis\t1968\t\tNot planned",
+    "Achema\tLT\tLithuania\t55.0837\t24.3338\toperating\t68\t68\t\t\t\t\t\t\t\tYes\tAchemos Grupe\t2003\t\tNot planned",
+    "Kaunus\tLT\tLithuania\t54.92056\t24.01694\tmothballed\t260\t\t110\t\t\t\t\t150\t\tYes\tKauno Termofikacijos Elektrine\t1976\t\tNot planned",
+    "Panevėžys\tLT\tLithuania\t55.74682\t24.38319\toperating\t38.2\t38.2\t\t\t\t\t\t\t\tYes\tPanevėžio energija\t2008\t\tNot planned",
+    "Delimara\tMT\tMalta\t35.83087\t14.55463\toperating\t357.8\t357.8\t\t\t\t\t\t\t\tYes\tEnemalta\t2017\t\tNot planned",
+    "Chisinau Thermoelectric Source 1\tMD\tMoldova\t47.02983\t28.89369\toperating\t508\t258\t\t\t250\t\t\t\t\tYes\tTermoelectrica\t1976\t\tNot planned",
+    "TPP Moldavskaya GRES\tMD\tMoldova\t46.629\t29.9397\toperating\t1320\t1320\t\t\t\t\t\t\t\tYes\tInter RAO\t1973\t\tNot planned",
+    "Chisinau Thermoelectric Source 2\tMD\tMoldova\t47.02764\t28.86635\toperating\t39.5\t12\t\t\t27.5\t\t\t\t\tYes\tTermoelectrica\t1969\t\tNot planned",
+    "Chisinau Thermoelectric HOB West\tMD\tMoldova\t47.04196\t28.8058\tpre-construction\t27.5\t\t\t\t27.5\t\t\t\t\tYes\tTermoelectrica\t2028\t\tNot planned",
+    "Bar gas\tME\tMontenegro\t42.09076\t19.09745\tpre-construction\t50\t\t\t\t50\t\t\t\t\tYes\tElektroprivreda Crne Gore\t2025\t\tNot planned",
+    "Pljevlja gas\tME\tMontenegro\t43.35601\t19.35018\tpre-construction\t200\t\t\t\t200\t\t\t\t\tYes\tElektroprivreda Crne Gore\t\t\tNot planned",
+    "Podgorica\tME\tMontenegro\t42.43717\t19.2648\tpre-construction\t150\t\t\t\t150\t\t\t\t\tYes\tElektroprivreda Crne Gore\t\t\tNot planned",
+    "Nobian Hengelo\tNL\tNetherlands\t51.70948\t4.84284\toperating\t100\t100\t\t\t\t\t\t\t\tYes\tNouryon\t1993\t\tNot planned",
+    "Bergen op Zoom GE\tNL\tNetherlands\t51.495\t4.29167\toperating\t77\t77\t\t\t\t\t\t\t\tYes\tAramco\t1984\t\tNot planned",
+    "Bergum\tNL\tNetherlands\t53.20975\t6.02959\toperating\t146\t146\t\t\t\t\t\t\t\tYes\tEngie\t2019\t\tNot planned",
+    "Berkelcentrale\tNL\tNetherlands\t52.1207\t6.53741\toperating\t72\t72\t\t\t\t\t\t\t\tYes\tBerkelcentrale Beheer\t1995\t\tNot planned",
+    "Botlek\tNL\tNetherlands\t51.88515\t4.2545\toperating\t45\t45\t\t\t\t\t\t\t\tYes\tAir Liquide\t1994\t\tNot planned",
+    "Botlek Refinery\tNL\tNetherlands\t51.87409\t4.29573\toperating\t49\t49\t\t\t\t\t\t\t\tYes\tAir Liquide\t1991\t\tNot planned",
+    "Claus\tNL\tNetherlands\t51.15412\t5.90946\toperating\t1304\t1304\t\t\t\t\t\t\t\tYes\tRWE\t2012\t\tNot planned",
+    "Delesto\tNL\tNetherlands\t53.3185\t6.9544\toperating\t523\t523\t\t\t\t\t\t\t\tYes\tAkzo Nobel\t1987\t\tNot planned",
+    "Den Haag\tNL\tNetherlands\t52.07659\t4.29065\toperating\t107\t107\t\t\t\t\t\t\t\tYes\tUniper\t1982\t\tNot planned",
+    "Diemen\tNL\tNetherlands\t52.3389\t5.0213\toperating\t684\t684\t\t\t\t\t\t\t\tYes\tVattenfall\t1995\t\tNot planned",
+    "Dordrecht Dupont\tNL\tNetherlands\t51.81533\t4.72493\toperating\t29\t29\t\t\t\t\t\t\t\tYes\tDupont Co\t1998\t\tNot planned",
+    "Ede\tNL\tNetherlands\t52.02328\t5.65989\toperating\t50\t50\t\t\t\t\t\t\t\tYes\tAkzo Nobel\t1992\t\tNot planned",
+    "EEMS\tNL\tNetherlands\t53.44171\t6.85605\toperating\t1926\t1926\t\t\t\t\t\t\t\tYes\tEngie\t1987\t\tNot planned",
+    "Elsta\tNL\tNetherlands\t51.3331\t3.7787\toperating\t460\t460\t\t\t\t\t\t\t\tYes\tDow\t1998\t\tNot planned",
+    "Emmtec Industry & Businesspark\tNL\tNetherlands\t52.77494\t6.90474\toperating\t60\t60\t\t\t\t\t\t\t\tYes\tGETEC Energie\t1982\t\tNot planned",
+    "Enecogen\tNL\tNetherlands\t51.957\t4.0916\toperating\t870\t870\t\t\t\t\t\t\t\tYes\tChubu Electric,Mitsubishi,EP Group,TotalEnergies\t2011\t\t2035",
+    "Foxhol Plant\tNL\tNetherlands\t53.16981\t6.71449\toperating\t20\t20\t\t\t\t\t\t\t\tYes\tCoöperatie AVEBE\t1995\t\tNot planned",
+    "Gasselternijveen\tNL\tNetherlands\t52.98981\t6.86755\toperating\t24.5\t24.5\t\t\t\t\t\t\t\tYes\tCoöperatie AVEBE\t\t\tNot planned",
+    "Helmond\tNL\tNetherlands\t51.47371\t5.58316\toperating\t49.6\t49.6\t\t\t\t\t\t\t\tYes\tEnnatuurlijk\t1982\t\tNot planned",
+    "Hemweg\tNL\tNetherlands\t52.4049\t4.8465\toperating\t440\t440\t\t\t\t\t\t\t\tYes\tVattenfall\t2012\t\tNot planned",
+    "Lage Weide 6\tNL\tNetherlands\t52.10194\t5.07139\toperating\t248\t248\t\t\t\t\t\t\t\tYes\tChubu Electric,Mitsubishi\t1995\t\t2035",
+    "Leiden\tNL\tNetherlands\t52.1641\t4.4941\toperating\t85\t85\t\t\t\t\t\t\t\tYes\tUniper\t1986\t\tNot planned",
+    "Rijnmond 2/MaasStroom\tNL\tNetherlands\t51.8901\t4.352\toperating\t426\t426\t\t\t\t\t\t\t\tYes\tEP Group,TotalEnergies\t2010\t\tNot planned",
+    "Maastricht Mill\tNL\tNetherlands\t50.85798\t5.69025\toperating\t74.4\t74.4\t\t\t\t\t\t\t\tYes\tSappi.\t2007\t\tNot planned",
+    "Maasvlakte Ucml\tNL\tNetherlands\t51.96\t4.0254\toperating\t70\t70\t\t\t\t\t\t\t\tYes\tUniper\t2003\t\tNot planned",
+    "Magnum (Eemshaven)\tNL\tNetherlands\t53.4502\t6.8548\toperating\t1410\t1410\t\t\t\t\t\t\t\tYes\tRWE\t2013\t\tNot planned",
+    "Maxima Flevo\tNL\tNetherlands\t52.5772\t5.53\toperating\t919\t919\t\t\t\t\t\t\t\tYes\tEngie\t2010\t\tNot planned",
+    "Merwedekanaal\tNL\tNetherlands\t52.1017\t5.0794\toperating\t224\t224\t\t\t\t\t\t\t\tYes\tChubu Electric,Mitsubishi\t1989\t\t2030",
+    "Moerdijk\tNL\tNetherlands\t51.68506\t4.58094\toperating\t766\t418\t348\t\t\t\t\t\t\tYes\tRWE\t1997\t\tNot planned",
+    "Nam Schoonebeek\tNL\tNetherlands\t52.68087\t6.89496\toperating\t128\t128\t\t\t\t\t\t\t\tYes\tShell\t2010\t\tNot planned",
+    "Pergen\tNL\tNetherlands\t51.88191\t4.37786\toperating\t308\t308\t\t\t\t\t\t\t\tYes\tAir Liquide\t2008\t\tNot planned",
+    "Pernis Refinery\tNL\tNetherlands\t51.881\t4.3376\toperating\t143\t143\t\t\t\t\t\t\t\tYes\tAlco Group,Air Products and Chemicals\t1981\t\tNot planned",
+    "Rijnmond 1\tNL\tNetherlands\t51.89017\t4.35469\toperating\t750\t750\t\t\t\t\t\t\t\tYes\tEP Group,TotalEnergies\t2004\t\t2027",
+    "Rotterdam Capelle (RoCa)\tNL\tNetherlands\t51.95366\t4.56155\toperating\t268\t268\t\t\t\t\t\t\t\tYes\tUniper\t1982\t\tNot planned",
+    "Rotterdam IRP\tNL\tNetherlands\t51.9608\t4.0977\toperating\t24\t24\t\t\t\t\t\t\t\tYes\tIndorama\t1999\t\tNot planned",
+    "Sloe\tNL\tNetherlands\t51.4482\t3.6928\toperating\t870\t870\t\t\t\t\t\t\t\tYes\tEP Group,TotalEnergies\t2010\t\tNot planned",
+    "Sluiskil Works\tNL\tNetherlands\t51.29168\t3.8012\toperating\t68\t68\t\t\t\t\t\t\t\tYes\tYara International\t2005\t\tNot planned",
+    "Swentibold\tNL\tNetherlands\t50.9721\t5.7911\tmothballed\t230\t\t230\t\t\t\t\t\t\tYes\tRWE\t1999\t\tNot planned",
+    "Ter Apelkanaal Siem\tNL\tNetherlands\t52.92145\t7.04402\toperating\t40\t40\t\t\t\t\t\t\t\tYes\tCoöperatie AVEBE\t1995\t\tNot planned",
+    "Velsen Mill\tNL\tNetherlands\t52.46573\t4.6362\toperating\t20\t20\t\t\t\t\t\t\t\tYes\tAndlinger and Company\t1984\t\tNot planned",
+    "Nijmegen\tNL\tNetherlands\t51.85556\t5.83056\tpre-construction\t500\t\t\t\t500\t\t\t\t\tYes\tEngie\t2025\t\tNot planned",
+    "Bitola\tMK\tNorth Macedonia\t41.05832\t21.48427\tpre-construction\t200\t\t\t\t200\t\t\t\t\tYes\tESM\t2026\t\tNot planned",
+    "Skopje CHP\tMK\tNorth Macedonia\t41.99452\t21.45283\toperating\t220\t220\t\t\t\t\t\t\t\tYes\tTE-TO Skopje\t2012\t\tNot planned",
+    "Skopje\tMK\tNorth Macedonia\t41.99269\t21.43656\tshelved\t105\t\t\t\t\t\t105\t\t\tYes\tMetlen Energy & Metals\t\t\tNot planned",
+    "Negotino\tMK\tNorth Macedonia\t41.45767\t22.16144\tpre-construction\t500\t\t\t\t500\t\t\t\t\tYes\tESM\t\t\tNot planned",
+    "KOGEL\tMK\tNorth Macedonia\t42.00916\t21.46664\toperating\t30\t30\t\t\t\t\t\t\t\tYes\t\t2009\t\tNot planned",
+    "Energetika\tMK\tNorth Macedonia\t42.02349\t21.46424\toperating\t30\t30\t\t\t\t\t\t\t\tYes\t\t2010\t\tNot planned",
+    "Hammerfest Snohvit Terminal\tNO\tNorway\t70.6854\t23.59\toperating\t229\t229\t\t\t\t\t\t\t\tYes\tEquinor\t\t\tNot planned",
+    "Mongstad\tNO\tNorway\t60.80862\t5.03721\tmothballed\t150\t\t150\t\t\t\t\t\t\tYes\tEquinor\t2010\t\tNot planned",
+    "Nærøysund\tNO\tNorway\t64.88478\t11.29734\tannounced\t220\t\t\t220\t\t\t\t\t\tYes\tOcean-Power\t2029\t\tNot planned",
+    "Lagisza\tPL\tPoland\t50.349\t19.145\tpre-construction\t100\t\t\t\t100\t\t\t\t\tYes\tTauron Polska\t2030\t\tNot planned",
+    "Elblag\tPL\tPoland\t54.182\t19.389\tconstruction\t30\t\t\t\t\t30\t\t\t\tYes\tOrlen Group\t2026\t\tNot planned",
+    "Gdansk\tPL\tPoland\t54.33531\t18.74601\tconstruction\t600\t\t\t\t\t600\t\t\t\tYes\tOrlen Group\t2029\t\tNot planned",
+    "Huta Miedzi Glogow\tPL\tPoland\t51.6867\t15.97032\tmothballed\t39.5\t\t39.5\t\t\t\t\t\t\tYes\tKGHM Polska Miedź\t2014\t\tNot planned",
+    "Gorzow\tPL\tPoland\t52.75075\t15.26836\toperating\t213\t213\t\t\t\t\t\t\t\tYes\tPGE\t1978\t\t2042",
+    "Grudziadz\tPL\tPoland\t53.439\t18.801\tconstruction\t1100\t\t\t\t525\t575\t\t\t\tYes\tOrlen Group\t2026\t\tNot planned",
+    "Lublin - Wrotkow\tPL\tPoland\t51.21648\t22.55846\toperating\t231\t231\t\t\t\t\t\t\t\tYes\tPGE\t2002\t\t2042",
+    "Nowa Sarzyna\tPL\tPoland\t50.3159\t22.3245\toperating\t116\t116\t\t\t\t\t\t\t\tYes\tAxpo\t2000\t\tNot planned",
+    "Dolna Odra\tPL\tPoland\t53.206\t14.466\toperating\t1954\t1366\t\t\t588\t\t\t\t\tYes\tPGE\t2024\t\tNot planned",
+    "Ostroleka C\tPL\tPoland\t53.09384\t21.63919\tconstruction\t745\t\t\t\t\t745\t\t\t\tYes\tOrlen Group\t2027\t\tNot planned",
+    "Plock\tPL\tPoland\t52.57794\t19.69356\toperating\t630\t630\t\t\t\t\t\t\t\tYes\tOrlen Group\t2018\t\tNot planned",
+    "Polkowice Copper Works\tPL\tPoland\t51.4847\t16.06144\toperating\t39.5\t39.5\t\t\t\t\t\t\t\tYes\tKGHM Polska Miedź\t2014\t\tNot planned",
+    "Karolin\tPL\tPoland\t52.436\t16.988\toperating\t114\t114\t\t\t\t\t\t\t\tYes\tVeolia\t2025\t\tNot planned",
+    "Rybnik\tPL\tPoland\t50.133\t18.524\tconstruction\t1482.9\t\t\t\t600\t882.9\t\t\t\tYes\tPGE\t2027\t\tNot planned",
+    "Rzeszow\tPL\tPoland\t50.06492\t22.02986\toperating\t130\t130\t\t\t\t\t\t\t\tYes\tPGE\t2003\t\t2042",
+    "Siechnice\tPL\tPoland\t51.038\t17.15\toperating\t179.4\t179.4\t\t\t\t\t\t\t\tYes\tPGE\t2025\t\t2042",
+    "Stalowa Wola\tPL\tPoland\t50.552\t22.081\toperating\t450\t450\t\t\t\t\t\t\t\tYes\tOrlen Group,Tauron Polska\t2020\t\tNot planned",
+    "Kozienice\tPL\tPoland\t51.665\t21.467\tconstruction\t1400\t\t\t\t\t1400\t\t\t\tYes\tENEA Wytwarzanie\t2029\t\tNot planned",
+    "Torun\tPL\tPoland\t53.04636\t18.69556\toperating\t107.1\t107.1\t\t\t\t\t\t\t\tYes\tPGE\t2017\t\t2042",
+    "Adamow\tPL\tPoland\t52.01231\t18.54621\tconstruction\t562\t\t\t\t\t562\t\t\t\tYes\tZE PAK\t2027\t\tNot planned",
+    "Zeran\tPL\tPoland\t52.294\t20.994\toperating\t496\t496\t\t\t\t\t\t\t\tYes\tOrlen Group\t2021\t\tNot planned",
+    "Wierzchowice Ugs\tPL\tPoland\t51.47389\t17.3052\toperating\t40\t40\t\t\t\t\t\t\t\tYes\tOrlen Group\t2012\t\tNot planned",
+    "Wloclawek\tPL\tPoland\t52.65194\t19.09889\toperating\t463\t463\t\t\t\t\t\t\t\tYes\tOrlen Group\t2017\t\tNot planned",
+    "Zielona Góra\tPL\tPoland\t51.951\t15.49041\toperating\t198\t198\t\t\t\t\t\t\t\tYes\tPGE\t2004\t\t2042",
+    "Bydgoszcz\tPL\tPoland\t53.09918\t18.0889\toperating\t52.7\t52.7\t\t\t\t\t\t\t\tYes\tPGE\t2025\t\t2042",
+    "Siedlce\tPL\tPoland\t52.1572\t22.3061\toperating\t36\t36\t\t\t\t\t\t\t\tYes\tPEC Siedlce\t2002\t\tNot planned",
+    "Synthos Dwory 7\tPL\tPoland\t50.03933\t19.27148\toperating\t116\t116\t\t\t\t\t\t\t\tYes\tSynthos Group\t2025\t\tNot planned",
+    "Gdynia\tPL\tPoland\t54.55336\t18.48079\tconstruction\t49.9\t\t\t\t\t49.9\t\t\t\tYes\tPGE\t2026\t\t2042",
+    "Lodz 4\tPL\tPoland\t51.75\t19.54\tpre-construction\t210\t\t\t\t210\t\t\t\t\tYes\tVeolia\t2027\t\tNot planned",
+    "Siekierki\tPL\tPoland\t52.19\t21.09\tpre-construction\t500\t\t\t\t500\t\t\t\t\tYes\tOrlen Group\t2030\t\tNot planned",
+    "Krakow-Leg\tPL\tPoland\t50.05906\t20.07662\tconstruction\t99.8\t\t\t\t\t99.8\t\t\t\tYes\tPGE\t2028\t\tNot planned",
+    "Ostrów Wielkopolski\tPL\tPoland\t51.63757\t17.84844\tpre-construction\t600\t\t\t\t600\t\t\t\t\tYes\tPGE\t\t\tNot planned",
+    "Pomorzany\tPL\tPoland\t53.39182\t14.52826\tannounced\t24\t\t\t24\t\t\t\t\t\tYes\tPGE\t\t\tNot planned",
+    "Kalisz\tPL\tPoland\t51.73003\t18.10736\toperating\t20\t20\t\t\t\t\t\t\t\tYes\tOrlen Group\t2025\t\tNot planned",
+    "Turek\tPL\tPoland\t52.01123\t18.53341\tpre-construction\t163.8\t\t\t\t163.8\t\t\t\t\tYes\tNEO Energy Group\t2028\t\tNot planned",
+    "Ursus\tPL\tPoland\t52.1856\t20.8737\tpre-construction\t110\t\t\t\t110\t\t\t\t\tYes\tVeolia\t2029\t\tNot planned",
+    "Polaniec\tPL\tPoland\t50.43556\t21.33677\tannounced\t1360\t\t\t1360\t\t\t\t\t\tYes\tENEA Wytwarzanie\t2030\t\tNot planned",
+    "Jaworzno\tPL\tPoland\t50.20611\t19.20335\tpre-construction\t600\t\t\t\t600\t\t\t\t\tYes\tTauron Polska\t2030\t\tNot planned",
+    "Makowisko\tPL\tPoland\t50.04535\t22.79757\tpre-construction\t400\t\t\t\t400\t\t\t\t\tYes\tVitol\t2030\t\tNot planned",
+    "Pelplin\tPL\tPoland\t53.92804\t18.69753\tpre-construction\t355.4\t\t\t\t355.4\t\t\t\t\tYes\tVitol\t2030\t\tNot planned",
+    "Skawina\tPL\tPoland\t49.97441\t19.80197\tpre-construction\t350\t\t\t\t350\t\t\t\t\tYes\tResInvest Group\t2029\t\tNot planned",
+    "PGE Gdańsk CHP\tPL\tPoland\t54.37819\t18.63676\tpre-construction\t35\t\t\t\t35\t\t\t\t\tYes\tPGE\t2028\t\tNot planned",
+    "Fisigen\tPT\tPortugal\t40.8666\t-8.4151\toperating\t24\t24\t\t\t\t\t\t\t\tYes\tEDP\t2010\t\tNot planned",
+    "Setubal Mill\tPT\tPortugal\t40.686\t-8.5894\toperating\t81\t81\t\t\t\t\t\t\t\tYes\tSemapa\t2009\t\tNot planned",
+    "Ribatejo\tPT\tPortugal\t39.0118\t-8.9521\toperating\t1176\t1176\t\t\t\t\t\t\t\tYes\tEDP\t2003\t\tNot planned",
+    "Carrico Refinery\tPT\tPortugal\t39.98321\t-8.85129\toperating\t32\t32\t\t\t\t\t\t\t\tYes\tGalp Energia\t2009\t\tNot planned",
+    "Lares\tPT\tPortugal\t40.1245\t-8.775\toperating\t862\t862\t\t\t\t\t\t\t\tYes\tEDP\t2009\t\tNot planned",
+    "Figueira da Foz Industrial Complex\tPT\tPortugal\t40.0576\t-8.8595\toperating\t67\t67\t\t\t\t\t\t\t\tYes\tSemapa\t2000\t\tNot planned",
+    "Turbogas Tapada do Outeiro\tPT\tPortugal\t41.07\t-8.4587\toperating\t990\t990\t\t\t\t\t\t\t\tYes\tMarubeni\t1998\t\tNot planned",
+    "Elecgas Pego\tPT\tPortugal\t39.4689\t-8.1113\toperating\t836\t836\t\t\t\t\t\t\t\tYes\tEnel,Engie\t2011\t\t2040",
+    "Indorama Sines\tPT\tPortugal\t37.98091\t-8.82143\toperating\t41\t41\t\t\t\t\t\t\t\tYes\tIndorama\t\t\tNot planned",
+    "Sines Polimeros\tPT\tPortugal\t37.9583\t-8.8048\toperating\t43\t43\t\t\t\t\t\t\t\tYes\tRepsol\t1981\t\tNot planned",
+    "Viana Mill\tPT\tPortugal\t41.6998\t-8.715\toperating\t71\t71\t\t\t\t\t\t\t\tYes\tDS Smith\t2008\t\tNot planned",
+    "Sines Refinery\tPT\tPortugal\t38.7565\t-9.1754\toperating\t91\t91\t\t\t\t\t\t\t\tYes\tGalp Energia\t2009\t\tNot planned",
+    "Vitória\tPT\tPortugal\t32.648\t-16.9676\toperating\t54.5\t54.5\t\t\t\t\t\t\t\tYes\tEEM\t2015\t\tNot planned",
+    "Borzesti\tRO\tRomania\t46.2507\t26.8352\tshelved\t189\t\t\t\t\t\t189\t\t\tYes\tRG Renovatio Group\t\t\tNot planned",
+    "Brazi\tRO\tRomania\t44.88306\t26.00915\toperating\t286\t236\t50\t\t\t\t\t\t\tYes\tTermo Ploiesti\t1973\t\tNot planned",
+    "Bucharest Grozavesti\tRO\tRomania\t44.44028\t26.06257\toperating\t134\t100\t\t\t34\t\t\t\t\tYes\tTermoelectrica\t1964\t\tNot planned",
+    "Bucharest Progresu\tRO\tRomania\t44.3717\t26.10628\toperating\t174.2\t100\t\t\t74.2\t\t\t\t\tYes\tTermoelectrica\t1987\t\tNot planned",
+    "Bucharest-Sud\tRO\tRomania\t44.4233\t25.979\toperating\t475\t200\t\t\t275\t\t\t\t\tYes\tTermoelectrica\t1966\t\tNot planned",
+    "Bucharest-Titan\tRO\tRomania\t44.43642\t26.18081\tpre-construction\t50\t\t\t\t50\t\t\t\t\tYes\tTermoelectrica\t\t\tNot planned",
+    "Bucharest-Vest\tRO\tRomania\t44.40582\t26.15565\toperating\t436\t436\t\t\t\t\t\t\t\tYes\tTermoelectrica\t1976\t\tNot planned",
+    "Chimcomplex\tRO\tRomania\t45.03996\t24.29776\tpre-construction\t108\t\t\t\t108\t\t\t\t\tYes\tC.R.C Impex Chemicals\t2024\t\tNot planned",
+    "Ciech Soda\tRO\tRomania\t45.03494\t24.29198\tpre-construction\t230\t\t\t\t230\t\t\t\t\tYes\tCiech\t2024\t\tNot planned",
+    "Craiova II\tRO\tRomania\t44.3435\t23.81418\tcancelled\t295\t\t\t\t\t\t\t295\t\tYes\tFondul Proprietatea,Romania\t\t\t",
+    "Galati\tRO\tRomania\t45.436\t27.9814\toperating\t375\t270\t105\t\t\t\t\t\t\tYes\tTermoelectrica\t1975\t\tNot planned",
+    "Govora\tRO\tRomania\t45.04\t24.29\tconstruction\t245\t\t100\t\t\t145\t\t\t\tYes\tSC Cet Govora\t1975\t\tNot planned",
+    "Hefaistos\tRO\tRomania\t46.42147\t24.77175\tpre-construction\t500\t\t\t\t500\t\t\t\t\tYes\tTermoelectrica,Romania\t\t\tNot planned",
+    "Iasi-1\tRO\tRomania\t47.14977\t27.6073\toperating\t50\t25\t25\t\t\t\t\t\t\tYes\tSC Cet Iasi\t1966\t\tNot planned",
+    "Iernut\tRO\tRomania\t46.4677\t24.1833\toperating\t730\t200\t100\t\t\t430\t\t\t\tYes\tRomgaz\t1964\t\tNot planned",
+    "Isalnita\tRO\tRomania\t44.38844\t23.71742\tpre-construction\t850\t\t\t\t850\t\t\t\t\tYes\tComplexul Energetic Oltenia,Vimetco\t2027\t\tNot planned",
+    "Mintia-Deva\tRO\tRomania\t45.91439\t22.82503\tconstruction\t1700\t\t\t\t\t1700\t\t\t\tYes\tMass Group.\t2027\t\tNot planned",
+    "Oradea\tRO\tRomania\t47.08417\t21.89278\toperating\t76.2\t76.2\t\t\t\t\t\t\t\tYes\tSC Electrocentrale Oradea,Oradea Municipality\t2016\t\tNot planned",
+    "Palas\tRO\tRomania\t44.1585\t28.60767\tconstruction\t178\t\t100\t\t\t78\t\t\t\tYes\tMunicipiul Constanța\t1970\t\tNot planned",
+    "Petrom Brazi\tRO\tRomania\t44.88033\t25.99896\toperating\t920\t920\t\t\t\t\t\t\t\tYes\tOMV Aktiengesellschaft\t2001\t\tNot planned",
+    "Petromidia Refinery\tRO\tRomania\t44.3431\t28.651\toperating\t80\t80\t\t\t\t\t\t\t\tYes\tKazMunayGas,SAPE\t2025\t\tNot planned",
+    "Ploesti\tRO\tRomania\t44.9474\t26.0862\toperating\t61\t61\t\t\t\t\t\t\t\tYes\tLUKOIL\t2011\t\tNot planned",
+    "Romag Termo\tRO\tRomania\t44.67781\t22.686\tpre-construction\t150\t\t\t\t150\t\t\t\t\tYes\tRomgaz,Grup Servicii Petroliere (GSP)\t\t\tNot planned",
+    "Turceni\tRO\tRomania\t44.66972\t23.40778\tpre-construction\t475\t\t\t\t475\t\t\t\t\tYes\tComplexul Energetic Oltenia\t2027\t\tNot planned",
+    "CET Arad\tRO\tRomania\t46.22454\t21.33531\tmothballed\t21\t\t21\t\t\t\t\t\t\tYes\tArrowMetals\t\t\tNot planned",
+    "CET Arad hydrocarbons\tRO\tRomania\t46.18211\t21.33232\tconstruction\t31.2\t\t\t\t\t31.2\t\t\t\tYes\tArad Municipality\t2026\t\tNot planned",
+    "Câmpia Turzii\tRO\tRomania\t46.54979\t23.84829\tannounced\t150\t\t\t150\t\t\t\t\t\tYes\tE-INFRA\t2026\t\tNot planned",
+    "Premier Energy Braila\tRO\tRomania\t45.2369\t27.95436\tannounced\t20\t\t\t20\t\t\t\t\t\tYes\tEMMA Capital Group\t\t\tNot planned",
+    "ClusterPower Craiova\tRO\tRomania\t44.37551\t23.85426\toperating\t200\t7.6\t\t192.4\t\t\t\t\t\tYes\tClusterPower\t2025\t\tNot planned",
+    "Reșița\tRO\tRomania\t45.30633\t21.90945\tannounced\t100\t\t\t100\t\t\t\t\t\tYes\tPPC\t2030\t\tNot planned",
+    "Kragujevac\tRS\tSerbia\t44.00809\t20.9024\tcancelled\t300\t\t\t\t\t\t\t300\t\tYes\tGazprom\t\t\t",
+    "Loznica CHP\tRS\tSerbia\t44.5269\t19.19725\tcancelled\t240\t\t\t\t\t\t\t240\t\tYes\tScarborough Group\t\t\t",
+    "Novi Sad\tRS\tSerbia\t45.26797\t19.88533\toperating\t835\t285\t\t350\t\t\t\t200\t\tYes\tEPS\t1984\t\tNot planned",
+    "Pančevo\tRS\tSerbia\t44.83121\t20.67989\toperating\t197\t197\t\t\t\t\t\t\t\tYes\tGazprom\t2022\t\tNot planned",
+    "Morava\tRS\tSerbia\t44.22459\t21.16254\tcancelled\t120\t\t\t\t\t\t\t120\t\tYes\tEPS\t\t\t",
+    "Zrenjanin\tRS\tSerbia\t45.35717\t20.41595\toperating\t120\t120\t\t\t\t\t\t\t\tYes\tEPS\t1989\t\tNot planned",
+    "Sremska Mitrovica\tRS\tSerbia\t44.97639\t19.61222\tmothballed\t32\t\t32\t\t\t\t\t\t\tYes\tEPS\t1977\t\tNot planned",
+    "Nis\tRS\tSerbia\t43.30373\t21.90663\tpre-construction\t500\t\t\t\t500\t\t\t\t\tYes\tEPS,Srbijagas,SOCAR\t2029\t\tNot planned",
+    "PPC Bratislava\tSK\tSlovakia\t48.17744\t17.15395\toperating\t276\t218\t58\t\t\t\t\t\t\tYes\tVeolia\t1998\t\tNot planned",
+    "Slovnaft Refinery\tSK\tSlovakia\t48.1199\t17.1803\toperating\t163\t163\t\t\t\t\t\t\t\tYes\tMOL.\t1976\t\tNot planned",
+    "Levice\tSK\tSlovakia\t48.2022\t18.597\toperating\t86.3\t86.3\t\t\t\t\t\t\t\tYes\tVeolia\t2007\t\tNot planned",
+    "Panicke Dravce\tSK\tSlovakia\t48.28641\t19.61488\toperating\t50\t50\t\t\t\t\t\t\t\tYes\tEP Group,Slovak Government\t2009\t\tNot planned",
+    "Povazska Bystrica\tSK\tSlovakia\t49.1154\t18.4246\toperating\t64\t64\t\t\t\t\t\t\t\tYes\tCreditas Group\t2009\t\tNot planned",
+    "Malzenice\tSK\tSlovakia\t48.4296\t17.6978\toperating\t436\t436\t\t\t\t\t\t\t\tYes\tE.ON,Slovak Government\t2010\t\tNot planned",
+    "Brestanica (TEB)\tSI\tSlovenia\t45.9975\t15.4796\toperating\t337\t337\t\t\t\t\t\t\t\tYes\tGEN energija\t2000\t\tNot planned",
+    "Te-Tol\tSI\tSlovenia\t46.05796\t14.54513\tconstruction\t110\t\t\t\t\t110\t\t\t\tYes\tJavni Ljubljana\t2025\t\tNot planned",
+    "Sostanj\tSI\tSlovenia\t46.3723\t15.0534\toperating\t84\t84\t\t\t\t\t\t\t\tYes\tHolding Slovenske elektrarne\t2008\t\tNot planned",
+    "Boroa\tES\tSpain\t43.2347\t-2.7497\toperating\t786.4\t786.4\t\t\t\t\t\t\t\tYes\tCastleton Commodities International\t2005\t\tNot planned",
+    "Arcos de la Frontera\tES\tSpain\t36.6721\t-5.8164\toperating\t1612\t1612\t\t\t\t\t\t\t\tYes\tIberdrola\t2005\t\tNot planned",
+    "Arrubal\tES\tSpain\t42.4194\t-2.2511\toperating\t784.7\t784.7\t\t\t\t\t\t\t\tYes\tContourGlobal\t2005\t\tNot planned",
+    "Sabon 3\tES\tSpain\t43.329\t-8.503\toperating\t391.3\t391.3\t\t\t\t\t\t\t\tYes\tNaturgy\t2008\t\tNot planned",
+    "Puerto de Barcelona\tES\tSpain\t41.3366\t2.1594\toperating\t866.3\t866.3\t\t\t\t\t\t\t\tYes\tNaturgy\t2011\t\tNot planned",
+    "Malaga campanillas\tES\tSpain\t36.7495\t-4.5631\toperating\t415.5\t415.5\t\t\t\t\t\t\t\tYes\tNaturgy\t2009\t\tNot planned",
+    "El Fangal Cartagena\tES\tSpain\t37.5709\t-0.9458\toperating\t1199.3\t1199.3\t\t\t\t\t\t\t\tYes\tEngie\t2006\t\tNot planned",
+    "Escombreras Iberdrola\tES\tSpain\t37.5647\t-0.95132\toperating\t831\t831\t\t\t\t\t\t\t\tYes\tIberdrola\t2006\t\tNot planned",
+    "As Pontes\tES\tSpain\t37.5709\t-0.9458\toperating\t855.7\t855.7\t\t\t\t\t\t\t\tYes\tEnel\t2006\t\t2040",
+    "Cartagena\tES\tSpain\t37.57274\t-0.93841\toperating\t1248.8\t1248.8\t\t\t\t\t\t\t\tYes\tNaturgy\t2006\t\tNot planned",
+    "Castejon TotalEnergies\tES\tSpain\t42.1718\t-1.6773\toperating\t843.4\t843.4\t\t\t\t\t\t\t\tYes\tTotalEnergies\t2002\t\tNot planned",
+    "Castellon\tES\tSpain\t39.9592\t-0.001\toperating\t1647\t1647\t\t\t\t\t\t\t\tYes\tIberdrola\t2002\t\tNot planned",
+    "Castelnou\tES\tSpain\t41.2167\t-0.2928\toperating\t791\t791\t\t\t\t\t\t\t\tYes\tEngie\t2006\t\tNot planned",
+    "Escatron Peaker A.I.E.\tES\tSpain\t41.2977\t-0.3376\toperating\t277\t277\t\t\t\t\t\t\t\tYes\tIGNIS ENERGÍA\t2007\t\tNot planned",
+    "Escatron\tES\tSpain\t41.2977\t-0.3376\toperating\t804.4\t804.4\t\t\t\t\t\t\t\tYes\tRepsol\t2007\t\tNot planned",
+    "Cristobal Colon\tES\tSpain\t37.2156\t-6.943\toperating\t391\t391\t\t\t\t\t\t\t\tYes\tEnel\t2006\t\t2040",
+    "Tarragona\tES\tSpain\t41.11024\t1.18055\toperating\t424\t424\t\t\t\t\t\t\t\tYes\tIberdrola\t2004\t\tNot planned",
+    "Palos de la Frontera\tES\tSpain\t37.18448\t-6.89279\toperating\t1167\t1167\t\t\t\t\t\t\t\tYes\tNaturgy\t2004\t\tNot planned",
+    "Soto de Ribera\tES\tSpain\t43.3161\t-5.8777\toperating\t854.2\t854.2\t\t\t\t\t\t\t\tYes\tEDP\t2008\t\tNot planned",
+    "Sagunto\tES\tSpain\t39.64248\t-0.23321\toperating\t1232.2\t1232.2\t\t\t\t\t\t\t\tYes\tNaturgy\t2007\t\tNot planned",
+    "Besos 5\tES\tSpain\t41.41847\t2.22859\toperating\t859.1\t859.1\t\t\t\t\t\t\t\tYes\tEnel\t2010\t\t2040",
+    "Besos combined cycle\tES\tSpain\t41.41847\t2.22859\toperating\t811.8\t811.8\t\t\t\t\t\t\t\tYes\tEnel,Naturgy\t2002\t\tNot planned",
+    "Bahia de Algeciras\tES\tSpain\t36.1829\t-5.3905\toperating\t820.5\t820.5\t\t\t\t\t\t\t\tYes\tRepsol\t2011\t\tNot planned",
+    "Campo de Gibraltar\tES\tSpain\t36.1834\t-5.3933\toperating\t780.7\t780.7\t\t\t\t\t\t\t\tYes\tNaturgy,Mubadala Investment Company\t2004\t\tNot planned",
+    "San Roque combined cycle\tES\tSpain\t36.19564\t-5.41363\toperating\t791.9\t791.9\t\t\t\t\t\t\t\tYes\tNaturgy,Enel\t2002\t\tNot planned",
+    "Santurce\tES\tSpain\t43.34\t-3.0539\toperating\t403\t403\t\t\t\t\t\t\t\tYes\tIberdrola\t2005\t\tNot planned",
+    "Plana del Vent\tES\tSpain\t40.9596\t0.8692\toperating\t843.1\t843.1\t\t\t\t\t\t\t\tYes\tNaturgy,Alpiq\t2007\t\tNot planned",
+    "Aceca\tES\tSpain\t39.9442\t-3.8558\toperating\t764.7\t764.7\t\t\t\t\t\t\t\tYes\tIberdrola,Naturgy\t2005\t\tNot planned",
+    "Bahía de Bizkaia\tES\tSpain\t43.35904\t-3.09211\toperating\t785.3\t785.3\t\t\t\t\t\t\t\tYes\tBP,Ente Vasco de la Energía\t2003\t\tNot planned",
+    "Álabe Villarrubia\tES\tSpain\t39.98555\t-3.36898\toperating\t25\t25\t\t\t\t\t\t\t\tYes\tFMC\t1996\t\tNot planned",
+    "Barcelona Cartonboard\tES\tSpain\t41.46418\t1.9557\toperating\t46\t46\t\t\t\t\t\t\t\tYes\tReno De Medici\t1998\t\tNot planned",
+    "Bioetanol Galicia\tES\tSpain\t43.15622\t-8.02332\toperating\t25\t25\t\t\t\t\t\t\t\tYes\tAbengoa\t2003\t\tNot planned",
+    "Cartagena Refinery\tES\tSpain\t37.70435\t-1.09995\toperating\t95\t95\t\t\t\t\t\t\t\tYes\tIberdrola\t2002\t\tNot planned",
+    "Castellon Refinery\tES\tSpain\t39.95913\t-0.0016\toperating\t26\t26\t\t\t\t\t\t\t\tYes\tBP\t2008\t\tNot planned",
+    "Duenas Mill\tES\tSpain\t41.83947\t-4.56014\toperating\t50\t50\t\t\t\t\t\t\t\tYes\tDS Smith\t2010\t\tNot planned",
+    "Ecocarburantes Españoles\tES\tSpain\t37.5805\t-0.9233\toperating\t22\t22\t\t\t\t\t\t\t\tYes\tAbengoa\t\t\tNot planned",
+    "Enercrisa\tES\tSpain\t42.48385\t-3.15084\toperating\t19.7\t19.7\t\t\t\t\t\t\t\tYes\tIberdrola\t2009\t\tNot planned",
+    "Figuruelas\tES\tSpain\t41.75202\t-1.18021\toperating\t21\t21\t\t\t\t\t\t\t\tYes\tIDAE\t1994\t\tNot planned",
+    "Peninsular de Cogeneracion 1\tES\tSpain\t40.26902\t-3.77064\toperating\t39\t39\t\t\t\t\t\t\t\tYes\tInternational Paper Company,Iberdrola\t2001\t\tNot planned",
+    "Gemasa\tES\tSpain\t37.18408\t-6.90394\toperating\t27\t27\t\t\t\t\t\t\t\tYes\tMubadala Investment Company\t1997\t\tNot planned",
+    "Genfibre cogeneration\tES\tSpain\t42.68094\t-2.92605\tmothballed\t49\t\t49\t\t\t\t\t\t\tYes\tPraedium Capital Partners SL\t2000\t\tNot planned",
+    "Hernani Mill\tES\tSpain\t43.25835\t-1.96777\toperating\t50\t50\t\t\t\t\t\t\t\tYes\tIberpapel\t2008\t\tNot planned",
+    "Losan Pina\tES\tSpain\t39.99519\t-2.04026\toperating\t23\t23\t\t\t\t\t\t\t\tYes\tGrupo Losan\t2003\t\tNot planned",
+    "Losan Talosa\tES\tSpain\t41.78313\t-2.51152\toperating\t23\t23\t\t\t\t\t\t\t\tYes\tLosán\t2018\t\tNot planned",
+    "Martorell Seat\tES\tSpain\t41.49612\t1.90134\toperating\t22.5\t22.5\t\t\t\t\t\t\t\tYes\tVolkswagen\t2012\t\tNot planned",
+    "Michelin Aranda\tES\tSpain\t41.66287\t-3.71\toperating\t32\t32\t\t\t\t\t\t\t\tYes\tIberdrola\t2002\t\tNot planned",
+    "Michelin Valladolid\tES\tSpain\t41.67526\t-4.71607\toperating\t46\t46\t\t\t\t\t\t\t\tYes\tIberdrola\t2001\t\tNot planned",
+    "Motril Mill\tES\tSpain\t36.73162\t-3.5424\toperating\t49\t49\t\t\t\t\t\t\t\tYes\tLecta\t2001\t\tNot planned",
+    "Navia (Prat)\tES\tSpain\t43.50544\t-6.69441\toperating\t24\t24\t\t\t\t\t\t\t\tYes\tIndustrias Lacteas Asturianas\t1995\t\tNot planned",
+    "Michelin Vitoria\tES\tSpain\t42.86668\t-2.67174\toperating\t47\t47\t\t\t\t\t\t\t\tYes\tIberdrola\t2001\t\tNot planned",
+    "Peninsular de Cogeneracion 2\tES\tSpain\t40.27091\t-3.76811\toperating\t31.3\t31.3\t\t\t\t\t\t\t\tYes\tIberdrola\t2010\t\tNot planned",
+    "Pobla De Claramunt\tES\tSpain\t41.55193\t1.68554\toperating\t33\t33\t\t\t\t\t\t\t\tYes\tUnión Industrial Papelera\t2008\t\tNot planned",
+    "Refineria La Rabida\tES\tSpain\t37.18568\t-6.90083\toperating\t99.3\t99.3\t\t\t\t\t\t\t\tYes\tMubadala Investment Company\t1990\t\tNot planned",
+    "Repsol Cartagena Refinery\tES\tSpain\t37.57512\t-0.92928\toperating\t87\t87\t\t\t\t\t\t\t\tYes\tRepsol\t\t\tNot planned",
+    "Rosello Mill\tES\tSpain\t41.6942\t0.59499\toperating\t25\t25\t\t\t\t\t\t\t\tYes\tALIER\t1998\t\tNot planned",
+    "SAICA Mill Zaragoza\tES\tSpain\t41.67343\t-0.87044\toperating\t150\t150\t\t\t\t\t\t\t\tYes\tSaica\t\t\tNot planned",
+    "Sant Joan Mill\tES\tSpain\t42.21502\t2.51511\toperating\t25\t25\t\t\t\t\t\t\t\tYes\tLecta\t2011\t\tNot planned",
+    "Smurfit Mengíbar\tES\tSpain\t37.98124\t-3.79338\toperating\t25.8\t25.8\t\t\t\t\t\t\t\tYes\tSmurfit Kappa Group\t2009\t\tNot planned",
+    "Solvay Torrelavega\tES\tSpain\t43.37658\t-4.04467\toperating\t42\t42\t\t\t\t\t\t\t\tYes\tSolvay\t2001\t\tNot planned",
+    "Tortosa Energia\tES\tSpain\t40.77019\t0.53888\toperating\t49.6\t49.6\t\t\t\t\t\t\t\tYes\tCogeneration ENERGIA ESPAÑA S.L.\t2011\t\tNot planned",
+    "Zaragoza Mill\tES\tSpain\t41.69362\t-0.82553\toperating\t43\t43\t\t\t\t\t\t\t\tYes\tLecta\t2011\t\tNot planned",
+    "Alcúdia\tES\tSpain\t39.81075\t3.09141\toperating\t75\t75\t\t\t\t\t\t\t\tYes\tEnel\t1989\t\t2040",
+    "Barranco de Tirajana\tES\tSpain\t27.80401\t-15.43588\toperating\t697\t697\t\t\t\t\t\t\t\tYes\tEnel\t1992\t\t2040",
+    "Ca's Tresorer\tES\tSpain\t39.5672\t2.6895\toperating\t474.3\t474.3\t\t\t\t\t\t\t\tYes\tEnel\t2006\t\t2040",
+    "Cotesa\tES\tSpain\t28.45399\t-16.27808\toperating\t38\t38\t\t\t\t\t\t\t\tYes\tMubadala Investment Company\t1994\t\tNot planned",
+    "Son Reus\tES\tSpain\t39.64832\t2.68081\toperating\t457.7\t457.7\t\t\t\t\t\t\t\tYes\tEnel\t2001\t\t2040",
+    "Vila Ibiza\tES\tSpain\t38.91214\t1.42667\toperating\t213\t125\t88\t\t\t\t\t\t\tYes\tEnel\t1998\t\tNot planned",
+    "Abono\tES\tSpain\t43.5527\t-5.7235\toperating\t494\t494\t\t\t\t\t\t\t\tYes\tEDP,Corporación Masaveu\t2025\t\tNot planned",
+    "Castejon Iberdrola\tES\tSpain\t42.1712\t-1.6791\toperating\t386\t386\t\t\t\t\t\t\t\tYes\tIberdrola\t2003\t\tNot planned",
+    "Villarrobledo\tES\tSpain\t39.2825\t-2.5909\toperating\t18\t18\t\t\t\t\t\t\t\tYes\tIberdrola\t1995\t\tNot planned",
+    "San Roque Refinery\tES\tSpain\t36.18879\t-5.38815\toperating\t154.5\t154.5\t\t\t\t\t\t\t\tYes\tMubadala Investment Company\t\t\tNot planned",
+    "FINSA CELLA\tES\tSpain\t40.45676\t-1.248\toperating\t24.9\t24.9\t\t\t\t\t\t\t\tYes\tFINSA\t1997\t\tNot planned",
+    "Las palmas LNG\tES\tSpain\t28.15142\t-15.40611\tannounced\t70\t\t\t70\t\t\t\t\t\tYes\tTotisa Holdings\t\t\tNot planned",
+    "Rya Göteborg\tSE\tSweden\t57.6924\t11.8905\toperating\t250\t250\t\t\t\t\t\t\t\tYes\tGoteborg Energi\t2006\t\tNot planned",
+    "Heleneholms\tSE\tSweden\t55.57797\t13.01178\tmothballed\t100\t\t100\t\t\t\t\t\t\tYes\tE.ON\t1986\t\tNot planned",
+    "Lulea\tSE\tSweden\t65.5768\t22.21255\toperating\t100\t100\t\t\t\t\t\t\t\tYes\tLulea Kommunforetag\t1982\t\tNot planned",
+    "Öresund\tSE\tSweden\t55.6261\t13.0404\toperating\t448\t448\t\t\t\t\t\t\t\tYes\tUniper\t2009\t\tNot planned",
+    "Göteborg\tSE\tSweden\t57.70291\t11.95464\toperating\t36\t36\t\t\t\t\t\t\t\tYes\tGoteborg Energi\t1954\t\tNot planned",
+    "Reserve Birr\tCH\tSwitzerland\t47.43733\t8.21474\tmothballed\t250\t\t250\t\t\t\t\t\t\tYes\tGeneral Electric\t2023\t\t2026",
+    "Monthey\tCH\tSwitzerland\t46.25421\t6.96205\tmothballed\t50\t\t50\t\t\t\t\t\t\tYes\tBASF\t2009\t\t2030",
+    "Cornaux\tCH\tSwitzerland\t47.03867\t7.04235\tmothballed\t36\t\t36\t\t\t\t\t\t\tYes\tGroup E\t1988\t\t2030",
+    "Adana\tTR\tTürkiye\t36.98815\t35.20413\toperating\t131\t131\t\t\t\t\t\t\t\tYes\tHacı Ömer Sabancı.\t2001\t\tNot planned",
+    "Aksa Akrilik\tTR\tTürkiye\t40.68927\t29.40495\toperating\t45\t45\t\t\t\t\t\t\t\tYes\tAksa Akrilik Kimya Sanayii\t\t\tNot planned",
+    "Aksa Antalya\tTR\tTürkiye\t37.1203\t30.6016\toperating\t900\t900\t\t\t\t\t\t\t\tYes\tKazancı\t2011\t\tNot planned",
+    "Aliaga Alosbi\tTR\tTürkiye\t38.8147\t27.0644\toperating\t338\t338\t\t\t\t\t\t\t\tYes\tCakmaktepe Energy\t2007\t\tNot planned",
+    "Aliaga Energy\tTR\tTürkiye\t38.7422\t26.94309\toperating\t870\t870\t\t\t\t\t\t\t\tYes\tHabaş Enerji\t2018\t\tNot planned",
+    "Aliaga EUAS\tTR\tTürkiye\t38.7987\t26.945\toperating\t180\t180\t\t\t\t\t\t\t\tYes\tElektrik Üretim\t2009\t\tNot planned",
+    "Aliaga Habas\tTR\tTürkiye\t38.7422\t26.94309\toperating\t294\t294\t\t\t\t\t\t\t\tYes\tHabaş Enerji\t2002\t\tNot planned",
+    "Ambarlı A\tTR\tTürkiye\t40.9834\t28.6921\toperating\t1353\t1353\t\t\t\t\t\t\t\tYes\tElektrik Üretim\t1988\t\tNot planned",
+    "Ambarlı B\tTR\tTürkiye\t40.9793\t28.6994\toperating\t816\t816\t\t\t\t\t\t\t\tYes\tElektrik Üretim\t2013\t\tNot planned",
+    "Bandırma\tTR\tTürkiye\t40.30835\t27.76863\toperating\t1543\t1543\t\t\t\t\t\t\t\tYes\tEnerjisa Energy.\t2010\t\tNot planned",
+    "Baymina Ankara\tTR\tTürkiye\t39.7773\t32.4022\toperating\t770\t770\t\t\t\t\t\t\t\tYes\tPalmet Enerji\t2004\t\tNot planned",
+    "Bilecik\tTR\tTürkiye\t40.00429\t29.92227\toperating\t143\t143\t\t\t\t\t\t\t\tYes\tYıldızlar SSS\t\t\tNot planned",
+    "Bilgin Samsun gas\tTR\tTürkiye\t41.14543\t37.15637\toperating\t890\t890\t\t\t\t\t\t\t\tYes\tBilgin Enerji\t2013\t\tNot planned",
+    "Bilkent University\tTR\tTürkiye\t39.8666\t32.7563\toperating\t37\t37\t\t\t\t\t\t\t\tYes\tBilkent\t1993\t\tNot planned",
+    "Bosen Bursa\tTR\tTürkiye\t40.2377\t28.9534\toperating\t263\t263\t\t\t\t\t\t\t\tYes\tBosen Energy Electricity Generation\t2000\t\tNot planned",
+    "Bozüyük\tTR\tTürkiye\t40.15152\t29.9818\tmothballed\t132\t\t132\t\t\t\t\t\t\tYes\tAkenerji Elektrik Üretim\t1997\t\tNot planned",
+    "Bursa - Bis Energi\tTR\tTürkiye\t40.2394\t28.9518\tmothballed\t487\t\t487\t\t\t\t\t\t\tYes\tSGM Enerji Sanayi ve Ticaret\t1999\t\tNot planned",
+    "Bursa B\tTR\tTürkiye\t40.2952\t29.0736\toperating\t1432\t1432\t\t\t\t\t\t\t\tYes\tElektrik Üretim\t1998\t\tNot planned",
+    "Cay\tTR\tTürkiye\t38.59391\t31.04345\toperating\t143\t143\t\t\t\t\t\t\t\tYes\tYıldızlar SSS\t\t\tNot planned",
+    "Cengiz Enerji Samsun\tTR\tTürkiye\t41.2393\t36.4799\toperating\t849\t849\t\t\t\t\t\t\t\tYes\tCengiz\t2010\t\tNot planned",
+    "Cerkezkoy Ugur\tTR\tTürkiye\t41.29272\t27.95626\toperating\t60\t60\t\t\t\t\t\t\t\tYes\tUğur Enerji Üretim Ticaret ve Sanayi\t2010\t\tNot planned",
+    "Cigli Ataer\tTR\tTürkiye\t38.4763\t27.02861\toperating\t125\t125\t\t\t\t\t\t\t\tYes\tAtaer Enerji Elek Uretim\t2010\t\tNot planned",
+    "Cine Ales\tTR\tTürkiye\t37.63698\t27.97479\toperating\t63\t63\t\t\t\t\t\t\t\tYes\tPalmet Enerji\t2012\t\tNot planned",
+    "Corlu CHP\tTR\tTürkiye\t41.138\t27.8653\tmothballed\t56\t\t56\t\t\t\t\t\t\tYes\tCan\t2007\t\tNot planned",
+    "Delta Enerji\tTR\tTürkiye\t41.29152\t27.56128\toperating\t61\t61\t\t\t\t\t\t\t\tYes\tPalmet Enerji\t2009\t\tNot planned",
+    "Denizli Honaz\tTR\tTürkiye\t37.80898\t29.25771\toperating\t63\t63\t\t\t\t\t\t\t\tYes\tAcarsoy Enerji\t2013\t\tNot planned",
+    "Denizli Saraykoy\tTR\tTürkiye\t37.91364\t28.90477\toperating\t206\t206\t\t\t\t\t\t\t\tYes\tAGE Group\t2013\t\tNot planned",
+    "Enka Adapazarı\tTR\tTürkiye\t40.866\t30.3873\toperating\t820\t820\t\t\t\t\t\t\t\tYes\tENKA\t2002\t\tNot planned",
+    "Enka Gebze\tTR\tTürkiye\t40.86706\t30.38757\toperating\t1600\t1600\t\t\t\t\t\t\t\tYes\tENKA\t2002\t\tNot planned",
+    "Enka İzmir\tTR\tTürkiye\t38.7467\t26.9563\toperating\t1580\t1580\t\t\t\t\t\t\t\tYes\tENKA\t2003\t\tNot planned",
+    "Erzin\tTR\tTürkiye\t36.9271\t36.0534\toperating\t904\t904\t\t\t\t\t\t\t\tYes\tAkenerji Elektrik Üretim\t2014\t\tNot planned",
+    "Esenyurt\tTR\tTürkiye\t41.06515\t28.66815\toperating\t180\t180\t\t\t\t\t\t\t\tYes\tElektrik Üretim\t1999\t\tNot planned",
+    "Eskisehir Endustriyel\tTR\tTürkiye\t39.7566\t30.62216\toperating\t55.5\t55.5\t\t\t\t\t\t\t\tYes\tEskişehir Endüstriyel Enerji\t1998\t\tNot planned",
+    "Gaziantip Industrial\tTR\tTürkiye\t36.9957\t37.3841\tmothballed\t110\t\t110\t\t\t\t\t\t\tYes\tGaziantep Organize Sanayi Bolgesi\t2010\t\tNot planned",
+    "Gebze Dilovasi\tTR\tTürkiye\t40.80151\t29.55181\toperating\t253\t253\t\t\t\t\t\t\t\tYes\tÇolakoğlu Metalürji\t2017\t\tNot planned",
+    "Gebze Yeni\tTR\tTürkiye\t40.81655\t29.57319\toperating\t865\t865\t\t\t\t\t\t\t\tYes\tUnit Investment\t2013\t\tNot planned",
+    "Gediz\tTR\tTürkiye\t38.9652\t29.3653\toperating\t57\t57\t\t\t\t\t\t\t\tYes\tHG Enerji\t2013\t\tNot planned",
+    "Hamitabat\tTR\tTürkiye\t41.4827\t27.3366\toperating\t1220\t1220\t\t\t\t\t\t\t\tYes\tLimak Energy\t2017\t\tNot planned",
+    "Hereke Cement Works\tTR\tTürkiye\t40.782\t29.6025\tmothballed\t158\t\t158\t\t\t\t\t\t\tYes\tNuh Çimento Sanayi.\t1999\t\tNot planned",
+    "İç Anadolu\tTR\tTürkiye\t39.7575\t33.448\toperating\t870\t870\t\t\t\t\t\t\t\tYes\tSOCAR\t2016\t\tNot planned",
+    "Izmir Cement Factory\tTR\tTürkiye\t38.4267\t27.2169\toperating\t45\t45\t\t\t\t\t\t\t\tYes\tBaticim\t2011\t\tNot planned",
+    "Izmir Refinery\tTR\tTürkiye\t40.7633\t29.7624\toperating\t82\t82\t\t\t\t\t\t\t\tYes\tKoç\t2007\t\tNot planned",
+    "Izmit Refinery\tTR\tTürkiye\t40.7477\t29.7717\toperating\t120\t120\t\t\t\t\t\t\t\tYes\tKoç\t2014\t\tNot planned",
+    "İzmit-Köseköy\tTR\tTürkiye\t40.77305\t29.94696\toperating\t157\t157\t\t\t\t\t\t\t\tYes\tKoç\t2009\t\tNot planned",
+    "Karadeniz Ereğli Zonguldak\tTR\tTürkiye\t41.26147\t31.42011\toperating\t191\t191\t\t\t\t\t\t\t\tYes\tErdemir\t1996\t\tNot planned",
+    "Kazan Soda Elektrik\tTR\tTürkiye\t40.10489\t32.50123\toperating\t380\t380\t\t\t\t\t\t\t\tYes\tCiner Group\t2018\t\tNot planned",
+    "Kentsa\tTR\tTürkiye\t40.764\t29.9901\toperating\t40\t40\t\t\t\t\t\t\t\tYes\tHacı Ömer Sabancı.\t1997\t\tNot planned",
+    "Kırkgöz\tTR\tTürkiye\t41.2362\t27.6904\toperating\t100\t100\t\t\t\t\t\t\t\tYes\tEren\t2014\t\tNot planned",
+    "Kırklareli Alarko\tTR\tTürkiye\t41.7781\t27.1921\toperating\t82\t82\t\t\t\t\t\t\t\tYes\tAlarko\t2010\t\tNot planned",
+    "Kirklareli\tTR\tTürkiye\t41.7565\t27.214\toperating\t852\t852\t\t\t\t\t\t\t\tYes\tENKA\t2026\t\tNot planned",
+    "Kirsehir Kanyon\tTR\tTürkiye\t39.1337\t34.1505\tcancelled\t600\t\t\t\t\t\t\t600\t\tYes\tKanyon Yenilenenilir Enerji\t\t\t",
+    "Kiyikoy\tTR\tTürkiye\t41.63862\t28.09053\tcancelled\t1176\t\t\t\t\t\t\t1176\t\tYes\tZorlu\t\t\t",
+    "Luleburgaz Zorlu\tTR\tTürkiye\t41.27752\t27.58824\toperating\t133\t133\t\t\t\t\t\t\t\tYes\tZorlu\t2010\t\tNot planned",
+    "Manisa OSB cogeneration\tTR\tTürkiye\t38.61689\t27.34462\toperating\t140\t140\t\t\t\t\t\t\t\tYes\tMOSB\t2005\t\tNot planned",
+    "Marmara Çebi\tTR\tTürkiye\t41.02009\t29.04605\toperating\t65\t65\t\t\t\t\t\t\t\tYes\tKaptan Group\t2003\t\tNot planned",
+    "Marmara Pamuklu\tTR\tTürkiye\t39.61671\t27.8822\toperating\t70\t70\t\t\t\t\t\t\t\tYes\tMarmara Enerji\t2005\t\tNot planned",
+    "Mersin Camis\tTR\tTürkiye\t36.81445\t34.73496\toperating\t250\t250\t\t\t\t\t\t\t\tYes\tTürkiye İş Bankasi Anonim Şirketi\t2006\t\tNot planned",
+    "Mersin\tTR\tTürkiye\t36.8681\t34.7549\toperating\t65\t65\t\t\t\t\t\t\t\tYes\tHacı Ömer Sabancı.\t2011\t\tNot planned",
+    "Mersin Soda Sanayi\tTR\tTürkiye\t36.80902\t34.70594\toperating\t135\t135\t\t\t\t\t\t\t\tYes\tŞişecam Enerji\t2014\t\tNot planned",
+    "Odas\tTR\tTürkiye\t37.19509\t38.88849\toperating\t140\t140\t\t\t\t\t\t\t\tYes\tMekel Enerji\t2011\t\tNot planned",
+    "OSTIM Industrial Zone\tTR\tTürkiye\t39.9691\t32.7488\tmothballed\t41\t\t41\t\t\t\t\t\t\tYes\tAydiner Insaat AS\t2004\t\tNot planned",
+    "Pancar\tTR\tTürkiye\t38.2132\t27.2497\toperating\t40\t40\t\t\t\t\t\t\t\tYes\tPancar Elektrik\t2014\t\tNot planned",
+    "Petkim\tTR\tTürkiye\t38.80447\t26.92631\toperating\t226\t226\t\t\t\t\t\t\t\tYes\tPetkim Petrokimya.\t2003\t\tNot planned",
+    "Şanlıurfa OSB\tTR\tTürkiye\t37.1103\t38.652\toperating\t147\t147\t\t\t\t\t\t\t\tYes\tKazancı\t2011\t\tNot planned",
+    "Taha\tTR\tTürkiye\t37.31188\t40.73302\toperating\t136\t136\t\t\t\t\t\t\t\tYes\tEgemen Group\t2017\t\tNot planned",
+    "Tekirdag CHP\tTR\tTürkiye\t41.00062\t27.50542\toperating\t48\t48\t\t\t\t\t\t\t\tYes\tCan\t2010\t\tNot planned",
+    "Tekirdağ\tTR\tTürkiye\t41.0072\t27.9736\toperating\t958\t958\t\t\t\t\t\t\t\tYes\tElektrik Üretim\t1999\t\tNot planned",
+    "Tire\tTR\tTürkiye\t38.1248\t27.7085\tmothballed\t58\t\t58\t\t\t\t\t\t\tYes\tEnda Enerji\t2004\t\tNot planned",
+    "Turcas Denizli Doğalgaz S.\tTR\tTürkiye\t37.8504\t29.4152\toperating\t797\t797\t\t\t\t\t\t\t\tYes\tRWE,Turcas Petrol\t2013\t\tNot planned",
+    "Usak\tTR\tTürkiye\t38.6267\t29.4751\toperating\t35\t35\t\t\t\t\t\t\t\tYes\tSonmez Elektrik Uretim Sanayi Vetic\t1995\t\tNot planned",
+    "Van CCGE\tTR\tTürkiye\t38.57375\t43.3119\tmothballed\t115\t\t115\t\t\t\t\t\t\tYes\tKazancı\t2010\t\tNot planned",
+    "Yahsihan\tTR\tTürkiye\t39.84198\t33.48799\toperating\t927\t927\t\t\t\t\t\t\t\tYes\tACWA Power,Samsung\t2017\t\tNot planned",
+    "Yesilyurt\tTR\tTürkiye\t41.2363\t36.4416\toperating\t234\t234\t\t\t\t\t\t\t\tYes\tYesilyurt Enerji\t2013\t\tNot planned",
+    "Cemdağ Akhisar\tTR\tTürkiye\t38.90711\t27.83879\toperating\t89\t89\t\t\t\t\t\t\t\tYes\tCemdag Aydinlatma Sanayi Ve Ticaret\t2014\t\tNot planned",
+    "Çolakoğlu-1\tTR\tTürkiye\t40.77743\t29.53205\toperating\t123\t123\t\t\t\t\t\t\t\tYes\tÇolakoğlu Metalürji\t2014\t\tNot planned",
+    "Severodonetsk CHP\tUA\tUkraine\t48.93744\t38.45316\toperating\t270\t50\t220\t\t\t\t\t\t\tYes\tNaftogaz NJSC\t1963\t\tNot planned",
+    "Vuhlehirska TPP\tUA\tUkraine\t48.46498\t38.20216\tmothballed\t2400\t\t2400\t\t\t\t\t\t\tYes\tCentrenergo\t1975\t\tNot planned",
+    "Trypilska TPP\tUA\tUkraine\t50.13417\t30.74698\toperating\t600\t600\t\t\t\t\t\t\t\tYes\tCentrenergo\t1971\t\tNot planned",
+    "Zaporizhzhia TPP\tUA\tUkraine\t47.50716\t34.62759\toperating\t2400\t1600\t800\t\t\t\t\t\t\tYes\tDTEK Energy\t1975\t\tNot planned",
+    "Kyiv CHP-6\tUA\tUkraine\t50.5317\t30.66231\toperating\t750\t500\t\t\t\t250\t\t\t\tYes\tKyivteploenergo\t1982\t\tNot planned",
+    "Kharkiv CHP-5\tUA\tUkraine\t49.97037\t36.10716\toperating\t540\t540\t\t\t\t\t\t\t\tYes\tKharkiv CHP-5\t1979\t\tNot planned",
+    "Saky CHP\tUA\tUkraine\t45.13661\t33.55345\toperating\t117.9\t58.5\t\t\t\t59.4\t\t\t\tYes\tKrymTETs\t2018\t\tNot planned",
+    "Simferopol CHP\tUA\tUkraine\t45.01289\t34.03587\toperating\t86\t86\t\t\t\t\t\t\t\tYes\tKrymTETs\t1958\t\tNot planned",
+    "Kyiv CHP-5\tUA\tUkraine\t50.39317\t30.56948\toperating\t700\t700\t\t\t\t\t\t\t\tYes\tKyivteploenergo\t1971\t\tNot planned",
+    "Izmail\tUA\tUkraine\t45.35654\t28.86315\tannounced\t260\t\t\t260\t\t\t\t\t\tYes\tKazancı\t\t\tNot planned",
+    "Kremenchuk CHP\tUA\tUkraine\t49.17079\t33.44737\tmothballed\t255\t\t255\t\t\t\t\t\t\tYes\tPoltavaoblenergo\t1965\t\tNot planned",
+    "Shostka CHP\tUA\tUkraine\t51.88276\t33.46031\toperating\t114\t114\t\t\t\t\t\t\t\tYes\tShp Kharkivenerhoremont\t1962\t\tNot planned",
+    "Bila Tserkva CHP\tUA\tUkraine\t49.79695\t30.18326\toperating\t120\t120\t\t\t\t\t\t\t\tYes\tBilotserkivska TPP\t1971\t\tNot planned",
+    "Chernihiv\tUA\tUkraine\t51.45496\t31.26017\toperating\t220\t220\t\t\t\t\t\t\t\tYes\tTeplokomunenergo\t1964\t\tNot planned",
+    "Baglan Bay\tGB\tUnited Kingdom\t51.6155\t-3.8346\tretired\t552\t\t\t\t\t\t\t\t552\tYes\tMacquarie Group\t2002\t2023\t",
+    "Ballylumford\tGB\tUnited Kingdom\t54.845\t-5.786\toperating\t610\t610\t\t\t\t\t\t\t\tYes\tEP Group,TotalEnergies\t2003\t\tNot planned",
+    "Blackburn Mill\tGB\tUnited Kingdom\t53.71818\t-2.53718\toperating\t60\t60\t\t\t\t\t\t\t\tYes\tVitol\t2002\t\tNot planned",
+    "Seabank\tGB\tUnited Kingdom\t51.5392\t-2.67\toperating\t1140\t1140\t\t\t\t\t\t\t\tYes\tSSE,CK Infrastructure,Power Assets\t2000\t\tNot planned",
+    "Carrington ESB\tGB\tUnited Kingdom\t53.43593\t-2.41084\toperating\t910\t910\t\t\t\t\t\t\t\tYes\tESB\t2016\t\tNot planned",
+    "Corby Power Station\tGB\tUnited Kingdom\t52.5104\t-0.6814\tannounced\t682\t\t352\t330\t\t\t\t\t\tYes\tEP Group,TotalEnergies\t1994\t\tNot planned",
+    "Coryton\tGB\tUnited Kingdom\t51.51185\t0.5079\toperating\t885\t885\t\t\t\t\t\t\t\tYes\tSev.en Global Investments\t2002\t\tNot planned",
+    "Coolkeeragh\tGB\tUnited Kingdom\t55.0437\t-7.24868\toperating\t413\t413\t\t\t\t\t\t\t\tYes\tESB\t2004\t\tNot planned",
+    "Enfield\tGB\tUnited Kingdom\t51.66248\t-0.02248\toperating\t408\t408\t\t\t\t\t\t\t\tYes\tUniper\t1999\t\tNot planned",
+    "Great Yarmouth\tGB\tUnited Kingdom\t52.58395\t1.73381\toperating\t420\t420\t\t\t\t\t\t\t\tYes\tRWE\t2001\t\tNot planned",
+    "Rye House\tGB\tUnited Kingdom\t51.76317\t0.00974\toperating\t715\t715\t\t\t\t\t\t\t\tYes\tVitol\t1993\t\tNot planned",
+    "Hythe\tGB\tUnited Kingdom\t50.85044\t-1.3815\toperating\t53\t53\t\t\t\t\t\t\t\tYes\tRWE\t2005\t\tNot planned",
+    "Damhead Creek\tGB\tUnited Kingdom\t51.42492\t0.60143\toperating\t2605\t805\t\t1800\t\t\t\t\t\tYes\tVitol\t2001\t\tNot planned",
+    "Saltend\tGB\tUnited Kingdom\t53.73543\t-0.24315\toperating\t1200\t1200\t\t\t\t\t\t\t\tYes\tEquinor,SSE\t2000\t\tNot planned",
+    "Immingham\tGB\tUnited Kingdom\t53.63779\t-0.23674\toperating\t1330\t1330\t\t\t\t\t\t\t\tYes\tVitol\t2004\t\tNot planned",
+    "Killingholme\tGB\tUnited Kingdom\t53.65361\t-0.25665\toperating\t622\t622\t\t\t\t\t\t\t\tYes\tUniper\t1992\t\tNot planned",
+    "Grain\tGB\tUnited Kingdom\t51.44298\t0.70782\toperating\t1365\t1365\t\t\t\t\t\t\t\tYes\tUniper\t2011\t\tNot planned",
+    "Wilton International\tGB\tUnited Kingdom\t54.58823\t-1.10256\toperating\t120\t120\t\t\t\t\t\t\t\tYes\tSembcorp Industries\t1952\t\tNot planned",
+    "Staythorpe C\tGB\tUnited Kingdom\t53.07368\t-0.85901\toperating\t1772\t1772\t\t\t\t\t\t\t\tYes\tRWE\t2011\t\tNot planned",
+    "Severn\tGB\tUnited Kingdom\t51.5475\t-2.975\toperating\t850\t850\t\t\t\t\t\t\t\tYes\tCentrica\t2010\t\tNot planned",
+    "Pembroke\tGB\tUnited Kingdom\t51.68436\t-4.9967\toperating\t2181\t2181\t\t\t\t\t\t\t\tYes\tRWE\t2012\t\tNot planned",
+    "Peterborough\tGB\tUnited Kingdom\t52.5769\t-0.204\toperating\t294\t294\t\t\t\t\t\t\t\tYes\tRockland Capital\t1993\t\tNot planned",
+    "Peterhead\tGB\tUnited Kingdom\t57.47721\t-1.78888\toperating\t2750\t1180\t660\t\t910\t\t\t\t\tYes\tSSE,Equinor\t1980\t\tNot planned",
+    "Burghfield\tGB\tUnited Kingdom\t51.42937\t-1.0033\toperating\t45\t45\t\t\t\t\t\t\t\tYes\tSSE\t1998\t\tNot planned",
+    "Cottam Development Centre\tGB\tUnited Kingdom\t53.30513\t-0.78582\toperating\t445\t445\t\t\t\t\t\t\t\tYes\tUniper\t1998\t\tNot planned",
+    "West Burton B\tGB\tUnited Kingdom\t53.36223\t-0.80759\toperating\t1332\t1332\t\t\t\t\t\t\t\tYes\tEP Group,TotalEnergies\t2013\t\tNot planned",
+    "West Burton C\tGB\tUnited Kingdom\t53.36223\t-0.80759\tcancelled\t299\t\t\t\t\t\t\t299\t\tYes\tEDF\t\t\t",
+    "Medway\tGB\tUnited Kingdom\t51.43956\t0.68939\toperating\t755\t755\t\t\t\t\t\t\t\tYes\tSSE\t1995\t\tNot planned",
+    "Rocksavage\tGB\tUnited Kingdom\t53.31522\t-2.72278\toperating\t810\t810\t\t\t\t\t\t\t\tYes\tSev.en Global Investments\t1998\t\tNot planned",
+    "King's Lynn\tGB\tUnited Kingdom\t52.72783\t0.37975\toperating\t382\t382\t\t\t\t\t\t\t\tYes\tRWE\t2019\t\tNot planned",
+    "Keadby 1\tGB\tUnited Kingdom\t53.59444\t-0.75044\toperating\t735\t735\t\t\t\t\t\t\t\tYes\tSSE\t1996\t\tNot planned",
+    "Keadby 2\tGB\tUnited Kingdom\t53.59444\t-0.75044\toperating\t893\t893\t\t\t\t\t\t\t\tYes\tSSE\t2023\t\tNot planned",
+    "Keadby 3\tGB\tUnited Kingdom\t53.59444\t-0.75044\tpre-construction\t910\t\t\t\t910\t\t\t\t\tYes\tSSE,Equinor\t2027\t\tNot planned",
+    "Fellside CHP\tGB\tUnited Kingdom\t54.4184\t-3.4883\toperating\t155\t155\t\t\t\t\t\t\t\tYes\tNuclear Decommissioning Authority\t1995\t\tNot planned",
+    "Marchwood\tGB\tUnited Kingdom\t50.89798\t-1.43751\toperating\t840\t840\t\t\t\t\t\t\t\tYes\tSSE,Munich Re\t2009\t\tNot planned",
+    "Shoreham\tGB\tUnited Kingdom\t50.82992\t-0.23144\toperating\t420\t420\t\t\t\t\t\t\t\tYes\tVitol\t2000\t\tNot planned",
+    "Spalding Energy Expansion\tGB\tUnited Kingdom\t52.80721\t-0.13334\toperating\t300\t300\t\t\t\t\t\t\t\tYes\tSev.en Global Investments\t2019\t\tNot planned",
+    "Spalding\tGB\tUnited Kingdom\t52.80721\t-0.13334\toperating\t950\t950\t\t\t\t\t\t\t\tYes\tSev.en Global Investments\t2004\t\tNot planned",
+    "Little Barford\tGB\tUnited Kingdom\t52.20533\t-0.2668\toperating\t735\t735\t\t\t\t\t\t\t\tYes\tRWE\t1995\t\tNot planned",
+    "South Humber Bank\tGB\tUnited Kingdom\t53.60078\t-0.14462\toperating\t1390\t1390\t\t\t\t\t\t\t\tYes\tEP Group,TotalEnergies\t1997\t\tNot planned",
+    "Sutton Bridge Power Station\tGB\tUnited Kingdom\t52.7571\t0.1919\toperating\t819\t819\t\t\t\t\t\t\t\tYes\tRockland Capital\t1999\t\tNot planned",
+    "Didcot B\tGB\tUnited Kingdom\t51.6246\t-1.2683\toperating\t1490\t1490\t\t\t\t\t\t\t\tYes\tRWE\t1997\t\tNot planned",
+    "Chickerell\tGB\tUnited Kingdom\t50.62357\t-2.48907\toperating\t45\t45\t\t\t\t\t\t\t\tYes\tSSE\t1999\t\tNot planned",
+    "Langage\tGB\tUnited Kingdom\t50.38782\t-4.01099\toperating\t905\t905\t\t\t\t\t\t\t\tYes\tEP Group,TotalEnergies\t2010\t\tNot planned",
+    "Bury St Edmunds Sugar Factory\tGB\tUnited Kingdom\t52.25567\t0.72592\toperating\t77\t77\t\t\t\t\t\t\t\tYes\tWittington Investments\t1999\t\tNot planned",
+    "Carrington\tGB\tUnited Kingdom\t53.43772\t-2.41014\toperating\t40.5\t40.5\t\t\t\t\t\t\t\tYes\tTiger Infrastructure Partners\t2024\t\tNot planned",
+    "Cheshire\tGB\tUnited Kingdom\t53.30303\t-2.92411\toperating\t60\t40\t\t\t\t20\t\t\t\tYes\tRWE\t2000\t\tNot planned",
+    "Connah's Quay\tGB\tUnited Kingdom\t53.2317\t-3.08149\toperating\t2480\t1380\t\t\t1100\t\t\t\t\tYes\tUniper\t1996\t\tNot planned",
+    "Creyke Beck\tGB\tUnited Kingdom\t53.79758\t-0.41791\toperating\t50\t50\t\t\t\t\t\t\t\tYes\tEQT Infrastructure\t2017\t\tNot planned",
+    "Croydon\tGB\tUnited Kingdom\t51.37651\t-0.11622\toperating\t50\t50\t\t\t\t\t\t\t\tYes\tRockland Capital\t1924\t\tNot planned",
+    "Deeside\tGB\tUnited Kingdom\t53.23319\t-3.05259\tconstruction\t49\t\t\t\t\t49\t\t\t\tYes\tEquinor,SSE\t\t\tNot planned",
+    "Derby\tGB\tUnited Kingdom\t52.88406\t-1.46408\toperating\t58\t58\t\t\t\t\t\t\t\tYes\tRockland Capital\t\t\tNot planned",
+    "Didcot\tGB\tUnited Kingdom\t51.6246\t-1.2683\toperating\t100\t100\t\t\t\t\t\t\t\tYes\tRWE\t1972\t\t2024",
+    "Drax\tGB\tUnited Kingdom\t53.7372\t-0.99902\toperating\t96\t96\t\t\t\t\t\t\t\tYes\tDrax Group\t1971\t\tNot planned",
+    "Exeter\tGB\tUnited Kingdom\t50.70654\t-3.52429\toperating\t50\t50\t\t\t\t\t\t\t\tYes\tRockland Capital\t\t\tNot planned",
+    "Fawley Refinery\tGB\tUnited Kingdom\t50.83337\t-1.36966\toperating\t125\t125\t\t\t\t\t\t\t\tYes\tExxon Mobil\t1985\t\tNot planned",
+    "Ferrybridge-C\tGB\tUnited Kingdom\t53.71564\t-1.28057\tpre-construction\t1200\t\t\t\t1200\t\t\t\t\tYes\tSSE\t\t\tNot planned",
+    "Gibraltar's Rock\tGB\tUnited Kingdom\t36.1297\t-5.354\toperating\t86\t86\t\t\t\t\t\t\t\tYes\tShell\t2018\t\tNot planned",
+    "Glanford Brigg IC\tGB\tUnited Kingdom\t53.5411\t-0.5055\toperating\t100\t100\t\t\t\t\t\t\t\tYes\tCentrica\t2018\t\tNot planned",
+    "Grangemouth\tGB\tUnited Kingdom\t56.01099\t-3.69513\tmothballed\t180\t\t145\t\t\t\t\t35\t\tYes\tIneos Group\t2001\t\tNot planned",
+    "Grimsby\tGB\tUnited Kingdom\t53.58281\t-0.10984\toperating\t40\t40\t\t\t\t\t\t\t\tYes\tRWE\t2018\t\tNot planned",
+    "Heartlands\tGB\tUnited Kingdom\t52.51022\t-1.80828\toperating\t100\t100\t\t\t\t\t\t\t\tYes\tRockland Capital\t1999\t\tNot planned",
+    "Hirwaun\tGB\tUnited Kingdom\t51.74467\t-3.54103\toperating\t299\t299\t\t\t\t\t\t\t\tYes\tDrax Group\t2026\t\tNot planned",
+    "Immingham B\tGB\tUnited Kingdom\t53.63779\t-0.23674\tconstruction\t299\t\t\t\t\t299\t\t\t\tYes\tVitol\t2026\t\tNot planned",
+    "Indian Queens\tGB\tUnited Kingdom\t50.3981\t-4.8992\toperating\t140\t140\t\t\t\t\t\t\t\tYes\tEquinor,SSE\t1996\t\tNot planned",
+    "Keadby\tGB\tUnited Kingdom\t53.59444\t-0.75044\toperating\t30\t30\t\t\t\t\t\t\t\tYes\tSSE\t1996\t\tNot planned",
+    "Kemsley Paper Mill\tGB\tUnited Kingdom\t51.36412\t0.75656\toperating\t73\t73\t\t\t\t\t\t\t\tYes\tDS Smith\t2022\t\tNot planned",
+    "Kilroot\tGB\tUnited Kingdom\t54.725\t-5.767\toperating\t1200\t700\t\t500\t\t\t\t\t\tYes\tEP Group,TotalEnergies\t2024\t\tNot planned",
+    "King's Lynn B\tGB\tUnited Kingdom\t52.71624\t0.37915\tcancelled\t1700\t\t\t\t\t\t\t1700\t\tYes\tEP Group,TotalEnergies\t\t\t",
+    "Lemington\tGB\tUnited Kingdom\t54.9726\t-1.7143\tpre-construction\t50\t\t\t\t50\t\t\t\t\tYes\tCarlton Power\t2024\t\tNot planned",
+    "Lindsey refinery\tGB\tUnited Kingdom\t53.64063\t-0.25782\toperating\t38\t38\t\t\t\t\t\t\t\tYes\tRWE\t1997\t\tNot planned",
+    "Macclesfield Zenca\tGB\tUnited Kingdom\t53.27546\t-2.11006\toperating\t23\t23\t\t\t\t\t\t\t\tYes\tAstraZeneca\t2001\t\tNot planned",
+    "Millbrook\tGB\tUnited Kingdom\t52.0704\t-0.51482\tconstruction\t299\t\t\t\t\t299\t\t\t\tYes\tDrax Group\t2026\t\tNot planned",
+    "Palm mill\tGB\tUnited Kingdom\t52.73348\t0.38553\toperating\t45\t45\t\t\t\t\t\t\t\tYes\tPalm Group\t2018\t\tNot planned",
+    "Eggborough\tGB\tUnited Kingdom\t53.71177\t-1.12526\tpre-construction\t1999\t\t\t\t1999\t\t\t\t\tYes\tEP Group,TotalEnergies\t2026\t\tNot planned",
+    "Port Of Liverpool\tGB\tUnited Kingdom\t53.45219\t-3.00832\toperating\t30\t30\t\t\t\t\t\t\t\tYes\tE.ON\t2004\t\tNot planned",
+    "Port Talbot Steelworks\tGB\tUnited Kingdom\t51.56789\t-3.759\toperating\t30\t30\t\t\t\t\t\t\t\tYes\tTata Power Co\t2021\t\tNot planned",
+    "Redditch\tGB\tUnited Kingdom\t52.3053\t-1.9414\toperating\t20\t20\t\t\t\t\t\t\t\tYes\tCentrica\t2024\t\tNot planned",
+    "Saica Paper Mill\tGB\tUnited Kingdom\t53.42598\t-2.41535\toperating\t35\t35\t\t\t\t\t\t\t\tYes\tSaica\t2013\t\tNot planned",
+    "Saltholme North\tGB\tUnited Kingdom\t54.60765\t-1.24278\toperating\t50\t50\t\t\t\t\t\t\t\tYes\tEQT Infrastructure\t2021\t\tNot planned",
+    "Saltholme South\tGB\tUnited Kingdom\t54.60765\t-1.24278\toperating\t50\t50\t\t\t\t\t\t\t\tYes\tEQT Infrastructure\t2021\t\tNot planned",
+    "Seal Sands\tGB\tUnited Kingdom\t54.6102\t-1.17\toperating\t55\t55\t\t\t\t\t\t\t\tYes\tRWE\t1999\t\tNot planned",
+    "Smurfit Townsend Hook\tGB\tUnited Kingdom\t51.32877\t0.45111\toperating\t53\t53\t\t\t\t\t\t\t\tYes\tSmurfit Kappa Group\t2018\t\tNot planned",
+    "Stallingborough\tGB\tUnited Kingdom\t53.55144\t-0.01681\tpre-construction\t800\t\t\t\t800\t\t\t\t\tYes\tRWE\t2035\t\tNot planned",
+    "Tees Combined-Cycle Power Station\tGB\tUnited Kingdom\t54.58084\t-1.14422\tpre-construction\t1700\t\t\t\t1700\t\t\t\t\tYes\tSembcorp Industries\t2024\t\tNot planned",
+    "Thornhill\tGB\tUnited Kingdom\t53.67706\t-1.65496\toperating\t40\t40\t\t\t\t\t\t\t\tYes\tRockland Capital\t1998\t\tNot planned",
+    "Thurrock Flexible\tGB\tUnited Kingdom\t51.4642\t0.3639\tconstruction\t450\t\t\t\t\t450\t\t\t\tYes\tEQT Infrastructure\t2026\t\tNot planned",
+    "Valero Pembroke\tGB\tUnited Kingdom\t51.68348\t-5.02917\toperating\t45\t45\t\t\t\t\t\t\t\tYes\tValero Energy Corp\t2021\t\tNot planned",
+    "Viking\tGB\tUnited Kingdom\t54.60674\t-1.20268\toperating\t50\t50\t\t\t\t\t\t\t\tYes\tRockland Capital\t1997\t\tNot planned",
+    "Whitetail Clean Energy\tGB\tUnited Kingdom\t54.58889\t-1.1875\tpre-construction\t350\t\t\t\t350\t\t\t\t\tYes\t8 Rivers,Sembcorp Industries\t2027\t\tNot planned",
+    "Winnington Brunner\tGB\tUnited Kingdom\t53.26702\t-2.53098\toperating\t96\t96\t\t\t\t\t\t\t\tYes\tTata Chemicals\t2000\t\tNot planned",
+    "Wissington Sugar Factory\tGB\tUnited Kingdom\t52.55058\t0.44864\toperating\t93\t93\t\t\t\t\t\t\t\tYes\tWittington Investments\t1999\t\tNot planned",
+    "Wrexham Energy Centre\tGB\tUnited Kingdom\t53.0402\t-2.93303\tpre-construction\t299\t\t\t\t299\t\t\t\t\tYes\tSt Modwen Properties\t2025\t\tNot planned",
+    "Abergelli\tGB\tUnited Kingdom\t51.69498\t-3.9494\tannounced\t299\t\t\t299\t\t\t\t\t\tYes\tDrax Group\t2024\t\tNot planned",
+    "Gateway Energy Centre\tGB\tUnited Kingdom\t51.50414\t0.47852\tshelved\t1199\t\t\t\t\t\t1199\t\t\tYes\tSev.en Global Investments\t\t\tNot planned",
+    "Killingholme Low Carbon\tGB\tUnited Kingdom\t53.65961\t-0.25559\tpre-construction\t470\t\t\t\t470\t\t\t\t\tYes\tUniper\t2030\t\tNot planned",
+    "Pencoed\tGB\tUnited Kingdom\t51.51996\t-3.49191\tshelved\t40\t\t\t\t\t\t40\t\t\tYes\tEnergion\t\t\tNot planned",
+    "Progress\tGB\tUnited Kingdom\t52.31961\t1.14621\tconstruction\t299\t\t\t\t\t299\t\t\t\tYes\tDrax Group\t2026\t\tNot planned",
+    "Keadby Hydrogen\tGB\tUnited Kingdom\t53.59444\t-0.75044\tpre-construction\t900\t\t\t\t900\t\t\t\t\tYes\tSSE,Equinor\t2030\t\tNot planned",
+    "Bancroft\tGB\tUnited Kingdom\t53.8001\t-2.2175\toperating\t20\t20\t\t\t\t\t\t\t\tYes\tTiger Infrastructure Partners\t2020\t\tNot planned",
+    "Caledon Green\tGB\tUnited Kingdom\t56.01108\t-3.73852\toperating\t22.5\t22.5\t\t\t\t\t\t\t\tYes\tTiger Infrastructure Partners\t2023\t\tNot planned",
+    "Chadderton\tGB\tUnited Kingdom\t53.54201\t-2.13098\toperating\t20\t20\t\t\t\t\t\t\t\tYes\tTiger Infrastructure Partners\t2020\t\tNot planned",
+    "Harelaw\tGB\tUnited Kingdom\t55.89546\t-4.63027\toperating\t20\t20\t\t\t\t\t\t\t\tYes\tTiger Infrastructure Partners\t2021\t\tNot planned",
+    "Hartmoor\tGB\tUnited Kingdom\t54.70266\t-1.29101\toperating\t50\t50\t\t\t\t\t\t\t\tYes\tTiger Infrastructure Partners\t2021\t\tNot planned",
+    "Hillhouse\tGB\tUnited Kingdom\t53.8851\t-2.9986\toperating\t20\t20\t\t\t\t\t\t\t\tYes\tTiger Infrastructure Partners\t2023\t\tNot planned",
+    "Leven\tGB\tUnited Kingdom\t56.1999\t-3.0208\toperating\t20.7\t20.7\t\t\t\t\t\t\t\tYes\tTiger Infrastructure Partners\t2021\t\tNot planned",
+    "Pimbo\tGB\tUnited Kingdom\t53.5299\t-2.7588\toperating\t20.5\t20.5\t\t\t\t\t\t\t\tYes\tTiger Infrastructure Partners\t2019\t\tNot planned",
+    "Erskine\tGB\tUnited Kingdom\t55.90281\t-4.48387\toperating\t20.7\t20.7\t\t\t\t\t\t\t\tYes\tTiger Infrastructure Partners\t2024\t\tNot planned",
+    "Abercorn\tGB\tUnited Kingdom\t55.85799\t-4.4204\toperating\t20.7\t20.7\t\t\t\t\t\t\t\tYes\tTiger Infrastructure Partners\t2024\t\tNot planned",
+    "Drumcross\tGB\tUnited Kingdom\t55.9079\t-3.58781\toperating\t20.7\t20.7\t\t\t\t\t\t\t\tYes\tTiger Infrastructure Partners\t2024\t\tNot planned",
+    "Bracknell peaker\tGB\tUnited Kingdom\t51.41691\t-0.76444\toperating\t20\t20\t\t\t\t\t\t\t\tYes\tPeakGen\t2016\t\tNot planned",
+    "Fareham peaker\tGB\tUnited Kingdom\t50.85811\t-1.24511\toperating\t20\t20\t\t\t\t\t\t\t\tYes\tPeakGen\t2021\t\tNot planned",
+    "Havant peaker\tGB\tUnited Kingdom\t50.847\t-0.9979\toperating\t21\t21\t\t\t\t\t\t\t\tYes\tPeakGen\t\t\tNot planned",
+    "Llandarcy peaker\tGB\tUnited Kingdom\t51.64958\t-3.85432\toperating\t20\t20\t\t\t\t\t\t\t\tYes\tPeakGen\t2021\t\tNot planned",
+    "Southampton peaker\tGB\tUnited Kingdom\t50.90493\t-1.40964\toperating\t24\t24\t\t\t\t\t\t\t\tYes\tPeakGen\t\t\tNot planned",
+    "Exeter peaker\tGB\tUnited Kingdom\t50.69643\t-3.51222\toperating\t20\t20\t\t\t\t\t\t\t\tYes\tPeakGen\t\t\tNot planned",
+    "Barry peaker\tGB\tUnited Kingdom\t51.4111\t-3.22934\toperating\t20\t20\t\t\t\t\t\t\t\tYes\tPeakGen\t\t\tNot planned",
+    "Peterborough peaker\tGB\tUnited Kingdom\t52.5565\t-0.25965\toperating\t20\t20\t\t\t\t\t\t\t\tYes\tPeakGen\t\t\tNot planned",
+    "Chatterley\tGB\tUnited Kingdom\t53.0546\t-2.2255\toperating\t20\t20\t\t\t\t\t\t\t\tYes\tI Squared Capital\t\t\tNot planned",
+    "Derwent\tGB\tUnited Kingdom\t52.90573\t-1.39958\tmothballed\t210\t\t210\t\t\t\t\t\t\tYes\tTrafford Centre\t1995\t\tNot planned",
+    "Maidenhead\tGB\tUnited Kingdom\t51.4818\t-0.7626\tpre-construction\t50\t\t\t\t50\t\t\t\t\tYes\tEQT Infrastructure\t2026\t\tNot planned",
+    "Nazeing\tGB\tUnited Kingdom\t51.7514\t0.0213\tpre-construction\t50\t\t\t\t50\t\t\t\t\tYes\tEQT Infrastructure\t2026\t\tNot planned",
+    "Swansea\tGB\tUnited Kingdom\t51.6446\t-4.0183\toperating\t40\t40\t\t\t\t\t\t\t\tYes\tIMCO\t2017\t\tNot planned",
+    "Water Lane\tGB\tUnited Kingdom\t50.71254\t-3.53131\toperating\t20\t20\t\t\t\t\t\t\t\tYes\tIMCO\t\t\tNot planned",
+    "Mill Hill\tGB\tUnited Kingdom\t54.7625\t-1.3605\tpre-construction\t30\t\t\t\t30\t\t\t\t\tYes\tLandmark Power Holdings\t2025\t\tNot planned",
+    "Net Zero Teesside\tGB\tUnited Kingdom\t54.6212\t-1.11846\tconstruction\t742\t\t\t\t\t742\t\t\t\tYes\tBP,Equinor\t2028\t\tNot planned",
+    "Theddlethorpe Flexible Generation\tGB\tUnited Kingdom\t53.36252\t0.22848\tannounced\t1500\t\t\t1500\t\t\t\t\t\tYes\tEQT Infrastructure\t\t\tNot planned"
+  ].join("\n");
+
+  // Status code -> colour in the brand palette ("Gas plant status").
+  // The legend order and wording come from the "statusLabels" setting.
+  var STATUS_COLORS = {
+    "operating": "gasOperating",
+    "mothballed": "gasMothballed",
+    "announced": "gasAnnounced",
+    "pre-construction": "gasPreConstruction",
+    "construction": "gasConstruction",
+    "shelved": "gasShelved",
+    "cancelled": "gasCancelled",
+    "retired": "gasRetired"
+  };
+  // Popup rows: [label key, column, section]
+  var ROWS = [
+    ["general", null, true],
+    ["status", "status"],
+    ["owner", "Owners"],
+    ["chp", "CHP"],
+    ["firstUnit", "First unit start"],
+    ["retiredIn", "Retired in"],
+    ["plannedRetirement", "Planned retirement"],
+    ["capacity", null, true],
+    ["operating", "Operating (MW)", false, true],
+    ["mothballed", "Mothballed (MW)", false, true],
+    ["announced", "Announced (MW)", false, true],
+    ["preConstruction", "Pre-construction (MW)", false, true],
+    ["construction", "Construction (MW)", false, true],
+    ["shelved", "Shelved (MW)", false, true],
+    ["cancelled", "Cancelled (MW)", false, true],
+    ["retired", "Retired (MW)", false, true]
+  ];
+
+  var state = { plants: [], byId: {}, cats: [], active: null, selected: null, topo: null, geometry: null };
+  var ui = null;
+
+  function norm(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, ""); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function num(v) { var n = parseFloat(String(v == null ? "" : v).replace(/,/g, "")); return isFinite(n) ? n : null; }
+  // "key :: text" lines -> { key: text } (and the list of keys in order)
+  function pairs(text) {
+    var out = { keys: [] };
+    String(text || "").split(/\n/).forEach(function (line) {
+      var m = /^\s*(?:status\s+)?([\w-]+)\s*::\s*(.*?)\s*$/i.exec(line);
+      if (m) { out[m[1]] = m[2]; out.keys.push(m[1]); }
+    });
+    return out;
+  }
+  function categories(S) {
+    var p = pairs(S.statusLabels);
+    return p.keys.filter(function (k) {
+      if (!STATUS_COLORS[k]) console.warn("G3: unknown status code '" + k + "' in the legend wording setting");
+      return STATUS_COLORS[k];
+    }).map(function (k) { return { code: k, label: p[k], color: S[STATUS_COLORS[k]] }; });
+  }
+  function category(v) {
+    var n = norm(v);
+    return state.cats.filter(function (c) { return norm(c.code) === n || norm(c.label) === n; })[0] || null;
+  }
+  // black or white text, whichever reads better on a colour
+  function textOn(hex) {
+    var h = String(hex).replace("#", ""), c = [0, 2, 4].map(function (i) { return parseInt(h.substr(i, 2), 16) / 255; });
+    var l = c.map(function (v) { return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+    return 0.2126 * l[0] + 0.7152 * l[1] + 0.0722 * l[2] > 0.4 ? "#000000" : "#ffffff";
+  }
+
+  function prepare(ctx) {
+    state.cats = categories(ctx.S);
+    state.byId = {};
+    state.plants = ctx.data.map(function (d, i) {
+      var p = { id: "p" + i, name: d.Name, country: d.Country || d.ISO, iso: DV.isoCode(d.ISO), lat: num(d.Lat), lon: num(d.Lon),
+        cap: num(d["Capacity (MW)"]), cat: category(d.Status), row: d };
+      if (!p.cat) console.warn("G3: unknown status '" + d.Status + "' for " + d.Name);
+      if (p.lat == null || p.lon == null) console.warn("G3: no coordinates for " + d.Name);
+      state.byId[p.id] = p;
+      return p;
+    }).filter(function (p) { return p.cat && p.lat != null && p.lon != null; });
+  }
+
+  // Popup / panel content (Flourish-like: coloured header, then a table)
+  function info(S, p) {
+    var L = pairs(S.popupLabels), c = p.cat, h;
+    if (S.popupHeader === "coloured block") {
+      var fg = S.popupHeaderText === "white" ? "#ffffff" : S.popupHeaderText === "black" ? "#000000" : textOn(c.color);
+      h = '<div class="c2-head" style="background:' + c.color + ";color:" + fg + '"><b>' + esc(p.name) + "</b><span>" + esc(p.country) + "</span></div>";
+      if (ui) ui.panel.style.color = fg;
+    } else {
+      if (ui) ui.panel.style.color = "";
+      h = '<div class="c2-head plain"><b><i style="background:' + c.color + '"></i>' + esc(p.name) + "</b><span>" + esc(p.country) + "</span></div>";
+    }
+    var rows = "", pending = null;
+    ROWS.forEach(function (r) {
+      if (r[2]) { pending = '<tr class="sec"><td colspan="2">' + esc(L[r[0]] || "") + "</td></tr>"; return; }
+      var v = r[1] === "status" ? (S.popupStatus ? c.label : "") : p.row[r[1]];
+      if (v == null || String(v).trim() === "") return;
+      if (r[3]) { var n = num(v); v = n == null ? v : DV.fmt(n, "", 0); }
+      if (pending) { rows += pending; pending = null; }
+      rows += "<tr><td>" + esc(L[r[0]] || r[0]) + "</td><td>" + esc(v) + "</td></tr>";
+    });
+    var border = S.popupHeader === "coloured block" ? c.color : "#e3e3e3";
+    return h + '<div class="c2-body" style="border-color:' + border + '"><table>' + rows + "</table></div>";
+  }
+
+  /* No side panel on this map: hovering shows the popup. A plant picked in the search box gets its popup
+   * next to it. Phones and touch screens have no hover, so a tap shows the details below the map instead. */
+  function select(ctx, id, touch) {
+    var S = ctx.S, p = state.byId[id];
+    state.selected = p ? id : null;
+    ui.view.select(state.selected, "bubble");
+    ui.search.set(state.selected);
+    var wasOpen = ui.panelOpen;
+    ui.panelOpen = !!p && (touch || ctx.stacked);
+    if (ui.panelOpen) ui.panelBody.innerHTML = info(S, p);
+    if (ui.panelOpen || wasOpen) ctx.rerender();
+    if (p && !ui.panelOpen && S.tooltipShow) ui.view.tipAt(id, info(S, p));
+  }
+
+  function makeUI(ctx) {
+    var layout = DV.mapLayout(document.getElementById("map"), ctx.root);
+    var view = DV.mapView(layout.stage);
+    var panel = document.createElement("div"); panel.className = "dvm-panel dv-control c2-card";
+    var close = document.createElement("button"); close.className = "dvm-panel-close"; close.type = "button";
+    close.setAttribute("aria-label", "Close"); close.innerHTML = "&times;";
+    var body = document.createElement("div");
+    panel.appendChild(close); panel.appendChild(body);
+    ui = { layout: layout, view: view, panel: panel, panelBody: body, panelOpen: false };
+    view.tip.classList.add("c2-card");
+    close.addEventListener("click", function () { select(ctx, null); });
+
+    view.onHover = function (id, kind) {
+      var p = kind === "bubble" && state.byId[id];
+      return p && ctx.S.tooltipShow ? info(ctx.S, p) : "";
+    };
+    view.onClick = function (id, kind) {
+      var touch = view.lastPointer === "touch" || view.lastPointer === "pen";
+      // with a mouse, a click only highlights (the popup is already showing); a second click clears it
+      select(ctx, kind === "bubble" && id !== state.selected ? id : null, touch);
+    };
+
+    ui.search = DV.mapSearch({
+      items: state.plants.slice().sort(function (a, b) { return a.name.localeCompare(b.name); })
+        .map(function (p) { return { id: p.id, label: p.name + " (" + p.country + ")" }; }),
+      onSelect: function (id) { select(ctx, id); }
+    });
+  }
+
+  function drawBubbles(ctx, w) {
+    var S = ctx.S;
+    var maxCap = Math.max.apply(null, state.plants.map(function (p) { return p.cap || 0; }));
+    var r = DV.bubbleRadius(S, maxCap, w);
+    ui.view.bubbles(state.plants.filter(function (p) { return !state.active || state.active[p.cat.code]; }).map(function (p) {
+      return { id: p.id, lon: p.lon, lat: p.lat, r: r(p.cap), fill: p.cat.color, opacity: S.bubbleOpacity,
+        stroke: S.bubbleStroke, strokeWidth: S.bubbleStrokeWidth };
+    }));
+    return r;
+  }
+
+  DV.create({
+    sheetId: SHEET_ID,
+    sheetTab: SHEET_TAB,
+    fallback: FALLBACK,
+    columns: ["Name", "Lat", "Lon", "Status", "Capacity (MW)"],
+    text: true,
+
+    groups: [
+      { name: "Text", fields: [
+        { key: "title",             type: "text", def: "Europe’s existing and planned gas power plants", help: "Main title (empty = none)" },
+        { key: "footer",            type: "text", def: "Sources: [Beyond Fossil Fuels](https://beyondfossilfuels.org/gas/), [Global Energy Monitor](https://globalenergymonitor.org/) | Plant retirements tracked since Jan 2023 | Last update: July 2026", help: "Footer; [text](https://…) makes a link. Leave empty to hide" },
+        { key: "notes",             type: "textarea", rows: 6, def: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.", help: "Notes under the footer, one paragraph per line; [text](https://…) makes a link" },
+        { key: "notesSize",         type: "range", min: 10, max: 24, step: 0.5, def: 14, help: "Notes text size in px" },
+        { key: "legendTitle",       type: "text", def: "", help: "Legend title (empty = none)" },
+        { key: "statusLabels",      type: "textarea", rows: 7, def: [
+            "operating :: Operating",
+            "mothballed :: Mothballed",
+            "announced :: Announced",
+            "pre-construction :: Pre-construction",
+            "construction :: Construction",
+            "shelved :: Shelved",
+            "cancelled :: Cancelled",
+            "retired :: Retired"
+          ].join("\n"), help: "Legend wording, one line per status: code :: wording. The line order is the legend order" },
+        { key: "popupLabels",       type: "textarea", rows: 16, def: [
+            "general :: General information",
+            "status :: Status:",
+            "owner :: Owners:",
+            "chp :: CHP:",
+            "firstUnit :: Start year first unit:",
+            "retiredIn :: Retired in:",
+            "plannedRetirement :: Planned retirement last unit:",
+            "capacity :: Capacity (MW)",
+            "operating :: - Operating:",
+            "mothballed :: - Mothballed:",
+            "announced :: - Announced:",
+            "preConstruction :: - Pre-construction:",
+            "construction :: - Construction:",
+            "shelved :: - Shelved:",
+            "cancelled :: - Cancelled:",
+            "retired :: - Retired:"
+          ].join("\n"), help: "Popup wording, one line per row: key :: wording (rows with no data are left out)" },
+        { key: "searchPlaceholder", type: "text", def: "Search power plants", help: "Search box placeholder" }
+      ]},
+      { name: "Legend and search", fields: [
+        { key: "legendPos",    type: "select", options: DV.POSITIONS, def: "top-left corner", help: "Legend position (on phones, corners and sides move above the map)" },
+        { key: "legendDir",    type: "select", options: ["vertical", "horizontal"], def: "vertical", help: "Legend direction" },
+        { key: "legendGap",    type: "range", min: 0, max: 40, step: 1, def: 5, help: "Space between legend items in px (between rows when vertical, between items when horizontal)" },
+        { key: "legendFilter", type: "check", def: true, help: "Click a legend item to show only that status" },
+        { key: "searchPos",    type: "select", options: DV.POSITIONS, def: "top-right corner", help: "Plant search position" },
+        { key: "searchWidth",  type: "range", min: 80, max: 400, step: 5, def: 180, help: "Search box width in px" }
+      ]},
+      { name: "Popup", fields: [
+        { key: "tooltipShow",     type: "check", def: true, help: "Show a popup when hovering over a plant (mouse only)" },
+        { key: "tooltipWidth",    type: "range", min: 180, max: 480, step: 5, def: 380, help: "Popup maximum width in px" },
+        { key: "popupHeader",     type: "select", options: ["coloured block", "name with colour dot"], def: "coloured block", help: "Popup header: coloured block (as in Flourish) or the name with a colour dot" },
+        { key: "popupHeaderText", type: "select", options: ["automatic", "white", "black"], def: "automatic", help: "Text colour on the coloured block (automatic: black or white, whichever reads better)" },
+        { key: "popupStatus",     type: "check", def: false, help: "Show the status (legend wording) in the popup (Flourish didn't)" },
+        { key: "popupLines",      type: "color", def: "#e6e6e6", help: "Lines between the popup rows" }
+      ]}
+    ].concat(DV.bubbleGroup(), DV.mapGroups({
+      noDataShow: "BFF countries only", noDataFill: "#e4e5e7", borderWidth: 1.2, smallMode: "as they are",
+      viewWest: -11, viewEast: 44, viewSouth: 33.5, viewNorth: 68
+    })),
+
+    build: function (ctx) {
+      var S = ctx.S;
+      prepare(ctx);
+      if (!ui) makeUI(ctx);
+      var st = ctx.root.style;
+      st.setProperty("--dvm-search-width", S.searchWidth + "px");
+      st.setProperty("--dvm-tip-width", S.tooltipWidth + "px");
+      st.setProperty("--dvm-panel-size", S.tooltipSize + "px");
+      st.setProperty("--c2-line", S.popupLines);
+      document.getElementById("dv-title").style.display = S.title ? "" : "none";
+      document.getElementById("notes").innerHTML = String(S.notes || "").split(/\n/).filter(function (l) { return l.trim(); })
+        .map(function (l) { return "<p>" + DV.linkify(l) + "</p>"; }).join("");
+
+      if (ui.legend) ui.legend.remove();
+      state.active = null;
+      ui.legend = DV.mapLegend({
+        title: S.legendTitle,
+        items: state.cats.map(function (c) { return { key: c.code, label: c.label, color: c.color }; }),
+        onToggle: S.legendFilter ? function (active) { state.active = active; ctx.rerender(); } : null
+      });
+      ui.legend.setLayout(S.legendDir, S.legendGap);
+      ui.search.setPlaceholder(S.searchPlaceholder);
+      if (ui.panelOpen) ui.panelBody.innerHTML = info(S, state.byId[state.selected]);
+
+      if (state.geometry !== S.geometry) {
+        state.geometry = S.geometry;
+        DV.loadGeo(S.geometry).then(function (topo) {
+          if (state.geometry !== S.geometry) return;
+          state.topo = topo;
+          ctx.rerender();
+        }, function (e) { console.warn("G3: map shapes could not be loaded (" + e.message + ")"); });
+      }
+    },
+
+    render: function (ctx) {
+      var S = ctx.S, narrow = ctx.stacked;
+      ctx.root.style.setProperty("--c2-notes-size", ctx.sz(S.notesSize, 12) + "px");
+      if (ui.sizeLegend) { ui.sizeLegend.remove(); ui.sizeLegend = null; }
+      var w0 = ui.layout.stage.clientWidth || ctx.W;
+      var maxCap = Math.max.apply(null, state.plants.map(function (p) { return p.cap || 0; }));
+      var values = String(S.sizeLegendValues || "").split(/[,;\s]+/).map(Number).filter(function (v) { return v > 0; });
+      if (S.sizeLegendPos !== "hidden" && values.length) {
+        ui.sizeLegend = DV.bubbleLegend({ title: S.sizeLegendTitle, values: values, r: DV.bubbleRadius(S, maxCap, w0),
+          fmt: function (v) { return DV.fmt(v, "", 0); } });
+      }
+      var list = [[ui.legend, S.legendPos]];
+      if (ui.sizeLegend) list.push([ui.sizeLegend, S.sizeLegendPos]);
+      list.push([ui.search, S.searchPos], [ui.panel, ui.panelOpen ? "below map" : "hidden", true]);
+      ui.layout.place(list, narrow);
+      if (!state.topo) return;
+
+      var w = ui.layout.stage.clientWidth;
+      var h = Math.round(w * (narrow ? S.mapHeightPhone : S.mapHeight));
+      var view = Object.create(S);
+      if (narrow) view.mapZoom = S.mapZoom * S.mapZoomPhone;
+      ui.view.draw({
+        S: S, width: w, height: h,
+        projection: DV.mapProjection(view, w, h),
+        features: DV.mapShapes(state.topo, S),
+        style: function () { return null; },     // countries are background only (see "Countries without data")
+        label: (S.title || "Gas plant map") + ": gas power plants in Europe by status and capacity"
+      });
+      drawBubbles(ctx, w);
+    }
+  });
+})();
+</script>
+</body>
+</html>

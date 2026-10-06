@@ -695,13 +695,18 @@
       ]}
     ], defs);
   };
-  // Size of a bubble for a value: area in proportion to the value, between S.bubbleMinR and S.bubbleMaxR,
-  // scaled with the map width (the radii are for a 1000 px wide map). maxValue: S.bubbleMaxValue or the data's largest.
+  /* Size of a bubble for a value, scaled with the map width (radii are for a 1000 px wide map);
+   * maxValue: S.bubbleMaxValue or the data's largest. S.bubbleScale:
+   *   "area grows from the smallest size" (default): 0 -> bubbleMinR, max -> bubbleMaxR, the area in between
+   *     grows in step with the value, so every value gets its own size (like Flourish's min/max radius)
+   *   "area proportional to value": area strictly in proportion, bubbleMinR only as a floor for tiny values */
   DV.bubbleRadius = function (S, maxValue, mapWidth) {
     var mv = +S.bubbleMaxValue > 0 ? +S.bubbleMaxValue : maxValue, k = DV.clamp(mapWidth / 1000, 0.55, 1.5);
+    var lo = +S.bubbleMinR, hi = +S.bubbleMaxR, strict = /^area proportional/.test(S.bubbleScale || "");
     return function (v) {
       if (!(v > 0) || !(mv > 0)) return 0;
-      return Math.max(S.bubbleMinR, Math.sqrt(Math.min(v, mv) / mv) * S.bubbleMaxR) * k;
+      var t = Math.min(v, mv) / mv;
+      return (strict ? Math.max(lo, Math.sqrt(t) * hi) : Math.sqrt(lo * lo + (hi * hi - lo * lo) * t)) * k;
     };
   };
   DV.bubbleGroup = function (defs) {
@@ -710,6 +715,7 @@
         { key: "bubbleMinR",        type: "range", min: 0.5, max: 10, step: 0.25, def: 2.5, help: "Smallest bubble radius in px (on a 1000 px wide map)" },
         { key: "bubbleMaxR",        type: "range", min: 3, max: 40, step: 0.5, def: 8, help: "Largest bubble radius in px (on a 1000 px wide map)" },
         { key: "bubbleMaxValue",    type: "range", min: 0, max: 10000, step: 50, def: 0, help: "Value that gets the largest bubble (0 = the largest in the data; fix it so sizes don't change between updates)" },
+        { key: "bubbleScale",       type: "select", options: ["area grows from the smallest size", "area proportional to value"], def: "area grows from the smallest size", help: "Size scale, grows from the smallest size: every value gets its own size; proportional: areas strictly match the values, small ones all get the smallest size" },
         { key: "bubbleOpacity",     type: "range", min: 0.1, max: 1, step: 0.05, def: 1, help: "Bubble fill opacity" },
         { key: "bubbleStroke",      type: "color", def: "#ffffff", help: "Bubble outline colour" },
         { key: "bubbleStrokeWidth", type: "range", min: 0, max: 3, step: 0.05, def: 0.75, help: "Bubble outline width in px" },
