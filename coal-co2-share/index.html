@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relevance of CO2 from coal power relative to all GHG emissions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="../shared/v1/core.css">
+<link rel="stylesheet" href="../shared/v1/charts.css">
+</head>
+<body>
+<div class="dv" id="dv">
+  <h1 class="dv-title" id="dv-title"></h1>
+  <div class="dvc-sub" id="sub"></div>
+  <div class="dvc-grid" id="grid">
+    <div class="dvc-panel" id="p-left"><h2 id="h-left"></h2><svg id="s-left"></svg><div class="dv-tooltip" id="t-left"></div></div>
+    <div class="dvc-panel" id="p-right"><h2 id="h-right"></h2><svg id="s-right"></svg><div class="dv-tooltip" id="t-right"></div></div>
+  </div>
+  <p class="dv-footer" id="dv-footer"></p>
+  <div class="dvc-notes" id="notes"></div>
+</div>
+
+<script src="../shared/brand.js"></script>
+<script>
+// ==== SETTINGS START ====
+/* ================================================================
+ * DESIGN SETTINGS FOR THIS GRAPHIC
+ * Change any value below to restyle this graphic. Colours are hex
+ * codes, sizes are in pixels. Keep the quotes and the comma on each line.
+ * Fonts, text colours and palette colours are shared by all graphics:
+ * they live in shared/brand.js.
+ * Easier: open this page with ?design at the end of its address to
+ * adjust everything with sliders, then download the result.
+ * ================================================================ */
+var SETTINGS = {
+  // ---- Text ----
+  title: "EU+UK: Relevance of CO2 from coal power relative to all GHG emissions", // Main title
+  subtitle: "CO2 emissions from coal power are in rapid decline, both in whole terms and as part of total greenhouse gas emissions.", // Subtitle under the title, one paragraph per line (empty = none)
+  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
+  leftTitle: "Coal power CO2 emissions in relation to {all other GHG emissions} (gigatonnes)", // Heading above the bars; words in {braces} take the colour of all other GHG emissions
+  rightTitle: "Coal power as share of all GHG emissions", // Heading above the area chart
+  coalLabel: "Coal power CO2",                 // Tooltip: coal power
+  otherLabel: "All other GHG emissions",       // Tooltip: all other emissions
+  totalLabel: "Total",                         // Tooltip: total
+  shareLabel: "Coal power share",              // Tooltip: share
+  unitLabel: "Gt",                             // Unit after numbers in the tooltip
+  footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/en/datahub/datahubitem-view/98f04097-26de-4fca-86c4-63834818c0c0), [UK Government](https://www.gov.uk/government/statistics/electricity-chapter-5-digest-of-united-kingdom-energy-statistics-dukes), [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: September 2026", // Footer; links as [text](https://…). Leave empty to hide
+  notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
+
+  // ---- Text sizes ----
+  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  headingSize: 21,                             // Chart heading (subtitle) size in px
+  footerSize: 18,                              // Footer (footnote) text size in px
+  legendSize: 14,                              // Legend text size in px
+  axisSize: 14,                                // Axis label size in px
+  tooltipSize: 14,                             // Tooltip (popup) text size in px
+
+  // ---- Spacing ----
+  padTop: 16,                                  // Space above the graphic in px
+  padSides: 16,                                // Space left and right of the graphic in px
+  padBottom: 12,                               // Space below the graphic in px
+
+  // ---- Background ----
+  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+
+  // ---- Chart style (this graphic) ----
+  barGap: 0.18,                                // Space between bars, as a share of each bar's slot
+  decimals: 3,                                 // Decimals in the tooltip
+  shareOpacity: 0.7,                           // How solid the share area is
+  shareSmooth: true,                           // Smooth line on the share chart
+  shareDots: 3.5,                              // Dot size on the share line in px (0 = none)
+  shareLine: 2.5,                              // Share line thickness in px
+
+  // ---- Layout ----
+  chartHeight: 0.9,                            // Chart height as a share of its width
+  chartGap: 40,                                // Space between the two charts in px
+};
+// ==== SETTINGS END ====
+</script>
+<script src="../shared/v1/core.js"></script>
+<script src="../shared/v1/charts.js"></script>
+<script>
+(function () {
+  /* ------------------------------------------------------------------
+   * C4: CO2 from coal power vs all other greenhouse gas emissions (EU+UK).
+   * Sheet tab "C4": Year, Coal power CO2 emissions, All other GHG emissions (gigatonnes).
+   * The share is worked out here (coal / (coal + other)), so the sheet doesn't need it.
+   * FALLBACK data is shown only if the sheet can't be reached.
+   * ------------------------------------------------------------------ */
+  var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
+  var FALLBACK = [
+    "Year\tCoal power CO2 emissions\tAll other GHG emissions",
+    "2005\t0.885\t3.961",
+    "2006\t0.898\t3.939",
+    "2007\t0.96\t3.866",
+    "2008\t0.878\t3.78",
+    "2009\t0.807\t3.498",
+    "2010\t0.808\t3.595",
+    "2011\t0.828\t3.428",
+    "2012\t0.871\t3.319",
+    "2013\t0.847\t3.255",
+    "2014\t0.782\t3.156",
+    "2015\t0.768\t3.201",
+    "2016\t0.681\t3.271",
+    "2017\t0.66\t3.358",
+    "2018\t0.613\t3.345",
+    "2019\t0.463\t3.322",
+    "2020\t0.367\t3.084",
+    "2021\t0.426\t3.223",
+    "2022\t0.448\t3.098",
+    "2023\t0.323\t2.934",
+    "2024\t0.275\t2.884"
+  ].join("\n");
+  var COAL = "Coal power CO2 emissions", OTHER = "All other GHG emissions";
+
+  DV.create({
+    sheetId: SHEET_ID,
+    sheetTab: "C4",
+    fallback: FALLBACK,
+    columns: [COAL, OTHER],
+
+    groups: [
+      DV.chartTextGroup({
+        title: "EU+UK: Relevance of CO2 from coal power relative to all GHG emissions",
+        subtitle: "CO2 emissions from coal power are in rapid decline, both in whole terms and as part of total greenhouse gas emissions.",
+        footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/en/datahub/datahubitem-view/98f04097-26de-4fca-86c4-63834818c0c0), [UK Government](https://www.gov.uk/government/statistics/electricity-chapter-5-digest-of-united-kingdom-energy-statistics-dukes), [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: September 2026",
+        extra: [
+          { key: "leftTitle",  type: "text", def: "Coal power CO2 emissions in relation to {all other GHG emissions} (gigatonnes)", help: "Heading above the bars; words in {braces} take the colour of all other GHG emissions" },
+          { key: "rightTitle", type: "text", def: "Coal power as share of all GHG emissions", help: "Heading above the area chart" },
+          { key: "coalLabel",  type: "text", def: "Coal power CO2", help: "Tooltip: coal power" },
+          { key: "otherLabel", type: "text", def: "All other GHG emissions", help: "Tooltip: all other emissions" },
+          { key: "totalLabel", type: "text", def: "Total", help: "Tooltip: total" },
+          { key: "shareLabel", type: "text", def: "Coal power share", help: "Tooltip: share" },
+          { key: "unitLabel",  type: "text", def: "Gt", help: "Unit after numbers in the tooltip" }
+        ]
+      }),
+      { name: "Chart style (this graphic)", fields: [
+        { key: "barGap",       type: "range", min: 0, max: 0.6, step: 0.02, def: 0.18, help: "Space between bars, as a share of each bar's slot" },
+        { key: "decimals",     type: "range", min: 0, max: 3, step: 1, def: 3, help: "Decimals in the tooltip" },
+        { key: "shareOpacity", type: "range", min: 0, max: 1, step: 0.05, def: 0.7, help: "How solid the share area is" },
+        { key: "shareSmooth",  type: "check", def: true, help: "Smooth line on the share chart" },
+        { key: "shareDots",    type: "range", min: 0, max: 8, step: 0.5, def: 3.5, help: "Dot size on the share line in px (0 = none)" },
+        { key: "shareLine",    type: "range", min: 0, max: 6, step: 0.5, def: 2.5, help: "Share line thickness in px" }
+      ]},
+      { name: "Layout", fields: [
+        { key: "chartHeight", type: "range", min: 0.4, max: 1.4, step: 0.02, def: 0.9, help: "Chart height as a share of its width" },
+        { key: "chartGap",    type: "range", min: 0, max: 120, step: 2, def: 40, help: "Space between the two charts in px" }
+      ]}
+    ],
+
+    build: function (ctx) {
+      var S = ctx.S;
+      DV.chartText(S);
+      document.getElementById("h-left").innerHTML = DV.colorWords(S.leftTitle, S.otherGhg);
+      document.getElementById("h-right").innerHTML = DV.linkify(S.rightTitle);
+    },
+
+    render: function (ctx) {
+      var S = ctx.S, rows = ctx.data, P = ctx.P;
+      DV.chartSizes(ctx);
+      var grid = document.getElementById("grid");
+      grid.style.setProperty("--dvc-gap-x", S.chartGap + "px");
+      DV.alignHeads([document.getElementById("h-left"), document.getElementById("h-right")], !ctx.stacked);
+      var box = document.getElementById("p-left"), w = box.clientWidth;
+      var h = DV.clamp(w * S.chartHeight, 220, 680);
+      var u = S.unitLabel, dec = S.decimals;
+      var share = rows.map(function (d) { var t = d[COAL] + d[OTHER]; return t ? d[COAL] / t * 100 : 0; });
+      var tip = function (i) {
+        var d = rows[i];
+        return "<b>" + d[P] + "</b>" + DV.tipRow(S.coalPowerCo2, S.coalLabel, DV.fmt(d[COAL], u, dec)) +
+          DV.tipRow(S.otherGhg, S.otherLabel, DV.fmt(d[OTHER], u, dec)) +
+          DV.tipRow("", S.totalLabel, DV.fmt(d[COAL] + d[OTHER], u, dec), "t") +
+          DV.tipRow("", S.shareLabel, DV.fmt(share[i], "", 1) + "%");
+      };
+
+      var ax = DV.niceAxis(DV.stackMax(rows, [{ key: COAL }, { key: OTHER }]), 5);
+      DV.bars({ S: S, svg: document.getElementById("s-left"), tip: document.getElementById("t-left"), width: w, height: h,
+        rows: rows, label: function (d) { return d[P]; }, gap: S.barGap, sep: S.pageBg === "transparent" ? "#fff" : S.pageBg,
+        series: [{ key: OTHER, color: S.otherGhg }, { key: COAL, color: S.coalPowerCo2 }],
+        yMax: ax.max, tickStep: ax.step, fmtY: function (v) { return DV.fmt(v, "", 1); }, tooltip: tip });
+
+      var w2 = document.getElementById("p-right").clientWidth;
+      var ax2 = DV.niceAxis(Math.max.apply(null, share), 4, false);
+      DV.lines({ S: S, svg: document.getElementById("s-right"), tip: document.getElementById("t-right"), width: w2, height: h,
+        xs: rows.map(function (d) { return +d[P]; }), xLabel: function (v) { return String(v); },
+        xTicks: rows.map(function (d) { return +d[P]; }).filter(function (v) { return v % 5 === 0; }),
+        series: [{ key: "share", label: S.shareLabel, color: S.coalPowerCo2, values: share }],
+        area: true, areaOpacity: S.shareOpacity, smooth: S.shareSmooth, lineWidth: S.shareLine, dotSize: S.shareDots,
+        yMax: ax2.max, tickStep: ax2.step, fmtY: function (v) { return DV.fmt(v, "", 0) + "%"; }, tooltip: tip });
+    }
+  });
+})();
+</script>
+</body>
+</html>

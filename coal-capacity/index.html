@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coal power capacity since 2016 and projections up to 2030</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="../shared/v1/core.css">
+<link rel="stylesheet" href="../shared/v1/charts.css">
+<link rel="stylesheet" href="../shared/v1/map.css">
+<style>
+  .countries { display: grid; grid-template-columns: repeat(var(--cc-cols, 3), minmax(0, 1fr)); gap: 12px 18px; }
+  .dv-stacked .countries { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #slider-host { margin: 0 0 12px; }
+</style>
+</head>
+<body>
+<div class="dv" id="dv">
+  <h1 class="dv-title" id="dv-title"></h1>
+  <div class="dvc-sub" id="sub"></div>
+  <p class="dvc-hint dv-control" id="hint"></p>
+  <div id="slider-host"></div>
+  <div class="dvc-grid" id="grid">
+    <div class="dvc-panel" id="p-main"><h2 id="h-main"></h2><div id="legend-main"></div><svg id="s-main"></svg><div class="dv-tooltip" id="t-main"></div></div>
+    <div class="dvc-panel" id="p-countries"><h2 id="h-countries"></h2><div id="legend-countries"></div><div class="countries" id="countries"></div><div class="dv-tooltip" id="t-countries"></div></div>
+  </div>
+  <p class="dv-footer" id="dv-footer"></p>
+  <div class="dvc-notes" id="notes"></div>
+</div>
+
+<script src="../shared/brand.js"></script>
+<script>
+// ==== SETTINGS START ====
+/* ================================================================
+ * DESIGN SETTINGS FOR THIS GRAPHIC
+ * Change any value below to restyle this graphic. Colours are hex
+ * codes, sizes are in pixels. Keep the quotes and the comma on each line.
+ * Fonts, text colours and palette colours are shared by all graphics:
+ * they live in shared/brand.js.
+ * Easier: open this page with ?design at the end of its address to
+ * adjust everything with sliders, then download the result.
+ * ================================================================ */
+var SETTINGS = {
+  // ---- Text ----
+  title: "Coal power capacity: development since 2016 and projections up to 2030", // Main title
+  subtitle: "The rapid decline in capacity shows that coal is on the way out. However, to reach the goal of a complete 2030 coal phase-out in Europe, the positive trend needs to accelerate.", // Subtitle under the title, one paragraph per line (empty = none)
+  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
+  hint: "Move the slider or click play to see how historic and projected capacity has been decreasing between {first} and {last}.", // Line above the slider; {first} and {last} are the first and last projection years
+  mainTitle: "",                               // Heading above the main chart (empty = none)
+  countryTitle: "",                            // Heading above the country charts (empty = none)
+  lHardHist: "Historic hard coal",             // Legend: historic hard coal
+  lHardProj: "Projected hard coal",            // Legend: projected hard coal
+  lLigHist: "Historic lignite",                // Legend: historic lignite
+  lLigProj: "Projected lignite",               // Legend: projected lignite
+  lHist: "Historic",                           // Legend of the country charts: historic
+  lProj: "Projected",                          // Legend of the country charts: projected
+  unitLabel: "GW",                             // Unit after the numbers
+  footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | National coal phase-out commitments are only included if legally binding. | Last update: May 2026", // Footer; links as [text](https://…). Leave empty to hide
+  notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
+
+  // ---- Text sizes ----
+  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  headingSize: 21,                             // Chart heading (subtitle) size in px
+  footerSize: 18,                              // Footer (footnote) text size in px
+  legendSize: 14,                              // Legend text size in px
+  axisSize: 14,                                // Axis label size in px
+  tooltipSize: 14,                             // Tooltip (popup) text size in px
+
+  // ---- Spacing ----
+  padTop: 16,                                  // Space above the graphic in px
+  padSides: 16,                                // Space left and right of the graphic in px
+  padBottom: 12,                               // Space below the graphic in px
+
+  // ---- Background ----
+  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+
+  // ---- Charts ----
+  lastYear: 2030,                              // Last year shown
+  barGap: 0.15,                                // Space between bars, as a share of each bar's slot
+  fixedScale: true,                            // Keep each chart's scale the same for every projection year (so changes are easy to see)
+  countryCols: 3,                              // Country charts per row (2 on phones)
+  smallHeadingSize: 17,                        // Country name size in px
+  smallHeight: 100,                            // Height of each country chart in px
+  smallAxisSize: 12,                           // Axis label size on the country charts in px
+
+  // ---- Layout ----
+  chartHeight: 0.95,                           // Main chart height as a share of its width
+  chartGap: 40,                                // Space between the two halves in px
+
+  // ---- Time slider ----
+  sliderStart: "latest",                       // Date shown when the map opens
+  sliderWidth: 460,                            // Width of the whole slider (button, track and date) in px
+  sliderLabelPos: "right",                     // Date label: right of the track or above it
+  sliderTicks: true,                           // Show a tick for each date with data
+  sliderYears: true,                           // Show the first and last year under the track
+  playStyle: "filled circle",                  // Play button style
+  playSize: 30,                                // Play button size in px
+  sliderThickness: 3,                          // Track thickness in px
+  sliderThumbStyle: "circle",                  // Handle style
+  sliderThumb: 16,                             // Handle size in px
+  sliderColor: "#000000",                      // Button, handle and the track up to the date shown
+  sliderRestColor: "#c8c8c8",                  // Track after the date shown
+  playSpeed: 900,                              // Play: time per date, in milliseconds
+};
+// ==== SETTINGS END ====
+</script>
+<script src="../shared/v1/core.js"></script>
+<script src="../shared/v1/charts.js"></script>
+<script src="../shared/v1/map.js"></script>
+<script>
+(function () {
+  /* ------------------------------------------------------------------
+   * C5: coal power capacity (GW): what has happened since 2016 and what is projected
+   * up to 2030, as seen in each year (the slider).
+   * Sheet tab "C5": Projection year, Year, Hard coal, Lignite, then one column per country
+   * (small charts, in column order). One row per projection year and year.
+   * Years up to the projection year are historic, later years projected.
+   * The time slider comes from map.js (no map is drawn).
+   * ------------------------------------------------------------------ */
+  var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
+  var FALLBACK = [
+    "Projection year\tYear\tHard coal\tLignite\tGermany\tPoland\tTürkiye\tCzech Republic\tItaly\tUnited Kingdom\tSpain\tBulgaria\tRomania\tNetherlands\tOther",
+    "2016\t2016\t119.17\t75.492\t52.635\t28.306\t16.589\t9.673\t9.442\t20.761\t10.687\t4.986\t5.915\t5.153\t30.515",
+    "2016\t2017\t120.811\t76.281\t52.635\t28.356\t18.539\t9.673\t9.442\t19.695\t10.687\t4.986\t5.915\t6.349\t30.815",
+    "2016\t2018\t122.053\t76.281\t52.635\t29.431\t19.859\t9.673\t9.442\t19.695\t10.687\t5.039\t5.915\t5.143\t30.815",
+    "2016\t2019\t122.053\t76.769\t52.635\t29.431\t20.347\t9.673\t9.442\t19.695\t10.687\t5.039\t5.915\t5.143\t30.815",
+    "2016\t2020\t122.053\t77.229\t52.635\t29.891\t20.347\t9.673\t9.442\t19.695\t10.687\t5.039\t5.915\t5.143\t30.815",
+    "2016\t2021\t124.063\t78.047\t53.735\t30.801\t20.505\t10.333\t9.442\t19.695\t10.687\t5.039\t5.915\t5.143\t30.815",
+    "2016\t2022\t124.063\t78.047\t53.735\t30.801\t20.505\t10.333\t9.442\t19.695\t10.687\t5.039\t5.915\t5.143\t30.815",
+    "2016\t2023\t124.063\t78.047\t53.735\t30.801\t20.505\t10.333\t9.442\t19.695\t10.687\t5.039\t5.915\t5.143\t30.815",
+    "2016\t2024\t124.063\t78.047\t53.735\t30.801\t20.505\t10.333\t9.442\t19.695\t10.687\t5.039\t5.915\t5.143\t30.815",
+    "2016\t2025\t124.063\t78.047\t53.735\t30.801\t20.505\t10.333\t9.442\t19.695\t10.687\t5.039\t5.915\t5.143\t30.815",
+    "2016\t2026\t124.063\t78.047\t53.735\t30.801\t20.505\t10.333\t9.442\t19.695\t10.687\t5.039\t5.915\t5.143\t30.815",
+    "2016\t2027\t124.063\t78.047\t53.735\t30.801\t20.505\t10.333\t9.442\t19.695\t10.687\t5.039\t5.915\t5.143\t30.815",
+    "2016\t2028\t124.063\t78.047\t53.735\t30.801\t20.505\t10.333\t9.442\t19.695\t10.687\t5.039\t5.915\t5.143\t30.815",
+    "2016\t2029\t124.063\t78.047\t53.735\t30.801\t20.505\t10.333\t9.442\t19.695\t10.687\t5.039\t5.915\t5.143\t30.815",
+    "2016\t2030\t124.063\t78.047\t53.735\t30.801\t20.505\t10.333\t9.442\t19.695\t10.687\t5.039\t5.915\t5.143\t30.815",
+    "2016\t2031\t124.063\t78.047\t53.735\t30.801\t20.505\t10.333\t9.442\t19.695\t10.687\t5.039\t5.915\t5.143\t30.815",
+    "2017\t2016\t119.17\t75.492\t52.635\t28.306\t16.589\t9.673\t9.442\t20.761\t10.687\t4.986\t5.915\t5.153\t30.515",
+    "2017\t2017\t113.342\t75.456\t51.861\t28.236\t18.539\t9.253\t8.782\t15.444\t10.474\t4.986\t5.915\t6.349\t28.959",
+    "2017\t2018\t113.062\t75.456\t50.339\t29.311\t19.859\t9.253\t8.782\t15.444\t10.474\t5.039\t5.915\t5.143\t28.959",
+    "2017\t2019\t113.062\t75.944\t50.339\t29.311\t20.347\t9.253\t8.782\t15.444\t10.474\t5.039\t5.915\t5.143\t28.959",
+    "2017\t2020\t113.062\t76.404\t50.339\t29.771\t20.347\t9.253\t8.782\t15.444\t10.474\t5.039\t5.915\t5.143\t28.959",
+    "2017\t2021\t115.072\t77.222\t51.439\t30.681\t20.505\t9.913\t8.782\t15.444\t10.474\t5.039\t5.915\t5.143\t28.959",
+    "2017\t2022\t115.072\t76.587\t50.804\t30.681\t20.505\t9.913\t8.782\t15.444\t10.474\t5.039\t5.915\t5.143\t28.959",
+    "2017\t2023\t115.072\t75.417\t49.634\t30.681\t20.505\t9.913\t8.782\t15.444\t10.474\t5.039\t5.915\t5.143\t28.959",
+    "2017\t2024\t115.072\t74.57\t48.787\t30.681\t20.505\t9.913\t8.782\t15.444\t10.474\t5.039\t5.915\t5.143\t28.959",
+    "2017\t2025\t115.072\t74.57\t48.787\t30.681\t20.505\t9.913\t8.782\t15.444\t10.474\t5.039\t5.915\t5.143\t28.959",
+    "2017\t2026\t115.072\t74.57\t48.787\t30.681\t20.505\t9.913\t8.782\t15.444\t10.474\t5.039\t5.915\t5.143\t28.959",
+    "2017\t2027\t115.072\t74.57\t48.787\t30.681\t20.505\t9.913\t8.782\t15.444\t10.474\t5.039\t5.915\t5.143\t28.959",
+    "2017\t2028\t115.072\t74.57\t48.787\t30.681\t20.505\t9.913\t8.782\t15.444\t10.474\t5.039\t5.915\t5.143\t28.959",
+    "2017\t2029\t115.072\t74.57\t48.787\t30.681\t20.505\t9.913\t8.782\t15.444\t10.474\t5.039\t5.915\t5.143\t28.959",
+    "2017\t2030\t115.072\t74.57\t48.787\t30.681\t20.505\t9.913\t8.782\t15.444\t10.474\t5.039\t5.915\t5.143\t28.959",
+    "2017\t2031\t115.072\t74.57\t48.787\t30.681\t20.505\t9.913\t8.782\t15.444\t10.474\t5.039\t5.915\t5.143\t28.959",
+    "2018\t2016\t119.17\t75.492\t52.635\t28.306\t16.589\t9.673\t9.442\t20.761\t10.687\t4.986\t5.915\t5.153\t30.515",
+    "2018\t2017\t113.342\t75.456\t51.861\t28.236\t18.539\t9.253\t8.782\t15.444\t10.474\t4.986\t5.915\t6.349\t28.959",
+    "2018\t2018\t111.118\t75.031\t48.631\t28.931\t20.347\t9.231\t8.627\t15.444\t10.474\t5.039\t5.915\t5.143\t28.367",
+    "2018\t2019\t111.118\t75.031\t48.631\t28.931\t20.347\t9.231\t8.627\t15.444\t10.474\t5.039\t5.915\t5.143\t28.367",
+    "2018\t2020\t110.422\t76.001\t48.499\t29.391\t20.857\t9.231\t8.627\t15.444\t10.474\t5.039\t5.915\t5.143\t27.803",
+    "2018\t2021\t112.045\t76.819\t49.599\t30.301\t21.015\t9.891\t8.627\t15.444\t10.474\t5.039\t5.915\t5.143\t27.416",
+    "2018\t2022\t112.045\t76.184\t48.964\t30.301\t21.015\t9.891\t8.627\t15.444\t10.474\t5.039\t5.915\t5.143\t27.416",
+    "2018\t2023\t112.045\t75.014\t47.794\t30.301\t21.015\t9.891\t8.627\t15.444\t10.474\t5.039\t5.915\t5.143\t27.416",
+    "2018\t2024\t110.581\t74.167\t46.947\t30.301\t21.015\t9.891\t8.627\t15.444\t10.474\t5.039\t5.915\t5.143\t25.952",
+    "2018\t2025\t110.353\t74.167\t46.947\t30.301\t21.015\t9.891\t8.627\t15.444\t10.474\t5.039\t5.915\t5.143\t25.724",
+    "2018\t2026\t110.353\t74.167\t46.947\t30.301\t21.015\t9.891\t8.627\t15.444\t10.474\t5.039\t5.915\t5.143\t25.724",
+    "2018\t2027\t110.353\t74.167\t46.947\t30.301\t21.015\t9.891\t8.627\t15.444\t10.474\t5.039\t5.915\t5.143\t25.724",
+    "2018\t2028\t110.353\t74.167\t46.947\t30.301\t21.015\t9.891\t8.627\t15.444\t10.474\t5.039\t5.915\t5.143\t25.724",
+    "2018\t2029\t110.353\t74.167\t46.947\t30.301\t21.015\t9.891\t8.627\t15.444\t10.474\t5.039\t5.915\t5.143\t25.724",
+    "2018\t2030\t110.353\t74.167\t46.947\t30.301\t21.015\t9.891\t8.627\t15.444\t10.474\t5.039\t5.915\t5.143\t25.724",
+    "2018\t2031\t109.653\t74.167\t46.247\t30.301\t21.015\t9.891\t8.627\t15.444\t10.474\t5.039\t5.915\t5.143\t25.724",
+    "2019\t2016\t119.17\t75.492\t52.635\t28.306\t16.589\t9.673\t9.442\t20.761\t10.687\t4.986\t5.915\t5.153\t30.515",
+    "2019\t2017\t113.342\t75.456\t51.861\t28.236\t18.539\t9.253\t8.782\t15.444\t10.474\t4.986\t5.915\t6.349\t28.959",
+    "2019\t2018\t111.118\t75.031\t48.631\t28.931\t20.347\t9.231\t8.627\t15.444\t10.474\t5.039\t5.915\t5.143\t28.367",
+    "2019\t2019\t106.506\t74.333\t47.164\t28.561\t20.347\t9.231\t8.627\t12.611\t10.109\t5.039\t5.915\t5.143\t28.092",
+    "2019\t2020\t104.735\t75.303\t46.012\t29.021\t20.857\t9.231\t8.627\t12.611\t10.109\t5.039\t5.915\t5.143\t27.473",
+    "2019\t2021\t105.528\t76.079\t47.112\t29.101\t21.015\t9.891\t8.627\t12.611\t10.109\t5.039\t5.915\t5.143\t27.044",
+    "2019\t2022\t105.528\t75.444\t46.477\t29.101\t21.015\t9.891\t8.627\t12.611\t10.109\t5.039\t5.915\t5.143\t27.044",
+    "2019\t2023\t105.052\t74.143\t44.7\t29.101\t21.015\t9.891\t8.627\t12.611\t10.109\t5.039\t5.915\t5.143\t27.044",
+    "2019\t2024\t103.588\t73.296\t43.853\t29.101\t21.015\t9.891\t8.627\t12.611\t10.109\t5.039\t5.915\t5.143\t25.58",
+    "2019\t2025\t103.36\t73.296\t43.853\t29.101\t21.015\t9.891\t8.627\t12.611\t10.109\t5.039\t5.915\t5.143\t25.352",
+    "2019\t2026\t103.36\t73.296\t43.853\t29.101\t21.015\t9.891\t8.627\t12.611\t10.109\t5.039\t5.915\t5.143\t25.352",
+    "2019\t2027\t103.36\t73.296\t43.853\t29.101\t21.015\t9.891\t8.627\t12.611\t10.109\t5.039\t5.915\t5.143\t25.352",
+    "2019\t2028\t103.36\t73.296\t43.853\t29.101\t21.015\t9.891\t8.627\t12.611\t10.109\t5.039\t5.915\t5.143\t25.352",
+    "2019\t2029\t103.36\t73.296\t43.853\t29.101\t21.015\t9.891\t8.627\t12.611\t10.109\t5.039\t5.915\t5.143\t25.352",
+    "2019\t2030\t103.36\t73.296\t43.853\t29.101\t21.015\t9.891\t8.627\t12.611\t10.109\t5.039\t5.915\t5.143\t25.352",
+    "2019\t2031\t101.41\t73.296\t41.903\t29.101\t21.015\t9.891\t8.627\t12.611\t10.109\t5.039\t5.915\t5.143\t25.352",
+    "2020\t2016\t119.17\t75.492\t52.635\t28.306\t16.589\t9.673\t9.442\t20.761\t10.687\t4.986\t5.915\t5.153\t30.515",
+    "2020\t2017\t113.342\t75.456\t51.861\t28.236\t18.539\t9.253\t8.782\t15.444\t10.474\t4.986\t5.915\t6.349\t28.959",
+    "2020\t2018\t111.118\t75.031\t48.631\t28.931\t20.347\t9.231\t8.627\t15.444\t10.474\t5.039\t5.915\t5.143\t28.367",
+    "2020\t2019\t106.506\t74.333\t47.164\t28.561\t20.347\t9.231\t8.627\t12.611\t10.109\t5.039\t5.915\t5.143\t28.092",
+    "2020\t2020\t102.683\t73.503\t46.012\t30.361\t20.857\t9.251\t8.627\t9.894\t9.859\t5.039\t4.955\t4.458\t26.873",
+    "2020\t2021\t99.494\t73.369\t47.112\t30.901\t21.015\t8.909\t8.627\t6.57\t9.859\t5.039\t4.955\t4.458\t25.418",
+    "2020\t2022\t98.846\t71.474\t46.459\t30.901\t21.015\t8.299\t8.627\t6.57\t9.859\t5.039\t4.955\t4.458\t24.138",
+    "2020\t2023\t99.799\t69.313\t44.682\t31.01\t22.335\t8.299\t8.627\t6.57\t9.859\t5.039\t4.955\t4.458\t23.278",
+    "2020\t2024\t95.984\t67.461\t43.835\t30.878\t22.335\t8.299\t8.627\t6.57\t9.859\t5.039\t4.955\t4.458\t18.59",
+    "2020\t2025\t95.104\t67.461\t43.835\t30.878\t22.335\t8.299\t8.627\t6.57\t9.859\t5.039\t4.955\t3.806\t18.362",
+    "2020\t2026\t94.844\t67.461\t43.835\t30.878\t22.335\t8.299\t8.627\t6.57\t9.599\t5.039\t4.955\t3.806\t18.362",
+    "2020\t2027\t94.844\t67.461\t43.835\t30.878\t22.335\t8.299\t8.627\t6.57\t9.599\t5.039\t4.955\t3.806\t18.362",
+    "2020\t2028\t94.844\t67.461\t43.835\t30.878\t22.335\t8.299\t8.627\t6.57\t9.599\t5.039\t4.955\t3.806\t18.362",
+    "2020\t2029\t94.844\t66.801\t43.835\t30.878\t22.335\t8.299\t8.627\t6.57\t9.599\t5.039\t4.955\t3.806\t17.702",
+    "2020\t2030\t89.747\t66.801\t43.835\t30.878\t22.335\t8.299\t8.627\t6.57\t9.599\t5.039\t4.955\t0\t16.411",
+    "2020\t2031\t87.712\t66.801\t41.885\t30.878\t22.335\t8.214\t8.627\t6.57\t9.599\t5.039\t4.955\t0\t16.411",
+    "2021\t2016\t119.17\t75.492\t52.635\t28.306\t16.589\t9.673\t9.442\t20.761\t10.687\t4.986\t5.915\t5.153\t30.515",
+    "2021\t2017\t113.342\t75.456\t51.861\t28.236\t18.539\t9.253\t8.782\t15.444\t10.474\t4.986\t5.915\t6.349\t28.959",
+    "2021\t2018\t111.118\t75.031\t48.631\t28.931\t20.347\t9.231\t8.627\t15.444\t10.474\t5.039\t5.915\t5.143\t28.367",
+    "2021\t2019\t106.506\t74.333\t47.164\t28.561\t20.347\t9.231\t8.627\t12.611\t10.109\t5.039\t5.915\t5.143\t28.092",
+    "2021\t2020\t102.683\t73.503\t46.012\t30.361\t20.857\t9.251\t8.627\t9.894\t9.859\t5.039\t4.955\t4.458\t26.873",
+    "2021\t2021\t94.153\t69.826\t46.774\t30.243\t20.689\t8.289\t7.892\t6.328\t5.1\t5.039\t4.955\t4.458\t24.212",
+    "2021\t2022\t86.064\t67.326\t40.172\t30.253\t20.689\t7.624\t7.892\t6.328\t5.1\t5.039\t4.955\t4.458\t20.88",
+    "2021\t2023\t83.324\t63.359\t36.46\t29.834\t22.009\t7.624\t7.892\t4.926\t5.1\t5.039\t4.955\t4.458\t18.386",
+    "2021\t2024\t81.302\t61.307\t35.613\t28.26\t22.009\t7.624\t7.892\t4.926\t5.1\t5.039\t4.955\t4.458\t16.733",
+    "2021\t2025\t80.422\t60.567\t35.273\t27.86\t22.009\t7.624\t7.892\t4.926\t5.1\t5.039\t4.955\t3.806\t16.505",
+    "2021\t2026\t80.162\t60.529\t35.235\t27.86\t22.009\t7.624\t7.892\t4.926\t4.84\t5.039\t4.955\t3.806\t16.505",
+    "2021\t2027\t80.018\t60.529\t35.091\t27.86\t22.009\t7.624\t7.892\t4.926\t4.84\t5.039\t4.955\t3.806\t16.505",
+    "2021\t2028\t80.018\t60.529\t35.091\t27.86\t22.009\t7.624\t7.892\t4.926\t4.84\t5.039\t4.955\t3.806\t16.505",
+    "2021\t2029\t80.018\t57.099\t32.321\t27.86\t22.009\t7.624\t7.892\t4.926\t4.84\t5.039\t4.955\t3.806\t15.845",
+    "2021\t2030\t74.921\t54.313\t30.009\t27.386\t22.009\t7.624\t7.892\t4.926\t4.84\t5.039\t4.955\t0\t14.554",
+    "2021\t2031\t59.236\t53.831\t15.343\t26.938\t22.009\t7.539\t7.892\t4.36\t4.482\t5.039\t4.955\t0\t14.51",
+    "2022\t2016\t119.138\t75.849\t52.635\t28.306\t16.589\t9.944\t9.442\t20.761\t10.741\t4.986\t5.915\t5.153\t30.515",
+    "2022\t2017\t113.31\t75.813\t51.861\t28.236\t18.539\t9.524\t8.782\t15.444\t10.528\t4.986\t5.915\t6.349\t28.959",
+    "2022\t2018\t111.086\t75.388\t48.631\t28.931\t20.347\t9.502\t8.627\t15.444\t10.528\t5.039\t5.915\t5.143\t28.367",
+    "2022\t2019\t106.474\t74.69\t47.164\t28.561\t20.347\t9.502\t8.627\t12.611\t10.163\t5.039\t5.915\t5.143\t28.092",
+    "2022\t2020\t102.651\t73.97\t46.012\t30.361\t20.857\t9.632\t8.627\t9.894\t9.913\t5.039\t4.955\t4.458\t26.873",
+    "2022\t2021\t93.87\t70.293\t46.774\t29.992\t20.689\t8.67\t7.892\t6.328\t5.154\t5.039\t4.955\t4.458\t24.212",
+    "2022\t2022\t82.721\t67.826\t39.471\t30.002\t20.744\t8.324\t6.956\t6.328\t3.406\t5.039\t4.955\t4.458\t20.864",
+    "2022\t2023\t74.2\t63.694\t32.84\t29.583\t22.064\t7.559\t6.956\t2.738\t3.406\t5.039\t4.955\t4.458\t18.296",
+    "2022\t2024\t71.648\t61.475\t31.273\t28.26\t22.064\t7.559\t6.956\t2.738\t3.406\t5.039\t4.955\t4.458\t16.415",
+    "2022\t2025\t70.669\t60.735\t30.783\t27.86\t22.064\t7.559\t6.956\t2.738\t3.406\t5.039\t4.955\t3.806\t16.238",
+    "2022\t2026\t68.819\t59.153\t30.745\t26.27\t22.064\t7.559\t6.956\t2.738\t3.146\t5.039\t4.955\t3.806\t14.694",
+    "2022\t2027\t68.47\t59.043\t30.451\t26.27\t22.064\t7.394\t6.956\t2.738\t3.146\t5.039\t4.955\t3.806\t14.694",
+    "2022\t2028\t67.564\t58.698\t30.451\t25.364\t22.064\t7.394\t6.956\t2.738\t3.146\t5.039\t4.955\t3.806\t14.349",
+    "2022\t2029\t67.153\t55.928\t27.681\t25.364\t22.064\t7.394\t6.956\t2.738\t3.146\t5.039\t4.955\t3.806\t13.938",
+    "2022\t2030\t61.723\t53.142\t24.769\t24.89\t22.064\t7.394\t6.956\t2.738\t3.146\t5.039\t4.955\t0\t12.914",
+    "2022\t2031\t48.991\t52.469\t15.257\t24.084\t22.064\t7.309\t4.976\t2.172\t2.734\t5.039\t4.955\t0\t12.87",
+    "2023\t2016\t119.033\t75.578\t52.635\t28.201\t16.589\t9.673\t9.442\t20.761\t10.741\t4.986\t5.915\t5.153\t30.515",
+    "2023\t2017\t113.205\t75.542\t51.861\t28.131\t18.539\t9.253\t8.782\t15.444\t10.528\t4.986\t5.915\t6.349\t28.959",
+    "2023\t2018\t110.981\t75.117\t48.631\t28.826\t20.347\t9.231\t8.627\t15.444\t10.528\t5.039\t5.915\t5.143\t28.367",
+    "2023\t2019\t106.369\t74.419\t47.164\t28.456\t20.347\t9.231\t8.627\t12.611\t10.163\t5.039\t5.915\t5.143\t28.092",
+    "2023\t2020\t102.546\t73.589\t46.012\t30.256\t20.857\t9.251\t8.627\t9.894\t9.913\t5.039\t4.955\t4.458\t26.873",
+    "2023\t2021\t93.765\t69.912\t46.774\t29.887\t20.689\t8.289\t7.892\t6.328\t5.154\t5.039\t4.955\t4.458\t24.212",
+    "2023\t2022\t82.616\t67.445\t39.471\t29.897\t20.744\t7.943\t6.956\t6.328\t3.406\t5.039\t4.955\t4.458\t20.864",
+    "2023\t2023\t81.735\t65.742\t39.669\t28.698\t21.851\t7.943\t6.806\t5.234\t2.904\t5.039\t4.31\t4.458\t20.565",
+    "2023\t2024\t76.623\t65.267\t38.795\t28.025\t22.009\t7.943\t6.806\t2.738\t2.904\t5.039\t3.65\t4.458\t19.523",
+    "2023\t2025\t68.258\t61.173\t29.257\t27.625\t22.009\t7.943\t6.806\t2.195\t2.904\t5.039\t3.65\t3.806\t18.197",
+    "2023\t2026\t63.892\t58.026\t28.745\t25.973\t22.009\t7.943\t4.826\t2.195\t2.644\t5.039\t3.65\t3.806\t15.088",
+    "2023\t2027\t63.543\t57.916\t28.451\t25.973\t22.009\t7.778\t4.826\t2.195\t2.644\t5.039\t3.65\t3.806\t15.088",
+    "2023\t2028\t62.637\t57.571\t28.451\t25.067\t22.009\t7.778\t4.826\t2.195\t2.644\t5.039\t3.65\t3.806\t14.743",
+    "2023\t2029\t62.226\t54.141\t25.681\t25.067\t22.009\t7.778\t4.826\t2.195\t2.644\t5.039\t3.65\t3.806\t13.672",
+    "2023\t2030\t56.796\t51.355\t22.769\t24.593\t22.009\t7.778\t4.826\t2.195\t2.644\t5.039\t3.65\t0\t12.648",
+    "2023\t2031\t47.275\t50.682\t15.257\t23.849\t22.009\t7.093\t4.826\t1.629\t2.001\t5.039\t3.65\t0\t12.604",
+    "2024\t2016\t119.09\t75.578\t52.635\t28.201\t16.589\t9.673\t9.442\t20.761\t10.741\t4.986\t5.915\t5.153\t30.572",
+    "2024\t2017\t113.262\t75.542\t51.861\t28.131\t18.539\t9.253\t8.782\t15.444\t10.528\t4.986\t5.915\t6.349\t29.016",
+    "2024\t2018\t111.038\t75.117\t48.631\t28.826\t20.347\t9.231\t8.627\t15.444\t10.528\t5.039\t5.915\t5.143\t28.424",
+    "2024\t2019\t106.426\t74.419\t47.164\t28.456\t20.347\t9.231\t8.627\t12.611\t10.163\t5.039\t5.915\t5.143\t28.149",
+    "2024\t2020\t102.603\t73.589\t46.012\t30.256\t20.857\t9.251\t8.627\t9.894\t9.913\t5.039\t4.955\t4.458\t26.93",
+    "2024\t2021\t93.822\t69.912\t46.774\t29.887\t20.689\t8.289\t7.892\t6.328\t5.154\t5.039\t4.955\t4.458\t24.269",
+    "2024\t2022\t82.673\t67.445\t39.471\t29.897\t20.744\t7.943\t6.956\t6.328\t3.406\t5.039\t4.955\t4.458\t20.921",
+    "2024\t2023\t81.792\t65.742\t39.669\t28.698\t21.851\t7.943\t6.806\t5.234\t2.904\t5.039\t4.31\t4.458\t20.622",
+    "2024\t2024\t76.03\t65.762\t39.669\t28.248\t21.906\t7.943\t6.166\t2.172\t2.904\t5.039\t2.905\t4.458\t20.382",
+    "2024\t2025\t66.098\t60.781\t32.349\t27.396\t21.906\t7.882\t5.19\t0\t2.115\t5.039\t2.905\t3.806\t18.291",
+    "2024\t2026\t54.483\t58.292\t32.253\t24.726\t22.064\t7.265\t0.67\t0\t0\t5.039\t1.6\t3.806\t15.352",
+    "2024\t2027\t51.02\t55.905\t29.711\t23.822\t22.064\t6.335\t0.67\t0\t0\t5.039\t1.6\t3.806\t13.878",
+    "2024\t2028\t48.383\t54.606\t29.211\t22.332\t22.064\t6.265\t0.67\t0\t0\t5.039\t1.6\t3.806\t12.002",
+    "2024\t2029\t47.211\t51.836\t26.441\t22.026\t22.064\t6.16\t0.32\t0\t0\t5.039\t1.6\t3.806\t11.591",
+    "2024\t2030\t42.555\t49.194\t23.529\t22.026\t22.064\t6.16\t0.32\t0\t0\t5.039\t1.27\t0\t11.341",
+    "2024\t2031\t39.559\t47.901\t20.975\t21.064\t22.064\t6.047\t0.32\t0\t0\t5.039\t0.61\t0\t11.341",
+    "2025\t2016\t119.081\t75.578\t52.635\t28.192\t16.589\t9.673\t9.442\t20.761\t10.741\t4.986\t5.915\t5.153\t30.572",
+    "2025\t2017\t113.253\t75.542\t51.861\t28.122\t18.539\t9.253\t8.782\t15.444\t10.528\t4.986\t5.915\t6.349\t29.016",
+    "2025\t2018\t111.029\t75.117\t48.631\t28.817\t20.347\t9.231\t8.627\t15.444\t10.528\t5.039\t5.915\t5.143\t28.424",
+    "2025\t2019\t106.502\t74.419\t47.164\t28.532\t20.347\t9.231\t8.627\t12.611\t10.163\t5.039\t5.915\t5.143\t28.149",
+    "2025\t2020\t102.679\t73.589\t46.012\t30.332\t20.857\t9.251\t8.627\t9.894\t9.913\t5.039\t4.955\t4.458\t26.93",
+    "2025\t2021\t93.898\t69.912\t46.774\t29.963\t20.689\t8.289\t7.892\t6.328\t5.154\t5.039\t4.955\t4.458\t24.269",
+    "2025\t2022\t82.749\t67.445\t39.471\t29.973\t20.744\t7.943\t6.956\t6.328\t3.406\t5.039\t4.955\t4.458\t20.921",
+    "2025\t2023\t81.836\t65.742\t39.669\t28.742\t21.851\t7.943\t6.806\t5.234\t2.904\t5.039\t4.31\t4.458\t20.622",
+    "2025\t2024\t76.074\t65.762\t39.669\t28.292\t21.906\t7.943\t6.166\t2.172\t2.904\t5.039\t2.905\t4.458\t20.382",
+    "2025\t2025\t66.142\t60.781\t32.349\t27.44\t21.906\t7.882\t5.19\t0\t2.115\t5.039\t2.905\t3.806\t18.291",
+    "2025\t2026\t62.629\t59.789\t31.981\t26.985\t21.906\t7.265\t5.19\t0\t1.559\t5.039\t2.2\t3.806\t16.487",
+    "2025\t2027\t54.948\t56.955\t31.185\t25.726\t22.064\t7.155\t0.67\t0\t0.61\t5.039\t1.77\t3.806\t13.878",
+    "2025\t2028\t52.457\t55.72\t31.185\t25.142\t22.064\t6.265\t0.67\t0\t0.61\t5.039\t1.77\t3.806\t11.626",
+    "2025\t2029\t47.264\t52.95\t26.193\t23.037\t22.064\t6.16\t0.32\t0\t0.61\t5.039\t1.77\t3.806\t11.215",
+    "2025\t2030\t41.834\t48.764\t23.281\t22.613\t22.064\t6.16\t0.32\t0\t0.26\t5.039\t0.78\t0\t10.081",
+    "2025\t2031\t38.187\t47.201\t20.999\t20.988\t22.064\t5.447\t0.32\t0\t0\t5.039\t0.45\t0\t10.081"
+  ].join("\n");
+  var VY = "Projection year", HARD = "Hard coal", LIG = "Lignite";
+  var vintages = [], current = -1, countries = [], slider = null;
+
+  var sliderFields = DV.sliderGroup({ sliderStart: "latest", sliderWidth: 460 });
+  sliderFields[0].fields = sliderFields[0].fields.filter(function (f) { return f.key !== "sliderPos"; });
+
+  DV.create({
+    sheetId: SHEET_ID,
+    sheetTab: "C5",
+    fallback: FALLBACK,
+    columns: ["Year", HARD, LIG],
+
+    groups: [
+      DV.chartTextGroup({
+        title: "Coal power capacity: development since 2016 and projections up to 2030",
+        subtitle: "The rapid decline in capacity shows that coal is on the way out. However, to reach the goal of a complete 2030 coal phase-out in Europe, the positive trend needs to accelerate.",
+        footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | National coal phase-out commitments are only included if legally binding. | Last update: May 2026",
+        extra: [
+          { key: "hint",        type: "text", def: "Move the slider or click play to see how historic and projected capacity has been decreasing between {first} and {last}.", help: "Line above the slider; {first} and {last} are the first and last projection years" },
+          { key: "mainTitle",   type: "text", def: "", help: "Heading above the main chart (empty = none)" },
+          { key: "countryTitle", type: "text", def: "", help: "Heading above the country charts (empty = none)" },
+          { key: "lHardHist",   type: "text", def: "Historic hard coal", help: "Legend: historic hard coal" },
+          { key: "lHardProj",   type: "text", def: "Projected hard coal", help: "Legend: projected hard coal" },
+          { key: "lLigHist",    type: "text", def: "Historic lignite", help: "Legend: historic lignite" },
+          { key: "lLigProj",    type: "text", def: "Projected lignite", help: "Legend: projected lignite" },
+          { key: "lHist",       type: "text", def: "Historic", help: "Legend of the country charts: historic" },
+          { key: "lProj",       type: "text", def: "Projected", help: "Legend of the country charts: projected" },
+          { key: "unitLabel",   type: "text", def: "GW", help: "Unit after the numbers" }
+        ]
+      }),
+      { name: "Charts", fields: [
+        { key: "lastYear",      type: "range", min: 2025, max: 2040, step: 1, def: 2030, help: "Last year shown" },
+        { key: "barGap",        type: "range", min: 0, max: 0.6, step: 0.02, def: 0.15, help: "Space between bars, as a share of each bar's slot" },
+        { key: "fixedScale",    type: "check", def: true, help: "Keep each chart's scale the same for every projection year (so changes are easy to see)" },
+        { key: "countryCols",   type: "range", min: 1, max: 4, step: 1, def: 3, help: "Country charts per row (2 on phones)" },
+        { key: "smallHeadingSize", type: "range", min: 10, max: 28, step: 0.5, def: 17, help: "Country name size in px" },
+        { key: "smallHeight",   type: "range", min: 60, max: 240, step: 5, def: 100, help: "Height of each country chart in px" },
+        { key: "smallAxisSize", type: "range", min: 8, max: 18, step: 0.5, def: 12, help: "Axis label size on the country charts in px" }
+      ]},
+      { name: "Layout", fields: [
+        { key: "chartHeight", type: "range", min: 0.4, max: 1.6, step: 0.02, def: 0.95, help: "Main chart height as a share of its width" },
+        { key: "chartGap",    type: "range", min: 0, max: 100, step: 2, def: 40, help: "Space between the two halves in px" }
+      ]}
+    ].concat(sliderFields),
+
+    build: function (ctx) {
+      var S = ctx.S;
+      DV.chartText(S);
+      var seen = {};
+      vintages = [];
+      ctx.data.forEach(function (d) { if (!seen[d[VY]]) { seen[d[VY]] = true; vintages.push(d[VY]); } });
+      countries = ctx.headers.filter(function (h, i) { return i > 0 && h && [VY, "Year", HARD, LIG].indexOf(h) < 0; });
+      if (current < 0 || current >= vintages.length) current = S.sliderStart === "earliest" ? 0 : vintages.length - 1;
+      document.getElementById("hint").textContent = S.hint.replace(/\{first\}/g, vintages[0]).replace(/\{last\}/g, vintages[vintages.length - 1]);
+      document.getElementById("h-main").textContent = S.mainTitle;
+      document.getElementById("h-countries").textContent = S.countryTitle;
+      ["h-main", "h-countries"].forEach(function (id) { document.getElementById(id).style.display = S[id === "h-main" ? "mainTitle" : "countryTitle"] ? "" : "none"; });
+
+      var lm = document.getElementById("legend-main"); DV.clear(lm);
+      lm.appendChild(DV.chartLegend({ shape: "square", items: [
+        { key: "hh", label: S.lHardHist, color: S.hardCoalHistoric }, { key: "hp", label: S.lHardProj, color: S.hardCoalProjected },
+        { key: "lh", label: S.lLigHist, color: S.ligniteHistoric }, { key: "lp", label: S.lLigProj, color: S.ligniteProjected }] }));
+      lm.firstChild.classList.add("dvc-left");
+      var lc = document.getElementById("legend-countries"); DV.clear(lc);
+      lc.appendChild(DV.chartLegend({ shape: "square", items: [
+        { key: "h", label: S.lHist, color: S.capacityHistoric }, { key: "p", label: S.lProj, color: S.capacityProjected }] }));
+      lc.firstChild.classList.add("dvc-left");
+
+      var host = document.getElementById("slider-host"); DV.clear(host);
+      slider = DV.timeSlider({ dates: vintages.map(function (v) { return { label: String(v), t: +v }; }), index: current,
+        onChange: function (i) { current = i; ctx.rerender(); } });
+      slider.setStyle(S);
+      host.appendChild(slider);
+
+      var box = document.getElementById("countries"); DV.clear(box);
+      box.style.setProperty("--cc-cols", S.countryCols);
+      countries = countries.map(function (c) {
+        var d = document.createElement("div"); d.className = "dvc-panel";
+        var h = document.createElement("h3"); h.textContent = c; d.appendChild(h);
+        var svg = DV.el("svg", {}, d);
+        box.appendChild(d);
+        return { name: c, svg: svg };
+      });
+    },
+
+    render: function (ctx) {
+      var S = ctx.S, un = S.unitLabel;
+      DV.chartSizes(ctx);
+      var grid = document.getElementById("grid");
+      grid.style.setProperty("--dvc-gap-x", S.chartGap + "px");
+      var v = vintages[current];
+      var all = ctx.data.filter(function (d) { return +d.Year <= S.lastYear; });
+      var rows = all.filter(function (d) { return d[VY] === v; }).map(function (d) {
+        var hist = +d.Year <= +v, r = { Year: d.Year, hist: hist, src: d };
+        r.hh = hist ? d[HARD] : 0; r.lh = hist ? d[LIG] : 0; r.hp = hist ? 0 : d[HARD]; r.lp = hist ? 0 : d[LIG];
+        return r;
+      });
+      var fmt = function (x) { return DV.fmt(x, un, 1); };
+      var scaleRows = S.fixedScale ? all : rows.map(function (r) { return r.src; });
+      var ax = DV.niceAxis(Math.max.apply(null, scaleRows.map(function (d) { return d[HARD] + d[LIG]; })), 5);
+      var w = document.getElementById("p-main").clientWidth;
+      var h = DV.clamp(w * S.chartHeight, 240, 640);
+      var tipMain = function (i) {
+        var r = rows[i], d = r.src, tag = r.hist ? S.lHist : S.lProj;
+        return "<b>" + d.Year + " (" + tag.toLowerCase() + ")</b>" +
+          DV.tipRow(r.hist ? S.hardCoalHistoric : S.hardCoalProjected, HARD, fmt(d[HARD])) +
+          DV.tipRow(r.hist ? S.ligniteHistoric : S.ligniteProjected, LIG, fmt(d[LIG])) +
+          DV.tipRow("", "Total", fmt(d[HARD] + d[LIG]), "t");
+      };
+      DV.bars({ S: S, svg: document.getElementById("s-main"), tip: document.getElementById("t-main"), width: w, height: h, rows: rows,
+        label: function (d) { return d.Year; }, gap: S.barGap, sep: S.pageBg === "transparent" ? "#fff" : S.pageBg,
+        series: [{ key: "hh", color: S.hardCoalHistoric }, { key: "hp", color: S.hardCoalProjected },
+          { key: "lh", color: S.ligniteHistoric }, { key: "lp", color: S.ligniteProjected }],
+        yMax: ax.max, tickStep: ax.step, fmtY: function (x) { return DV.fmt(x, un, 0); }, tooltip: tipMain });
+
+      var cbox = document.getElementById("countries");
+      cbox.style.setProperty("--cc-cols", cbox.clientWidth < 420 ? Math.min(2, S.countryCols) : S.countryCols);
+      var tip = document.getElementById("t-countries");
+      countries.forEach(function (c) {
+        var cw = c.svg.parentNode.clientWidth, n = c.name;
+        var cr = rows.map(function (r) { return { Year: r.Year, h: r.hist ? r.src[n] : 0, p: r.hist ? 0 : r.src[n], v: r.src[n], hist: r.hist }; });
+        var src = S.fixedScale ? all : rows.map(function (r) { return r.src; });
+        var a = DV.niceAxis(Math.max.apply(null, src.map(function (d) { return d[n]; })) || 1, 2);
+        var last = cr.length - 1, mid = Math.round(last / 2);
+        DV.bars({ S: S, svg: c.svg, tip: tip, width: cw, height: S.smallHeight, rows: cr, fs: S.smallAxisSize, top: 4,
+          label: function (d) { return d.Year; }, xLabelAt: function (i) { return i === 0 || i === last || (i === mid && cw > 150); },
+          gap: 0.18, series: [{ key: "h", color: S.capacityHistoric }, { key: "p", color: S.capacityProjected }],
+          yMax: a.max, tickStep: a.step, fmtY: function (x) { return DV.fmt(x, un, 0); },
+          tooltip: function (i) {
+            var d = cr[i];
+            return "<b>" + n + ", " + d.Year + "</b>" + DV.tipRow(d.hist ? S.capacityHistoric : S.capacityProjected, d.hist ? S.lHist : S.lProj, fmt(d.v));
+          } });
+      });
+    }
+  });
+})();
+</script>
+</body>
+</html>

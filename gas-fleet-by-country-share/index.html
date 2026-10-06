@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Europe's existing fleet and new plant projects capacity (%)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="../shared/v1/core.css">
+<link rel="stylesheet" href="../shared/v1/charts.css">
+</head>
+<body>
+<div class="dv" id="dv">
+  <h1 class="dv-title" id="dv-title"></h1>
+  <div class="dvc-sub" id="sub"></div>
+  <div id="legend"></div>
+  <div class="dvc-grid" id="grid">
+    <div class="dvc-panel" id="p-existing"><h2 id="h-existing"></h2><svg id="s-existing"></svg><div class="dv-tooltip" id="t-existing"></div></div>
+    <div class="dvc-panel" id="p-new"><h2 id="h-new"></h2><svg id="s-new"></svg><div class="dv-tooltip" id="t-new"></div></div>
+  </div>
+  <p class="dv-footer" id="dv-footer"></p>
+  <div class="dvc-notes" id="notes"></div>
+</div>
+
+<script src="../shared/brand.js"></script>
+<script>
+// ==== SETTINGS START ====
+/* ================================================================
+ * DESIGN SETTINGS FOR THIS GRAPHIC
+ * Change any value below to restyle this graphic. Colours are hex
+ * codes, sizes are in pixels. Keep the quotes and the comma on each line.
+ * Fonts, text colours and palette colours are shared by all graphics:
+ * they live in shared/brand.js.
+ * Easier: open this page with ?design at the end of its address to
+ * adjust everything with sliders, then download the result.
+ * ================================================================ */
+var SETTINGS = {
+  // ---- Text ----
+  title: "Europe’s existing fleet and new plant projects capacity (%)", // Main title
+  subtitle: "Toggle individual statuses on/off by clicking the legend, and hover over bars to see capacity values.", // Subtitle under the title, one paragraph per line (empty = none)
+  subtitleSize: 17,                            // Subtitle size in px (shrinks on small screens)
+  pExisting: "Existing fleet",                 // Left panel heading
+  pNew: "New plant projects",                  // Right panel heading
+  unitLabel: "MW",                             // Unit in the tooltip
+  totalLabel: "Total",                         // Tooltip: total
+  footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Plant retirements tracked since Jan 2023 | Last update: July 2026", // Footer; links as [text](https://…). Leave empty to hide
+  notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.", // Notes under the footer, one paragraph per line; links as [text](https://…)
+
+  // ---- Text sizes ----
+  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  headingSize: 21,                             // Chart heading (subtitle) size in px
+  footerSize: 18,                              // Footer (footnote) text size in px
+  legendSize: 14,                              // Legend text size in px
+  axisSize: 14,                                // Axis label size in px
+  tooltipSize: 14,                             // Tooltip (popup) text size in px
+
+  // ---- Spacing ----
+  padTop: 16,                                  // Space above the graphic in px
+  padSides: 16,                                // Space left and right of the graphic in px
+  padBottom: 12,                               // Space below the graphic in px
+
+  // ---- Background ----
+  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+
+  // ---- Bars ----
+  legendToggle: true,                          // Clicking a legend item hides or shows that status (shares are recalculated)
+  legendPos: "center",                         // Legend alignment
+  rowHeight: 27,                               // Height of each country's row in px
+  barGap: 0.12,                                // Space between bars, as a share of the row
+  labelSize: 15,                               // Country name size in px
+  labelWeight: 700,                            // Country name boldness
+  insideLabels: true,                          // Write the share inside segments wide enough for it
+  insideSize: 12.5,                            // Size of the shares inside segments in px
+  panelBg: "#f8f8f8",                          // Panel background
+
+  // ---- Layout ----
+  panelGap: 32,                                // Space between the two panels in px
+};
+// ==== SETTINGS END ====
+</script>
+<script src="../shared/v1/core.js"></script>
+<script src="../shared/v1/charts.js"></script>
+<script>
+(function () {
+  /* ------------------------------------------------------------------
+   * G6: share of each country's gas capacity by status (%), existing fleet vs new projects.
+   * Reads the same sheet tab as G5 ("G5+G6": Country, then each status "(MW)").
+   * Each panel sorts its countries by the share of its first status, then the next…;
+   * countries with nothing in a panel go last, A to Z.
+   * ------------------------------------------------------------------ */
+  var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
+  var FALLBACK = [
+    "Country\tOperating (MW)\tMothballed (MW)\tRetired (MW)\tAnnounced (MW)\tPre-construction (MW)\tConstruction (MW)\tShelved (MW)\tCancelled (MW)",
+    "Italy\t44478\t967\t800\t350\t3350\t1776\t1680\t7620",
+    "United Kingdom\t35667\t1367\t552\t4429\t10818\t2158\t1239\t2034",
+    "Germany\t27083\t4087\t622\t10130\t5728\t1675\t2730\t365",
+    "Spain\t28550\t137\t0\t70\t0\t0\t0\t0",
+    "Türkiye\t26787\t1157\t0\t0\t0\t0\t0\t1776",
+    "Netherlands\t13530\t578\t0\t0\t500\t0\t0\t0",
+    "France\t8318\t163\t0\t0\t627\t0\t0\t0",
+    "Ukraine\t4589\t3675\t0\t260\t0\t309\t0\t0",
+    "Greece\t6996\t0\t147\t144\t2256\t973\t1316\t0",
+    "Belgium\t6168\t43\t145\t0\t900\t870\t0\t4065",
+    "Austria\t4836\t240\t0\t0\t0\t0\t0\t0",
+    "Poland\t4998\t40\t0\t1384\t5137\t4945\t0\t0",
+    "Ireland\t4504\t106\t0\t0\t4984\t1628\t90\t0",
+    "Portugal\t4369\t0\t0\t0\t0\t0\t0\t0",
+    "Romania\t2712\t501\t0\t462\t2746\t2384\t189\t295",
+    "Hungary\t2607\t0\t0\t0\t0\t1540\t0\t0",
+    "Bulgaria\t1142\t660\t0\t276\t1069\t0\t0\t1000",
+    "Czech Republic\t1697\t0\t0\t800\t2109\t304\t0\t0",
+    "Finland\t1545\t129\t0\t0\t0\t0\t0\t0",
+    "Moldova\t1590\t0\t0\t0\t305\t0\t0\t0",
+    "Lithuania\t1151\t110\t0\t0\t0\t0\t0\t150",
+    "Latvia\t1087\t0\t0\t0\t0\t0\t0\t0",
+    "Slovakia\t1017\t58\t0\t0\t0\t0\t0\t0",
+    "Sweden\t834\t100\t0\t0\t0\t0\t0\t0",
+    "Croatia\t833\t78\t0\t0\t983\t150\t85\t0",
+    "Denmark\t807\t0\t75\t0\t0\t0\t0\t0",
+    "Serbia\t602\t32\t0\t350\t500\t0\t0\t860",
+    "Estonia\t196\t250\t0\t0\t100\t0\t0\t0",
+    "Slovenia\t421\t0\t0\t0\t0\t110\t0\t0",
+    "Norway\t229\t150\t0\t220\t0\t0\t0\t0",
+    "Malta\t358\t0\t0\t0\t0\t0\t0\t0",
+    "Switzerland\t0\t336\t0\t0\t0\t0\t0\t0",
+    "North Macedonia\t280\t0\t0\t0\t700\t0\t105\t0",
+    "Bosnia & Herzegovina\t0\t0\t0\t238\t0\t0\t1515\t0",
+    "Kosovo\t0\t0\t0\t0\t0\t0\t0\t0",
+    "Montenegro\t0\t0\t0\t0\t400\t0\t0\t0",
+    "Albania\t0\t0\t0\t350\t0\t170\t0\t0",
+    "Cyprus\t0\t0\t0\t0\t0\t420\t0\t0",
+    "Luxembourg\t0\t0\t0\t0\t0\t0\t0\t0"
+  ].join("\n");
+  var STATUSES = ["Operating", "Mothballed", "Retired", "Announced", "Pre-construction", "Construction", "Shelved", "Cancelled"];
+  var PALETTE_KEY = { "Operating": "gasOperating", "Mothballed": "gasMothballed", "Retired": "gasRetired", "Announced": "gasAnnounced",
+    "Pre-construction": "gasPreConstruction", "Construction": "gasConstruction", "Shelved": "gasShelved", "Cancelled": "gasCancelled" };
+  var PANELS = [
+    { id: "existing", title: "pExisting", keys: ["Operating", "Mothballed", "Retired"] },
+    { id: "new", title: "pNew", keys: ["Announced", "Pre-construction", "Construction", "Shelved", "Cancelled"] }
+  ];
+  var hidden = {};
+  var col = function (s) { return s + " (MW)"; };
+
+  DV.create({
+    sheetId: SHEET_ID,
+    sheetTab: "G5+G6",
+    fallback: FALLBACK,
+    columns: STATUSES.map(col),
+
+    groups: [
+      DV.chartTextGroup({
+        title: "Europe’s existing fleet and new plant projects capacity (%)",
+        subtitle: "Toggle individual statuses on/off by clicking the legend, and hover over bars to see capacity values.",
+        footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Plant retirements tracked since Jan 2023 | Last update: July 2026",
+        notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.",
+        subtitleSize: 17,
+        extra: [
+          { key: "pExisting",  type: "text", def: "Existing fleet", help: "Left panel heading" },
+          { key: "pNew",       type: "text", def: "New plant projects", help: "Right panel heading" },
+          { key: "unitLabel",  type: "text", def: "MW", help: "Unit in the tooltip" },
+          { key: "totalLabel", type: "text", def: "Total", help: "Tooltip: total" }
+        ]
+      }),
+      { name: "Bars", fields: [
+        { key: "legendToggle", type: "check", def: true, help: "Clicking a legend item hides or shows that status (shares are recalculated)" },
+        { key: "legendPos",    type: "select", options: ["left", "center", "right"], def: "center", help: "Legend alignment" },
+        { key: "rowHeight",    type: "range", min: 14, max: 40, step: 1, def: 27, help: "Height of each country's row in px" },
+        { key: "barGap",       type: "range", min: 0, max: 0.6, step: 0.02, def: 0.12, help: "Space between bars, as a share of the row" },
+        { key: "labelSize",    type: "range", min: 9, max: 22, step: 0.5, def: 15, help: "Country name size in px" },
+        { key: "labelWeight",  type: "select", options: [300, 400, 500, 600, 700, 800, 900], def: 700, help: "Country name boldness" },
+        { key: "insideLabels", type: "check", def: true, help: "Write the share inside segments wide enough for it" },
+        { key: "insideSize",   type: "range", min: 8, max: 18, step: 0.5, def: 12.5, help: "Size of the shares inside segments in px" },
+        { key: "panelBg",      type: "color", def: "#f8f8f8", help: "Panel background" }
+      ]},
+      { name: "Layout", fields: [
+        { key: "panelGap", type: "range", min: 0, max: 80, step: 2, def: 32, help: "Space between the two panels in px" }
+      ]}
+    ],
+
+    build: function (ctx) {
+      var S = ctx.S;
+      DV.chartText(S);
+      var keys = DV.byColumns(ctx.headers, STATUSES.map(col));
+      var lg = DV.chartLegend({ items: keys.map(function (c) { var k = c.replace(" (MW)", ""); return { key: k, label: k, color: S[PALETTE_KEY[k]] }; }),
+        toggle: S.legendToggle, hidden: hidden, onToggle: function () { ctx.rerender(); } });
+      lg.classList.add("dvc-" + S.legendPos);
+      var host = document.getElementById("legend"); DV.clear(host); host.appendChild(lg);
+      PANELS.forEach(function (p) { document.getElementById("h-" + p.id).textContent = S[p.title]; });
+    },
+
+    render: function (ctx) {
+      var S = ctx.S, P = ctx.P, un = S.unitLabel;
+      DV.chartSizes(ctx);
+      document.getElementById("grid").style.setProperty("--dvc-gap-x", S.panelGap + "px");
+      var lsz = ctx.sz(S.labelSize, 11);
+      PANELS.forEach(function (p) {
+        var keys = p.keys.filter(function (k) { return !hidden[k]; });
+        var tot = function (d) { return keys.reduce(function (a, k) { return a + d[col(k)]; }, 0); };
+        var rows = ctx.data.slice().sort(function (a, b) {
+          var ta = tot(a), tb = tot(b);
+          if (!ta || !tb) return ta ? -1 : tb ? 1 : a[P].localeCompare(b[P]);
+          for (var i = 0; i < keys.length; i++) {
+            var d = b[col(keys[i])] / tb - a[col(keys[i])] / ta;
+            if (Math.abs(d) > 1e-9) return d;
+          }
+          return a[P].localeCompare(b[P]);
+        });
+        var lw = 0;
+        rows.forEach(function (d) { lw = Math.max(lw, DV.textWidth(d[P], lsz, S.labelWeight)); });
+        lw += 10;
+        var w = document.getElementById("p-" + p.id).clientWidth;
+        document.getElementById("h-" + p.id).style.paddingLeft = 0;
+        var series = keys.map(function (k) { return { key: col(k), label: k, color: S[PALETTE_KEY[k]] }; });
+        DV.hbars({ S: S, svg: document.getElementById("s-" + p.id), tip: document.getElementById("t-" + p.id), width: w, rows: rows,
+          label: function (r) { return r[P]; }, labelW: lw, labelSize: lsz, labelWeight: S.labelWeight, percent: true,
+          series: series, xMax: 100, tickStep: 50, grid: true, bg: S.panelBg, rowH: S.rowHeight, gap: S.barGap,
+          sep: S.panelBg, sepWidth: 0.75, fmtX: function (v) { return v + "%"; },
+          inside: S.insideLabels ? function (v, pct) { return DV.fmt(pct, "", 0) + "%"; } : null, insideSize: S.insideSize,
+          tooltip: function (i) {
+            var r = rows[i], t = tot(r), html = "<b>" + r[P] + "</b>";
+            series.forEach(function (s) {
+              html += DV.tipRow(s.color, s.label, DV.fmt(r[s.key], un, 0) + " (" + DV.fmt(t ? r[s.key] / t * 100 : 0, "", 0) + "%)");
+            });
+            return html + DV.tipRow("", S.totalLabel, DV.fmt(t, un, 0), "t");
+          } });
+      });
+    }
+  });
+})();
+</script>
+</body>
+</html>

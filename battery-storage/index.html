@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grid-scale battery capacity: top 5 European countries</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="../shared/v1/core.css">
+<link rel="stylesheet" href="../shared/v1/charts.css">
+</head>
+<body>
+<div class="dv" id="dv">
+  <h1 class="dv-title" id="dv-title"></h1>
+  <div class="dvc-sub" id="sub"></div>
+  <div class="dvc-panel" id="panel"><div id="legend"></div><svg id="chart"></svg><div class="dv-tooltip" id="tip"></div></div>
+  <p class="dv-footer" id="dv-footer"></p>
+  <div class="dvc-notes" id="notes"></div>
+</div>
+
+<script src="../shared/brand.js"></script>
+<script>
+// ==== SETTINGS START ====
+/* ================================================================
+ * DESIGN SETTINGS FOR THIS GRAPHIC
+ * Change any value below to restyle this graphic. Colours are hex
+ * codes, sizes are in pixels. Keep the quotes and the comma on each line.
+ * Fonts, text colours and palette colours are shared by all graphics:
+ * they live in shared/brand.js.
+ * Easier: open this page with ?design at the end of its address to
+ * adjust everything with sliders, then download the result.
+ * ================================================================ */
+var SETTINGS = {
+  // ---- Text ----
+  title: "Top 5 European countries for installed and planned grid-scale battery capacity (GW)", // Main title
+  subtitle: "",                                // Subtitle under the title, one paragraph per line (empty = none)
+  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
+  unitLabel: "GW",                             // Unit in the tooltip
+  totalLabel: "Total",                         // Tooltip: total
+  footer: "Source: [European Energy Storage Inventory, Joint Research Centre](https://ses.jrc.ec.europa.eu/storage-inventory)", // Footer; links as [text](https://…). Leave empty to hide
+  notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
+
+  // ---- Text sizes ----
+  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  headingSize: 21,                             // Chart heading (subtitle) size in px
+  footerSize: 18,                              // Footer (footnote) text size in px
+  legendSize: 14,                              // Legend text size in px
+  axisSize: 14,                                // Axis label size in px
+  tooltipSize: 14,                             // Tooltip (popup) text size in px
+
+  // ---- Spacing ----
+  padTop: 16,                                  // Space above the graphic in px
+  padSides: 16,                                // Space left and right of the graphic in px
+  padBottom: 12,                               // Space below the graphic in px
+
+  // ---- Background ----
+  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+
+  // ---- Bars ----
+  legendToggle: true,                          // Clicking a legend item hides or shows that status
+  legendPos: "left",                           // Legend alignment
+  rowHeight: 64,                               // Height of each country's row in px
+  barGap: 0.2,                                 // Space between bars, as a share of the row
+  labelSize: 19,                               // Country name size in px
+  labelWeight: 700,                            // Country name boldness
+  showTotals: false,                           // Show each country's total after its bar
+  decimals: 1,                                 // Decimals in the tooltip
+};
+// ==== SETTINGS END ====
+</script>
+<script src="../shared/v1/core.js"></script>
+<script src="../shared/v1/charts.js"></script>
+<script>
+(function () {
+  /* ------------------------------------------------------------------
+   * F3: installed and planned grid-scale battery capacity (GW) by country.
+   * Sheet tab "F3": Country, then one column per status, left to right
+   * (= legend order). Rows are drawn in sheet order, top to bottom.
+   * ------------------------------------------------------------------ */
+  var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
+  var FALLBACK = [
+    "Country\tOperational\tAnnounced\tPermitted\tUnder construction\tInactive",
+    "United Kingdom\t7.45641\t14.85069\t32.4051\t6.4938\t0.96109",
+    "Germany\t2.75912\t8.73916\t0.24\t1.5515\t0.0196",
+    "Italy\t1.95307\t2.5205\t5.61802\t1.3475\t0.005",
+    "Poland\t0.01736\t7.6032\t0.09975\t0.88\t",
+    "Spain\t0.29705\t4.93238\t0.66396\t0.0584\t0.0085"
+  ].join("\n");
+  var PALETTE_KEY = { "Operational": "gasOperating", "Announced": "gasAnnounced", "Permitted": "gasPreConstruction",
+    "Under construction": "gasConstruction", "Inactive": "gasShelved" };
+  var hidden = {};
+
+  DV.create({
+    sheetId: SHEET_ID,
+    sheetTab: "F3",
+    fallback: FALLBACK,
+    columns: Object.keys(PALETTE_KEY),
+
+    groups: [
+      DV.chartTextGroup({
+        title: "Top 5 European countries for installed and planned grid-scale battery capacity (GW)",
+        footer: "Source: [European Energy Storage Inventory, Joint Research Centre](https://ses.jrc.ec.europa.eu/storage-inventory)",
+        extra: [
+          { key: "unitLabel",  type: "text", def: "GW", help: "Unit in the tooltip" },
+          { key: "totalLabel", type: "text", def: "Total", help: "Tooltip: total" }
+        ]
+      }),
+      { name: "Bars", fields: [
+        { key: "legendToggle", type: "check", def: true, help: "Clicking a legend item hides or shows that status" },
+        { key: "legendPos",    type: "select", options: ["left", "center", "right"], def: "left", help: "Legend alignment" },
+        { key: "rowHeight",    type: "range", min: 24, max: 120, step: 2, def: 64, help: "Height of each country's row in px" },
+        { key: "barGap",       type: "range", min: 0, max: 0.7, step: 0.02, def: 0.2, help: "Space between bars, as a share of the row" },
+        { key: "labelSize",    type: "range", min: 10, max: 30, step: 0.5, def: 19, help: "Country name size in px" },
+        { key: "labelWeight",  type: "select", options: [300, 400, 500, 600, 700, 800, 900], def: 700, help: "Country name boldness" },
+        { key: "showTotals",   type: "check", def: false, help: "Show each country's total after its bar" },
+        { key: "decimals",     type: "range", min: 0, max: 3, step: 1, def: 1, help: "Decimals in the tooltip" }
+      ]}
+    ],
+
+    build: function (ctx) {
+      var S = ctx.S;
+      DV.chartText(S);
+      var keys = DV.byColumns(ctx.headers, Object.keys(PALETTE_KEY));
+      var lg = DV.chartLegend({ items: keys.map(function (k) { return { key: k, label: k, color: S[PALETTE_KEY[k]] }; }),
+        toggle: S.legendToggle, hidden: hidden, onToggle: function () { ctx.rerender(); } });
+      lg.classList.add("dvc-" + S.legendPos);
+      var host = document.getElementById("legend"); DV.clear(host); host.appendChild(lg);
+    },
+
+    render: function (ctx) {
+      var S = ctx.S, rows = ctx.data, P = ctx.P, u = S.unitLabel;
+      DV.chartSizes(ctx);
+      var w = document.getElementById("panel").clientWidth;
+      var keys = DV.byColumns(ctx.headers, Object.keys(PALETTE_KEY));
+      var series = keys.filter(function (k) { return !hidden[k]; }).map(function (k) { return { key: k, label: k, color: S[PALETTE_KEY[k]] }; });
+      var tot = rows.map(function (d) { return series.reduce(function (a, s) { return a + d[s.key]; }, 0); });
+      var ax = DV.niceAxis(Math.max.apply(null, tot), w < 500 ? 3 : 6);
+      var lsz = ctx.sz(S.labelSize, 12), lw = 0;
+      rows.forEach(function (d) { lw = Math.max(lw, DV.textWidth(d[P], lsz, S.labelWeight)); });
+      DV.hbars({ S: S, svg: document.getElementById("chart"), tip: document.getElementById("tip"), width: w, rows: rows,
+        label: function (d) { return d[P]; }, labelW: lw + 14, labelSize: lsz, labelWeight: S.labelWeight,
+        series: series, xMax: ax.max, tickStep: ax.step, rowH: Math.max(26, S.rowHeight * (w < 500 ? 0.7 : 1)), gap: S.barGap,
+        total: S.showTotals ? function (d, i, t) { return DV.fmt(t, u, 1); } : null, top: 10,
+        tooltip: function (i) {
+          var h = "<b>" + rows[i][P] + "</b>";
+          series.forEach(function (s) { h += DV.tipRow(s.color, s.label, DV.fmt(rows[i][s.key], u, S.decimals)); });
+          return h + DV.tipRow("", S.totalLabel, DV.fmt(tot[i], u, S.decimals), "t");
+        } });
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Outlook for European clean flexibility growth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="../shared/v1/core.css">
+<link rel="stylesheet" href="../shared/v1/charts.css">
+</head>
+<body>
+<div class="dv" id="dv">
+  <h1 class="dv-title" id="dv-title"></h1>
+  <div class="dvc-sub" id="sub"></div>
+  <div class="dvc-panel" id="panel"><div id="legend"></div><svg id="chart"></svg><div class="dv-tooltip" id="tip"></div></div>
+  <p class="dv-footer" id="dv-footer"></p>
+  <div class="dvc-notes" id="notes"></div>
+</div>
+
+<script src="../shared/brand.js"></script>
+<script>
+// ==== SETTINGS START ====
+/* ================================================================
+ * DESIGN SETTINGS FOR THIS GRAPHIC
+ * Change any value below to restyle this graphic. Colours are hex
+ * codes, sizes are in pixels. Keep the quotes and the comma on each line.
+ * Fonts, text colours and palette colours are shared by all graphics:
+ * they live in shared/brand.js.
+ * Easier: open this page with ?design at the end of its address to
+ * adjust everything with sliders, then download the result.
+ * ================================================================ */
+var SETTINGS = {
+  // ---- Text ----
+  title: "Outlook for European clean flexibility growth", // Main title
+  subtitle: "Installed capacity in GW, with 2030 figures from the TYNDP Baseline (National Trends) Scenario, a snapshot of aggregated European national system plans, while 2035 to 2050 come from its Global Ambition Scenario", // Subtitle under the title, one paragraph per line (empty = none)
+  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
+  unitLabel: "GW",                             // Unit after the numbers
+  totalLabel: "Total",                         // Tooltip: total
+  footer: "Source: [Report “Clean Flexibility: Opportunities in Europe” prepared by The Brattle Group and Acousmatics for BFF](https://beyondfossilfuels.org/2026/02/23/clean-flexibility-supports-a-reliable-grid-without-fossil-fuels/)", // Footer; links as [text](https://…). Leave empty to hide
+  notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
+
+  // ---- Text sizes ----
+  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  headingSize: 21,                             // Chart heading (subtitle) size in px
+  footerSize: 18,                              // Footer (footnote) text size in px
+  legendSize: 14,                              // Legend text size in px
+  axisSize: 14,                                // Axis label size in px
+  tooltipSize: 14,                             // Tooltip (popup) text size in px
+
+  // ---- Spacing ----
+  padTop: 16,                                  // Space above the graphic in px
+  padSides: 16,                                // Space left and right of the graphic in px
+  padBottom: 12,                               // Space below the graphic in px
+
+  // ---- Background ----
+  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+
+  // ---- Reference line ----
+  refShow: true,                               // Show the dashed reference line
+  refValue: 253,                               // Reference line value (GW)
+  refLabel: "Current level of gas capacity",   // Reference line label
+  refSize: 16,                                 // Reference label size in px
+
+  // ---- Chart style (this graphic) ----
+  showLegend: false,                           // Show a legend above the chart (the labels at the end of the areas already name them)
+  endLabels: true,                             // Labels at the end of each area
+  endLabelSize: 16,                            // End label size in px
+  endLabelWidth: 190,                          // Widest an end label gets before wrapping, in px
+  fillOpacity: 0.7,                            // How solid the areas are
+  lineWidthF2: 4,                              // Line thickness on top of each area in px
+  dotSizeF2: 6,                                // Dot size in px (0 = none)
+  yStep: 350,                                  // Gap between y-axis numbers (0 = automatic)
+
+  // ---- Layout ----
+  chartHeight: 0.6,                            // Chart height as a share of its width
+  minHeight: 360,                              // Smallest chart height in px (phones)
+};
+// ==== SETTINGS END ====
+</script>
+<script src="../shared/v1/core.js"></script>
+<script src="../shared/v1/charts.js"></script>
+<script>
+(function () {
+  /* ------------------------------------------------------------------
+   * F2: installed clean flexibility capacity (GW), stacked areas.
+   * Sheet tab "F2": Scenario, Year, then one column per technology, TOP of the stack first.
+   * The scenario is shown in the tooltip.
+   * Years are placed in proportion (2030, 2035, 2040, 2050).
+   * ------------------------------------------------------------------ */
+  var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
+  var FALLBACK = [
+    "Scenario\tYear\tPumped hydro\tDemand-side response\tFlexibility-enabled EVs\tBehind-the-meter batteries\tUtility-scale battery storage",
+    "National Trends Scenatio Baseline\t2030\t52.8\t43.4\t0\t0\t44.9",
+    "Global ambition Scenario\t2035\t56.6\t45.3\t107.5\t83\t60",
+    "Global ambition Scenario\t2040\t60.4\t51\t184.9\t126.5\t86.4",
+    "Global ambition Scenario\t2050\t67.9\t52.8\t277.3\t188.7\t120.4"
+  ].join("\n");
+  var PALETTE_KEY = { "Pumped hydro": "skyBlue", "Demand-side response": "green", "Flexibility-enabled EVs": "coral",
+    "Behind-the-meter batteries": "darkBlue", "Utility-scale battery storage": "lavender" };
+
+  DV.create({
+    sheetId: SHEET_ID,
+    sheetTab: "F2",
+    fallback: FALLBACK,
+    columns: ["Year"].concat(Object.keys(PALETTE_KEY)),
+
+    groups: [
+      DV.chartTextGroup({
+        title: "Outlook for European clean flexibility growth",
+        subtitle: "Installed capacity in GW, with 2030 figures from the TYNDP Baseline (National Trends) Scenario, a snapshot of aggregated European national system plans, while 2035 to 2050 come from its Global Ambition Scenario",
+        footer: "Source: [Report “Clean Flexibility: Opportunities in Europe” prepared by The Brattle Group and Acousmatics for BFF](https://beyondfossilfuels.org/2026/02/23/clean-flexibility-supports-a-reliable-grid-without-fossil-fuels/)",
+        extra: [
+          { key: "unitLabel", type: "text", def: "GW", help: "Unit after the numbers" },
+          { key: "totalLabel", type: "text", def: "Total", help: "Tooltip: total" }
+        ]
+      }),
+      { name: "Reference line", fields: [
+        { key: "refShow",  type: "check", def: true, help: "Show the dashed reference line" },
+        { key: "refValue", type: "range", min: 0, max: 800, step: 1, def: 253, help: "Reference line value (GW)" },
+        { key: "refLabel", type: "text", def: "Current level of gas capacity", help: "Reference line label" },
+        { key: "refSize",  type: "range", min: 9, max: 28, step: 0.5, def: 16, help: "Reference label size in px" }
+      ]},
+      { name: "Chart style (this graphic)", fields: [
+        { key: "showLegend",   type: "check", def: false, help: "Show a legend above the chart (the labels at the end of the areas already name them)" },
+        { key: "endLabels",    type: "check", def: true, help: "Labels at the end of each area" },
+        { key: "endLabelSize", type: "range", min: 9, max: 28, step: 0.5, def: 16, help: "End label size in px" },
+        { key: "endLabelWidth", type: "range", min: 80, max: 320, step: 5, def: 190, help: "Widest an end label gets before wrapping, in px" },
+        { key: "fillOpacity",  type: "range", min: 0, max: 1, step: 0.05, def: 0.7, help: "How solid the areas are" },
+        { key: "lineWidthF2",  type: "range", min: 0, max: 8, step: 0.5, def: 4, help: "Line thickness on top of each area in px" },
+        { key: "dotSizeF2",    type: "range", min: 0, max: 10, step: 0.5, def: 6, help: "Dot size in px (0 = none)" },
+        { key: "yStep",        type: "range", min: 0, max: 400, step: 10, def: 350, help: "Gap between y-axis numbers (0 = automatic)" }
+      ]},
+      { name: "Layout", fields: [
+        { key: "chartHeight", type: "range", min: 0.3, max: 1.2, step: 0.02, def: 0.6, help: "Chart height as a share of its width" },
+        { key: "minHeight",   type: "range", min: 200, max: 700, step: 10, def: 360, help: "Smallest chart height in px (phones)" }
+      ]}
+    ],
+
+    build: function (ctx) {
+      var S = ctx.S;
+      DV.chartText(S);
+      var host = document.getElementById("legend"); DV.clear(host);
+      if (S.showLegend) {
+        var keys = DV.byColumns(ctx.headers, Object.keys(PALETTE_KEY));
+        host.appendChild(DV.chartLegend({ items: keys.map(function (k) { return { key: k, label: k, color: S[PALETTE_KEY[k]] }; }) }));
+      }
+    },
+
+    render: function (ctx) {
+      var S = ctx.S, rows = ctx.data;
+      DV.chartSizes(ctx);
+      var w = document.getElementById("panel").clientWidth;
+      var h = Math.max(S.minHeight, w * S.chartHeight);
+      var keys = DV.byColumns(ctx.headers, Object.keys(PALETTE_KEY));
+      var series = keys.slice().reverse().map(function (k) {
+        return { key: k, label: k, color: S[PALETTE_KEY[k]], values: rows.map(function (d) { return d[k]; }) };
+      });
+      var tot = rows.map(function (d) { return keys.reduce(function (a, k) { return a + d[k]; }, 0); });
+      var ax = DV.niceAxis(Math.max(Math.max.apply(null, tot), S.refShow ? S.refValue : 0), 4, false, S.yStep);
+      var narrow = w < 560, u = S.unitLabel;
+      DV.lines({ S: S, svg: document.getElementById("chart"), tip: document.getElementById("tip"), width: w, height: h,
+        xs: rows.map(function (d) { return +d.Year; }), series: series, stacked: true, area: true, areaOpacity: S.fillOpacity,
+        lineWidth: S.lineWidthF2, dotSize: S.dotSizeF2 * (narrow ? 0.7 : 1), yMax: ax.max, tickStep: ax.step,
+        fmtY: function (v) { return DV.fmt(v, u, 0); },
+        endLabels: S.endLabels ? { width: narrow ? Math.min(S.endLabelWidth, w * 0.3) : S.endLabelWidth, size: ctx.sz(S.endLabelSize, 11), weight: 700 } : null,
+        refs: S.refShow ? [{ y: S.refValue, label: S.refLabel, size: ctx.sz(S.refSize, 11) }] : null,
+        tooltip: function (i) {
+          var h = "<b>" + rows[i].Year + "</b>" + (rows[i][ctx.P] && ctx.P !== "Year" ? '<div class="r"><span>' + rows[i][ctx.P] + "</span></div>" : "");
+          keys.forEach(function (k) { h += DV.tipRow(S[PALETTE_KEY[k]], k, DV.fmt(rows[i][k], u, 1)); });
+          return h + DV.tipRow("", S.totalLabel, DV.fmt(tot[i], u, 1), "t");
+        } });
+    }
+  });
+})();
+</script>
+</body>
+</html>

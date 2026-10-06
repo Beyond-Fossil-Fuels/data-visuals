@@ -111,39 +111,38 @@ var SETTINGS = {
 (function () {
   /* ------------------------------------------------------------------
    * PROOF OF CONCEPT: one graphic, two views (number of units / capacity).
-   * Units come from the "Gas tracker" tab, capacity from "Gas tracker capacity".
+   * Both come from the "G1" tab: the "(units)" columns and the "(GW)" columns.
    * Open with ?view=capacity to start on the capacity view (e.g. in an embed).
    * FALLBACK data is shown only if the sheet can't be reached.
    * ------------------------------------------------------------------ */
   var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
-  var FALLBACK_UNITS = [
-    "YQ\tAnnounced\tPre-construction\tConstruction\tShelved\tAlready left development since start of tracking\tOperating\tMothballed\tCancelled",
-    "2023\t40\t87\t85\t37\t0\t\t\t",
-    "24Q1\t36\t97\t58\t38\t45\t32\t8\t5",
-    "24Q2\t38\t100\t56\t38\t52\t39\t8\t5",
-    "24Q3\t34\t104\t59\t41\t53\t40\t8\t5",
-    "24Q4\t37\t110\t54\t40\t63\t48\t8\t7",
-    "25Q1\t36\t119\t58\t38\t67\t52\t8\t7",
-    "25Q2\t36\t123\t58\t43\t69\t54\t8\t7",
-    "25Q3\t33\t127\t53\t44\t78\t62\t8\t8",
-    "25Q4\t42\t128\t57\t30\t95\t65\t8\t22",
-    "26Q1\t40\t127\t61\t25\t99\t67\t8\t24",
-    "26Q2\t39\t128\t63\t24\t102\t69\t8\t25"
+  var FALLBACK = [
+    "Period\tAnnounced (units)\tPre-construction (units)\tConstruction (units)\tShelved (units)\tAlready left development (units)\tOperating (units)\tMothballed (units)\tCancelled (units)\tAnnounced (GW)\tPre-construction (GW)\tConstruction (GW)\tShelved (GW)\tAlready left development (GW)\tOperating (GW)\tMothballed (GW)\tCancelled (GW)",
+    "2023\t40\t87\t85\t37\t0\t\t\t\t15.4\t36.2\t14.6\t15.2\t10.4\t1.2\t\t9.2",
+    "24Q1\t36\t97\t58\t38\t45\t32\t8\t5\t14.4\t36.1\t16\t16.7\t18.3\t5.9\t0.2\t12.1",
+    "24Q2\t38\t100\t56\t38\t52\t39\t8\t5\t15.6\t37.2\t16.1\t16.6\t18.7\t6.3\t0.2\t12.1",
+    "24Q3\t34\t104\t59\t41\t53\t40\t8\t5\t14.8\t35.2\t17.2\t17.4\t20\t7.7\t0.2\t12.1",
+    "24Q4\t37\t110\t54\t40\t63\t48\t8\t7\t18.2\t36.7\t18.5\t15.2\t21.9\t9\t0.2\t12.6",
+    "25Q1\t36\t119\t58\t38\t67\t52\t8\t7\t18.5\t39.1\t18.3\t14.6\t22.9\t10.1\t0.2\t12.6",
+    "25Q2\t36\t123\t58\t43\t69\t54\t8\t7\t19.1\t40\t18\t15.6\t22.6\t10.4\t0.2\t11.9",
+    "25Q3\t33\t127\t53\t44\t78\t62\t8\t8\t15.4\t43.9\t16.2\t15.7\t25.3\t12.8\t0.2\t12.2",
+    "25Q4\t42\t128\t57\t30\t95\t65\t8\t22\t20\t44.3\t16.6\t11.7\t30.2\t13.8\t0.2\t16.2",
+    "26Q1\t40\t127\t61\t25\t99\t67\t8\t24\t18.6\t43.2\t19.4\t9.2\t31.9\t13.8\t0.2\t17.9",
+    "26Q2\t39\t128\t63\t24\t102\t69\t8\t25\t19.2\t43.2\t19.1\t8.9\t33.4\t23.9\t0.2\t18.2"
   ].join("\n");
-  var FALLBACK_CAPACITY = [
-    "YQ\tAnnounced\tPre-construction\tConstruction\tShelved\tAlready left development since start of tracking\tOperating\tMothballed\tCancelled",
-    "2023\t15.4\t36.2\t14.6\t15.2\t10.4\t1.2\t\t9.2",
-    "24Q1\t14.4\t36.1\t16\t16.7\t18.3\t5.9\t0.2\t12.1",
-    "24Q2\t15.6\t37.2\t16.1\t16.6\t18.7\t6.3\t0.2\t12.1",
-    "24Q3\t14.8\t35.2\t17.2\t17.4\t20\t7.7\t0.2\t12.1",
-    "24Q4\t18.2\t36.7\t18.5\t15.2\t21.9\t9\t0.2\t12.6",
-    "25Q1\t18.5\t39.1\t18.3\t14.6\t22.9\t10.1\t0.2\t12.6",
-    "25Q2\t19.1\t40\t18\t15.6\t22.6\t10.4\t0.2\t11.9",
-    "25Q3\t15.4\t43.9\t16.2\t15.7\t25.3\t12.8\t0.2\t12.2",
-    "25Q4\t20\t44.3\t16.6\t11.7\t30.2\t13.8\t0.2\t16.2",
-    "26Q1\t18.6\t43.2\t19.4\t9.2\t31.9\t13.8\t0.2\t17.9",
-    "26Q2\t19.2\t43.2\t19.1\t8.9\t33.4\t15\t0.2\t18.2"
-  ].join("\n");
+  // The "G1" tab holds both measures: Period, then each status "(units)", then each status "(GW)".
+  // part() keeps one measure and gives the columns the names the drawing code uses.
+  var LEFT_NAME = "Already left development";
+  function part(table, suffix) {
+    var P = table.headers[0], keys = table.headers.filter(function (h) { return h.slice(-suffix.length) === suffix; });
+    var name = function (h) { var k = h.slice(0, -suffix.length); return k === LEFT_NAME ? "Already left development since start of tracking" : k; };
+    return { headers: [P].concat(keys.map(name)), data: table.data.map(function (d) {
+      var o = {}; o[P] = d[P]; keys.forEach(function (h) { o[name(h)] = d[h]; }); return o;
+    }) };
+  }
+  var STATUS_NAMES = ["Announced", "Pre-construction", "Construction", "Shelved", LEFT_NAME, "Operating", "Mothballed", "Cancelled"];
+  var cols = function (suffix) { return STATUS_NAMES.map(function (s) { return s + suffix; }); };
+
 
   var LEFT = "Already left development since start of tracking";
 
@@ -178,10 +177,9 @@ var SETTINGS = {
 
   DV.create({
     sheetId: SHEET_ID,
-    sheetTab: "Gas tracker",
-    fallback: FALLBACK_UNITS,
-    datasets: { capacity: { sheetTab: "Gas tracker capacity", fallback: FALLBACK_CAPACITY } },
-    columns: [LEFT, "Shelved", "Construction", "Pre-construction", "Announced", "Cancelled", "Mothballed", "Operating"],
+    sheetTab: "G1",
+    fallback: FALLBACK,
+    columns: cols(" (units)").concat(cols(" (GW)")),
 
     groups: [
       { name: "Text", fields: [
@@ -220,6 +218,11 @@ var SETTINGS = {
     ],
 
     build: function (ctx) {
+      if (!ctx.raw) {
+        ctx.raw = { data: ctx.data, headers: ctx.headers };
+        var u = part(ctx.raw, " (units)"); ctx.data = u.data; ctx.headers = u.headers;
+        ctx.datasets.capacity = part(ctx.raw, " (GW)");
+      }
       var S = ctx.S;
       document.documentElement.style.setProperty("--switch-on", S.switchColor);
       charts.left = DV.chartBox(document.getElementById("chart-left"), S.leftTitle, legend(S, ctx.headers, LEFT_KEYS));

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Europe power mix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="../shared/v1/core.css">
+<link rel="stylesheet" href="../shared/v1/charts.css">
+</head>
+<body>
+<div class="dv" id="dv">
+  <h1 class="dv-title" id="dv-title"></h1>
+  <div class="dvc-sub" id="sub"></div>
+  <div class="dvc-panel" id="panel"><div id="legend"></div><svg id="chart"></svg><div class="dv-tooltip" id="tip"></div></div>
+  <p class="dv-footer" id="dv-footer"></p>
+  <div class="dvc-notes" id="notes"></div>
+</div>
+
+<script src="../shared/brand.js"></script>
+<script>
+// ==== SETTINGS START ====
+/* ================================================================
+ * DESIGN SETTINGS FOR THIS GRAPHIC
+ * Change any value below to restyle this graphic. Colours are hex
+ * codes, sizes are in pixels. Keep the quotes and the comma on each line.
+ * Fonts, text colours and palette colours are shared by all graphics:
+ * they live in shared/brand.js.
+ * Easier: open this page with ?design at the end of its address to
+ * adjust everything with sliders, then download the result.
+ * ================================================================ */
+var SETTINGS = {
+  // ---- Text ----
+  title: "Share of total electricity generation by source, 2015 to 2025", // Main title
+  subtitle: "",                                // Subtitle under the title, one paragraph per line (empty = none)
+  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
+  markerRef: "Solar and wind",                 // Markers: the source that overtakes the others (a column name)
+  markers: "Hydro :: Solar + wind|outpaces hydro\nNuclear :: Solar + wind|outpaces nuclear\nFossil :: Solar + wind|outpaces fossil", // Markers, one per line: source (or a year such as 2018.5) :: label; | = line break. Empty = no markers
+  footer: "Source: [Ember yearly electricity data](https://ember-energy.org/data/yearly-electricity-data/)", // Footer; links as [text](https://…). Leave empty to hide
+  notes: "BFF Europe as EU, UK, Norway, Switzerland, Western Balkans, Moldova and Türkiye. Albania and Ukraine not included due to data incompleteness. Other renewables also include biomass, while fossil includes coal, gas and other fossil.", // Notes under the footer, one paragraph per line; links as [text](https://…)
+
+  // ---- Text sizes ----
+  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  headingSize: 21,                             // Chart heading (subtitle) size in px
+  footerSize: 18,                              // Footer (footnote) text size in px
+  legendSize: 14,                              // Legend text size in px
+  axisSize: 14,                                // Axis label size in px
+  tooltipSize: 14,                             // Tooltip (popup) text size in px
+
+  // ---- Spacing ----
+  padTop: 16,                                  // Space above the graphic in px
+  padSides: 16,                                // Space left and right of the graphic in px
+  padBottom: 12,                               // Space below the graphic in px
+
+  // ---- Background ----
+  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+
+  // ---- Legend and lines ----
+  legendToggle: true,                          // Clicking a legend item hides or shows that line
+  legendPos: "left",                           // Legend alignment
+  lineWidthR1: 4,                              // Line thickness in px
+  dotSizeR1: 0,                                // Dot size in px (0 = none)
+  markerSize: 15,                              // Marker label size in px
+  decimals: 1,                                 // Decimals in the tooltip
+
+  // ---- Layout ----
+  chartHeight: 0.5,                            // Chart height as a share of its width
+  minHeight: 320,                              // Smallest chart height in px (phones)
+};
+// ==== SETTINGS END ====
+</script>
+<script src="../shared/v1/core.js"></script>
+<script src="../shared/v1/charts.js"></script>
+<script>
+(function () {
+  /* ------------------------------------------------------------------
+   * R1: share of electricity generation by source (lines).
+   * Sheet tab "R1": Year, then one column per source (% of generation).
+   * Column order = legend and tooltip order.
+   * The dotted lines mark where one source overtakes another: each line of the
+   * "Markers" setting is "Source :: label" (placed where the reference source
+   * crosses above that source, worked out from the data) or "2018.5 :: label".
+   * ------------------------------------------------------------------ */
+  var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
+  var FALLBACK = [
+    "Year\tFossil\tNuclear\tHydro\tOther renewables\tSolar and wind",
+    "2015\t41.71250453\t25.13928131\t15.61217485\t5.387409736\t12.14862958",
+    "2016\t42.05629631\t24.48784285\t15.84497149\t5.434426325\t12.17646301",
+    "2017\t42.40941365\t23.8940935\t14.14693859\t5.526479533\t14.02307473",
+    "2018\t39.78961444\t24.01624459\t15.66914053\t5.696117531\t14.82888291",
+    "2019\t38.02141143\t24.20225125\t14.80804009\t5.971757282\t16.99653996",
+    "2020\t35.07978805\t22.28950351\t16.65441514\t6.300346106\t19.6759472",
+    "2021\t35.77658901\t22.67721568\t16.19868749\t6.386214487\t18.96129334",
+    "2022\t37.60607713\t19.79974465\t13.70828902\t6.255389556\t22.63049963",
+    "2023\t30.91330012\t20.35547479\t16.3252669\t6.071760851\t26.33419733",
+    "2024\t27.64477022\t20.869719\t17.41145478\t6.128036882\t27.94601912",
+    "2025\t28.10833925\t20.50906466\t15.78476506\t6.08051143\t29.5173196"
+  ].join("\n");
+  var PALETTE_KEY = { "Fossil": "otherFossil", "Nuclear": "nuclear", "Hydro": "hydro", "Other renewables": "otherRenewables",
+    "Solar and wind": "solarAndWind" };
+  var hidden = {};
+
+  // Year (with decimals) where series a last crosses above series b
+  function crossing(xs, a, b) {
+    var at = null;
+    for (var i = 1; i < xs.length; i++) {
+      var d0 = a[i - 1] - b[i - 1], d1 = a[i] - b[i];
+      if (d0 < 0 && d1 >= 0) at = xs[i - 1] + (xs[i] - xs[i - 1]) * (-d0 / (d1 - d0));
+    }
+    return at;
+  }
+
+  DV.create({
+    sheetId: SHEET_ID,
+    sheetTab: "R1",
+    fallback: FALLBACK,
+    columns: Object.keys(PALETTE_KEY),
+
+    groups: [
+      DV.chartTextGroup({
+        title: "Share of total electricity generation by source, 2015 to 2025",
+        footer: "Source: [Ember yearly electricity data](https://ember-energy.org/data/yearly-electricity-data/)",
+        notes: "BFF Europe as EU, UK, Norway, Switzerland, Western Balkans, Moldova and Türkiye. Albania and Ukraine not included due to data incompleteness. Other renewables also include biomass, while fossil includes coal, gas and other fossil.",
+        extra: [
+          { key: "markerRef", type: "text", def: "Solar and wind", help: "Markers: the source that overtakes the others (a column name)" },
+          { key: "markers", type: "textarea", rows: 4, def: "Hydro :: Solar + wind|outpaces hydro\nNuclear :: Solar + wind|outpaces nuclear\nFossil :: Solar + wind|outpaces fossil",
+            help: "Markers, one per line: source (or a year such as 2018.5) :: label; | = line break. Empty = no markers" }
+        ]
+      }),
+      { name: "Legend and lines", fields: [
+        { key: "legendToggle", type: "check", def: true, help: "Clicking a legend item hides or shows that line" },
+        { key: "legendPos",    type: "select", options: ["left", "center", "right"], def: "left", help: "Legend alignment" },
+        { key: "lineWidthR1",  type: "range", min: 1, max: 8, step: 0.5, def: 4, help: "Line thickness in px" },
+        { key: "dotSizeR1",    type: "range", min: 0, max: 8, step: 0.5, def: 0, help: "Dot size in px (0 = none)" },
+        { key: "markerSize",   type: "range", min: 9, max: 24, step: 0.5, def: 15, help: "Marker label size in px" },
+        { key: "decimals",     type: "range", min: 0, max: 2, step: 1, def: 1, help: "Decimals in the tooltip" }
+      ]},
+      { name: "Layout", fields: [
+        { key: "chartHeight", type: "range", min: 0.3, max: 1, step: 0.02, def: 0.5, help: "Chart height as a share of its width" },
+        { key: "minHeight",   type: "range", min: 200, max: 600, step: 10, def: 320, help: "Smallest chart height in px (phones)" }
+      ]}
+    ],
+
+    build: function (ctx) {
+      var S = ctx.S;
+      DV.chartText(S);
+      var keys = DV.byColumns(ctx.headers, Object.keys(PALETTE_KEY));
+      var lg = DV.chartLegend({ items: keys.map(function (k) { return { key: k, label: k, color: S[PALETTE_KEY[k]] }; }),
+        toggle: S.legendToggle, hidden: hidden, onToggle: function () { ctx.rerender(); } });
+      lg.classList.add("dvc-" + S.legendPos);
+      var host = document.getElementById("legend"); DV.clear(host); host.appendChild(lg);
+    },
+
+    render: function (ctx) {
+      var S = ctx.S, rows = ctx.data, P = ctx.P;
+      DV.chartSizes(ctx);
+      var w = document.getElementById("panel").clientWidth;
+      var h = Math.max(S.minHeight, w * S.chartHeight);
+      var xs = rows.map(function (d) { return +d[P]; });
+      var keys = DV.byColumns(ctx.headers, Object.keys(PALETTE_KEY));
+      var all = keys.map(function (k) { return { key: k, label: k, color: S[PALETTE_KEY[k]], values: rows.map(function (d) { return d[k]; }) }; });
+      var shown = all.filter(function (s) { return !hidden[s.key]; });
+      var max = Math.max.apply(null, shown.map(function (s) { return Math.max.apply(null, s.values); }));
+      var ax = DV.niceAxis(max, 4);
+      var ref = all.filter(function (s) { return s.key === S.markerRef; })[0];
+      var vlines = String(S.markers || "").split(/\n/).map(function (line) {
+        var p = line.split("::");
+        if (p.length < 2) return null;
+        var what = p[0].trim(), label = p.slice(1).join("::").trim(), x = +what;
+        if (!isFinite(x) || what === "") {
+          var other = all.filter(function (s) { return s.key === what; })[0];
+          x = ref && other ? crossing(xs, ref.values, other.values) : null;
+        }
+        return x == null ? null : { x: x, label: label, size: ctx.sz(S.markerSize, w < 600 ? 10 : 11) };
+      }).filter(Boolean);
+      DV.lines({ S: S, svg: document.getElementById("chart"), tip: document.getElementById("tip"), width: w, height: h,
+        xs: xs, series: shown, lineWidth: S.lineWidthR1, dotSize: S.dotSizeR1, yMax: ax.max, tickStep: ax.step,
+        fmtY: function (v) { return DV.fmt(v, "", 0) + "%"; }, vlines: vlines, top: vlines.length ? ctx.sz(S.markerSize, 11) * (w < 600 ? 5.2 : 2.8) : 10,
+        tooltip: function (i) {
+          var h = "<b>" + rows[i][P] + "</b>";
+          shown.slice().sort(function (a, b) { return b.values[i] - a.values[i]; }).forEach(function (s) {
+            h += DV.tipRow(s.color, s.label, DV.fmt(s.values[i], "", S.decimals) + "%");
+          });
+          return h;
+        } });
+    }
+  });
+})();
+</script>
+</body>
+</html>

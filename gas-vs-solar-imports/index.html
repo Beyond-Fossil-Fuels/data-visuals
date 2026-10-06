@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gas vs solar imports</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="../shared/v1/core.css">
+<link rel="stylesheet" href="../shared/v1/charts.css">
+<style>
+  .pict-legend { display: flex; flex-direction: column; gap: 4px; font-size: var(--dv-legend-size); color: var(--dv-heading); margin: 0 0 10px; }
+  .pict-legend span { display: inline-flex; align-items: center; gap: .4em; }
+  .pict-legend svg { width: 1em; height: 1em; flex: none; }
+  .pict-legend.row { flex-direction: row; flex-wrap: wrap; gap: 4px 18px; }
+</style>
+</head>
+<body>
+<div class="dv" id="dv">
+  <h1 class="dv-title" id="dv-title"></h1>
+  <div class="dvc-sub" id="sub"></div>
+  <div class="dvc-panel" id="panel"><div class="pict-legend" id="legend"></div><svg id="chart"></svg><div class="dv-tooltip" id="tip"></div></div>
+  <p class="dv-footer" id="dv-footer"></p>
+  <div class="dvc-notes" id="notes"></div>
+</div>
+
+<script src="../shared/brand.js"></script>
+<script>
+// ==== SETTINGS START ====
+/* ================================================================
+ * DESIGN SETTINGS FOR THIS GRAPHIC
+ * Change any value below to restyle this graphic. Colours are hex
+ * codes, sizes are in pixels. Keep the quotes and the comma on each line.
+ * Fonts, text colours and palette colours are shared by all graphics:
+ * they live in shared/brand.js.
+ * Easier: open this page with ?design at the end of its address to
+ * adjust everything with sliders, then download the result.
+ * ================================================================ */
+var SETTINGS = {
+  // ---- Text ----
+  title: "Spending €100 billion on solar panel imports instead of gas imports could produce 9x more electricity", // Main title
+  subtitle: "EU27, 2024 import data: gas burned once for electricity vs. solar panels over a 25-year lifetime", // Subtitle under the title, one paragraph per line (empty = none)
+  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
+  unitLabel: "TWh",                            // Unit after the numbers
+  iconNote: "",                                // Extra legend line, e.g. Each icon = {per} TWh (empty = none)
+  footer: "Sources: [Eurostat](https://ec.europa.eu/eurostat/web/main/data/database), [SolarPower Europe](https://www.solarpowereurope.org/insights/outlooks/eu-market-outlook-for-solar-power-2024-2028/detail), [Bruegel](https://www.bruegel.org/dataset/eu-renewables-value-tracker)", // Footer; links as [text](https://…). Leave empty to hide
+  notes: "Methodology and underlying data available here.", // Notes under the footer, one paragraph per line; links as [text](https://…)
+
+  // ---- Text sizes ----
+  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  headingSize: 21,                             // Chart heading (subtitle) size in px
+  footerSize: 18,                              // Footer (footnote) text size in px
+  legendSize: 14,                              // Legend text size in px
+  axisSize: 14,                                // Axis label size in px
+  tooltipSize: 14,                             // Tooltip (popup) text size in px
+
+  // ---- Spacing ----
+  padTop: 16,                                  // Space above the graphic in px
+  padSides: 16,                                // Space left and right of the graphic in px
+  padBottom: 12,                               // Space below the graphic in px
+
+  // ---- Background ----
+  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+
+  // ---- Icons ----
+  icon1: "gas",                                // Icon for the first row of the sheet
+  icon2: "solar",                              // Icon for the second row
+  perIcon: 100,                                // TWh per icon
+  rounding: "nearest",                         // Rounding of the number of icons
+  perRow: 18,                                  // Icons per row
+  iconSize: 30,                                // Largest icon size in px (smaller if there isn't room)
+  iconGap: 0.4,                                // Space between icons, as a share of the icon size
+  valueSize: 26,                               // Size of the totals above the icons in px
+  nameSize: 24,                                // Size of the names under the icons in px
+  showLegend: true,                            // Show the legend
+  legendRow: false,                            // Legend items side by side (instead of one per line)
+
+  // ---- Layout ----
+  groupGap: 60,                                // Space between the groups in px
+};
+// ==== SETTINGS END ====
+</script>
+<script src="../shared/v1/core.js"></script>
+<script src="../shared/v1/charts.js"></script>
+<script>
+(function () {
+  /* ------------------------------------------------------------------
+   * R2: electricity from €100 billion of gas imports vs solar panel imports (pictogram).
+   * Sheet tab "R2": Imported asset, TWh (one row per group, left to right).
+   * Each icon stands for a fixed amount (setting "TWh per icon"); icons are the BFF icons.
+   * ------------------------------------------------------------------ */
+  var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
+  var FALLBACK = [
+    "Imported asset\tTWh",
+    "Imported fossil gas for electricity\t1582.4",
+    "Solar panel imports\t13997.7"
+  ].join("\n");
+  // BFF icons (Design elements/BFF icons), 600 x 600
+  var ICONS = {
+    gas: "M559.66,350.23C559.66,245.97,293.07,7.37,293.07,7.37c0,0-233.2,108.99-252.33,342.86-6.04,73.8,58.61,138.12,143.91,169.04l115.55-266,86.31,152.52-129.18,185.21c85.3-30.92,302.34-166.73,302.34-240.78Z",
+    solar: "M268.53 0L268.53 182.62 177.22 24.46 122.75 55.91 214.07 214.06 55.91 122.75 24.47 177.21 182.62 268.52 0 268.52 0 331.4 182.62 331.4 24.47 422.71 55.91 477.17 214.07 385.87 122.75 544.02 177.22 575.46 268.53 417.31 268.53 599.92 331.41 599.92 331.41 417.31 422.72 575.46 477.18 544.02 385.87 385.86 544.03 477.17 575.46 422.71 417.31 331.4 599.93 331.4 599.93 268.52 417.31 268.52 575.46 177.21 544.03 122.75 385.87 214.06 477.18 55.91 422.72 24.46 331.41 182.62 331.41 0Z",
+    circle: "M300,30a270,270 0 1,0 0.1,0Z"
+  };
+  var ICON_NAMES = ["gas", "solar", "circle"];
+  // icon colours come from the brand palette: gas -> "gas", solar -> "solarIcon"
+  var ICON_COLOR = { gas: "gas", solar: "solarIcon", circle: "headingColor" };
+  function colorOf(S, i) { return S[ICON_COLOR[S["icon" + (i + 1)]]]; }
+
+  DV.create({
+    sheetId: SHEET_ID,
+    sheetTab: "R2",
+    fallback: FALLBACK,
+    columns: ["TWh"],
+
+    groups: [
+      DV.chartTextGroup({
+        title: "Spending €100 billion on solar panel imports instead of gas imports could produce 9x more electricity",
+        subtitle: "EU27, 2024 import data: gas burned once for electricity vs. solar panels over a 25-year lifetime",
+        footer: "Sources: [Eurostat](https://ec.europa.eu/eurostat/web/main/data/database), [SolarPower Europe](https://www.solarpowereurope.org/insights/outlooks/eu-market-outlook-for-solar-power-2024-2028/detail), [Bruegel](https://www.bruegel.org/dataset/eu-renewables-value-tracker)",
+        notes: "Methodology and underlying data available here.",
+        extra: [
+          { key: "unitLabel", type: "text", def: "TWh", help: "Unit after the numbers" },
+          { key: "iconNote",  type: "text", def: "", help: "Extra legend line, e.g. Each icon = {per} TWh (empty = none)" }
+        ]
+      }),
+      { name: "Icons", fields: [
+        { key: "icon1",      type: "select", options: ICON_NAMES, def: "gas", help: "Icon for the first row of the sheet" },
+        { key: "icon2",      type: "select", options: ICON_NAMES, def: "solar", help: "Icon for the second row" },
+        { key: "perIcon",    type: "range", min: 1, max: 1000, step: 1, def: 100, help: "TWh per icon" },
+        { key: "rounding",   type: "select", options: ["nearest", "up"], def: "nearest", help: "Rounding of the number of icons" },
+        { key: "perRow",     type: "range", min: 4, max: 40, step: 1, def: 18, help: "Icons per row" },
+        { key: "iconSize",   type: "range", min: 8, max: 60, step: 1, def: 30, help: "Largest icon size in px (smaller if there isn't room)" },
+        { key: "iconGap",    type: "range", min: 0, max: 1, step: 0.05, def: 0.4, help: "Space between icons, as a share of the icon size" },
+        { key: "valueSize",  type: "range", min: 10, max: 40, step: 0.5, def: 26, help: "Size of the totals above the icons in px" },
+        { key: "nameSize",   type: "range", min: 10, max: 40, step: 0.5, def: 24, help: "Size of the names under the icons in px" },
+        { key: "showLegend", type: "check", def: true, help: "Show the legend" },
+        { key: "legendRow",  type: "check", def: false, help: "Legend items side by side (instead of one per line)" }
+      ]},
+      { name: "Layout", fields: [
+        { key: "groupGap", type: "range", min: 0, max: 200, step: 2, def: 60, help: "Space between the groups in px" }
+      ]}
+    ],
+
+    build: function (ctx) {
+      var S = ctx.S;
+      DV.chartText(S);
+      var lg = document.getElementById("legend"); lg.innerHTML = "";
+      lg.className = "pict-legend" + (S.legendRow ? " row" : "");
+      lg.style.display = S.showLegend ? "" : "none";
+      ctx.data.slice(0, 2).forEach(function (d, i) {
+        var sp = document.createElement("span");
+        sp.innerHTML = '<svg viewBox="0 0 600 600" aria-hidden="true"><path fill="' + colorOf(S, i) + '" d="' + ICONS[S["icon" + (i + 1)]] + '"/></svg>';
+        sp.appendChild(document.createTextNode(d[ctx.P]));
+        lg.appendChild(sp);
+      });
+      if (S.iconNote) {
+        var n = document.createElement("span"); n.textContent = S.iconNote.replace(/\{per\}/g, DV.fmt(S.perIcon, "", 0)); lg.appendChild(n);
+      }
+    },
+
+    render: function (ctx) {
+      var S = ctx.S, P = ctx.P, rows = ctx.data.slice(0, 2);
+      DV.chartSizes(ctx);
+      var svg = document.getElementById("chart"), tip = document.getElementById("tip");
+      var W = document.getElementById("panel").clientWidth;
+      var side = !ctx.stacked;
+      var groupW = side ? (W - S.groupGap) / 2 : W;
+      var counts = rows.map(function (d) { var x = d.TWh / S.perIcon; return Math.max(0, S.rounding === "up" ? Math.ceil(x - 1e-9) : Math.round(x)); });
+      var pitch = Math.min(S.iconSize * (1 + S.iconGap), groupW / S.perRow), size = pitch / (1 + S.iconGap);
+      var vs = ctx.sz(S.valueSize, 15), ns = ctx.sz(S.nameSize, 14);
+      var rowsOf = counts.map(function (c) { return Math.ceil(c / S.perRow); });
+      var gridH = rowsOf.map(function (r) { return r * pitch; });
+      var maxH = Math.max.apply(null, gridH);
+      var blockH = function (i) { return vs * 1.5 + (side ? maxH : gridH[i]) + ns * 1.6; };
+      var H = side ? blockH(0) + 4 : blockH(0) + blockH(1) + 24;
+      DV.clear(svg);
+      svg.setAttribute("width", W); svg.setAttribute("height", H); svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+      rows.forEach(function (d, i) {
+        var n = counts[i], cols = Math.min(n, S.perRow), nr = rowsOf[i];
+        var gx = side ? i * (groupW + S.groupGap) : 0;
+        var top = side ? 0 : (i ? blockH(0) + 24 : 0);
+        var gridBottom = top + vs * 1.5 + (side ? maxH : gridH[i]);
+        var x0 = gx + (groupW - cols * pitch) / 2;
+        var g = DV.el("g", { "class": "dvc-hit dvc-hit-h" }, svg);
+        var full = Math.floor(n / S.perRow), rest = n - full * S.perRow;
+        for (var k = 0; k < n; k++) {
+          // full rows from the bottom up; the incomplete row on top, from the left
+          var r, c;
+          if (k < full * S.perRow) { r = Math.floor(k / S.perRow); c = k % S.perRow; } else { r = full; c = k - full * S.perRow; }
+          if (n < S.perRow) { r = 0; c = k; }
+          var cx = x0 + c * pitch + (pitch - size) / 2, cy = gridBottom - (r + 1) * pitch + (pitch - size) / 2;
+          DV.el("path", { d: ICONS[S["icon" + (i + 1)]], fill: colorOf(S, i),
+            transform: "translate(" + cx.toFixed(1) + "," + cy.toFixed(1) + ") scale(" + (size / 600).toFixed(4) + ")" }, g);
+        }
+        var gridTop = gridBottom - nr * pitch;
+        DV.el("text", { x: gx + groupW / 2, y: gridTop - vs * 0.55, "text-anchor": "middle", "font-size": vs, fill: S.headingColor }, svg)
+          .textContent = DV.fmt(d.TWh, S.unitLabel, 0);
+        DV.el("text", { x: gx + groupW / 2, y: gridBottom + ns * 1.25, "text-anchor": "middle", "font-size": ns, fill: S.headingColor }, svg)
+          .textContent = d[P];
+        DV.el("rect", { x: gx, y: gridTop - vs * 1.5, width: groupW, height: gridBottom - gridTop + vs * 1.5, fill: "transparent" }, g);
+        var show = function () {
+          DV.placeTip(tip, svg, gx + groupW / 2, gridTop, "<b>" + d[P] + "</b>" + DV.tipRow(colorOf(S, i), DV.fmt(d.TWh, S.unitLabel, 1),
+            DV.fmt(n, "", 0) + " × " + DV.fmt(S.perIcon, S.unitLabel, 0)));
+        };
+        g.addEventListener("pointermove", show);
+        g.addEventListener("pointerdown", show);
+        g.addEventListener("pointerleave", function () { DV.hideTip(tip); });
+      });
+    }
+  });
+})();
+</script>
+</body>
+</html>

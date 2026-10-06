@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overall gas tracking progress</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="../shared/v1/core.css">
+<link rel="stylesheet" href="../shared/v1/charts.css">
+</head>
+<body>
+<div class="dv" id="dv">
+  <h1 class="dv-title" id="dv-title"></h1>
+  <div class="dvc-sub" id="sub"></div>
+  <div id="views"></div>
+  <div id="legend"></div>
+  <div class="dvc-grid dvc-fade" id="grid"></div>
+  <p class="dv-footer" id="dv-footer"></p>
+  <div class="dvc-notes" id="notes"></div>
+</div>
+
+<script src="../shared/brand.js"></script>
+<script>
+// ==== SETTINGS START ====
+/* ================================================================
+ * DESIGN SETTINGS FOR THIS GRAPHIC
+ * Change any value below to restyle this graphic. Colours are hex
+ * codes, sizes are in pixels. Keep the quotes and the comma on each line.
+ * Fonts, text colours and palette colours are shared by all graphics:
+ * they live in shared/brand.js.
+ * Easier: open this page with ?design at the end of its address to
+ * adjust everything with sliders, then download the result.
+ * ================================================================ */
+var SETTINGS = {
+  // ---- Text ----
+  title: "Overall gas tracking progress",      // Main title
+  subtitle: "",                                // Subtitle under the title, one paragraph per line (empty = none)
+  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
+  capacityLabel: "Capacity",                   // Switch button: capacity view
+  unitsLabel: "Number of units",               // Switch button: units view
+  pInstalled: "Installed",                     // Panel heading: installed
+  pRetired: "Retired",                         // Panel heading: retired
+  pDev: "In development",                      // Panel heading: in development
+  pCancelled: "Cancelled",                     // Panel heading: cancelled
+  unitsWord: "units",                          // Word after unit counts in the tooltip
+  footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: July 2026", // Footer; links as [text](https://…). Leave empty to hide
+  notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.", // Notes under the footer, one paragraph per line; links as [text](https://…)
+
+  // ---- Text sizes ----
+  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  headingSize: 21,                             // Chart heading (subtitle) size in px
+  footerSize: 18,                              // Footer (footnote) text size in px
+  legendSize: 14,                              // Legend text size in px
+  axisSize: 14,                                // Axis label size in px
+  tooltipSize: 14,                             // Tooltip (popup) text size in px
+
+  // ---- Spacing ----
+  padTop: 16,                                  // Space above the graphic in px
+  padSides: 16,                                // Space left and right of the graphic in px
+  padBottom: 12,                               // Space below the graphic in px
+
+  // ---- Background ----
+  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+
+  // ---- Bars ----
+  showSwitch: true,                            // Show the capacity / units switch
+  switchColor: "#fef751",                      // Background of the selected switch button
+  legendToggle: true,                          // Clicking a legend item hides or shows that status
+  legendPos: "center",                         // Legend alignment
+  rowHeight: 64,                               // Height of each bar in px
+  barGap: 0,                                   // Space between the two bars of a panel, as a share of the bar
+  labelSize: 19,                               // Size of 2023 / Currently in px
+  totalSize: 19,                               // Size of the totals after the bars in px
+
+  // ---- Layout ----
+  colGap: 40,                                  // Space between the two columns of panels in px
+  rowGap: 24,                                  // Space between the rows of panels in px
+};
+// ==== SETTINGS END ====
+</script>
+<script src="../shared/v1/core.js"></script>
+<script src="../shared/v1/charts.js"></script>
+<script>
+(function () {
+  /* ------------------------------------------------------------------
+   * G4: Europe's gas plants, 2023 vs currently, by status (capacity or number of units).
+   * Sheet tab "G4": Status (one row per status, in legend order), then one column per period and
+   * measure: "2023 (GW)", "Currently (GW)", "2023 (units)", "Currently (units)". The periods are read
+   * from the "(GW)" headers. Which status goes in which panel is set in PANELS below.
+   * All four panels share one scale, so bar lengths can be compared across panels.
+   * Open with ?view=units to start on the units view.
+   * ------------------------------------------------------------------ */
+  var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
+  var FALLBACK = [
+    "Status\t2023 (GW)\tCurrently (GW)\t2023 (units)\tCurrently (units)",
+    "Operating\t227.1\t240\t1469\t1509",
+    "Mothballed\t15.6\t15\t105\t129",
+    "Retired\t0.7\t2.4\t4\t23",
+    "Announced\t15.6\t19.5\t41\t40",
+    "Pre-construction\t36.2\t43.2\t87\t128",
+    "Construction\t14.9\t19.4\t87\t65",
+    "Shelved\t15.2\t8.9\t37\t24",
+    "Cancelled\t9.2\t18.2\t14\t37"
+  ].join("\n");
+  var STATUSES = ["Operating", "Mothballed", "Retired", "Announced", "Pre-construction", "Construction", "Shelved", "Cancelled"];
+  var PALETTE_KEY = { "Operating": "gasOperating", "Mothballed": "gasMothballed", "Retired": "gasRetired", "Announced": "gasAnnounced",
+    "Pre-construction": "gasPreConstruction", "Construction": "gasConstruction", "Shelved": "gasShelved", "Cancelled": "gasCancelled" };
+  // Panels in reading order (left to right, then down); title setting and statuses
+  var PANELS = [
+    { title: "pInstalled", keys: ["Operating", "Mothballed"] },
+    { title: "pRetired", keys: ["Retired"] },
+    { title: "pDev", keys: ["Announced", "Pre-construction", "Construction", "Shelved"] },
+    { title: "pCancelled", keys: ["Cancelled"] }
+  ];
+  var VIEWS = { capacity: { suffix: " (GW)", unit: "GW", decimals: 1 }, units: { suffix: " (units)", unit: "", decimals: 0 } };
+  var view = /[?&]view=units\b/.test(location.search) ? "units" : "capacity";
+  var hidden = {};
+
+  DV.create({
+    sheetId: SHEET_ID,
+    sheetTab: "G4",
+    fallback: FALLBACK,
+    columns: ["Status"],
+    text: true,   // cells arrive as text; the reshaping below turns them into numbers
+
+    groups: [
+      DV.chartTextGroup({
+        title: "Overall gas tracking progress",
+        footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: July 2026",
+        notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.",
+        extra: [
+          { key: "capacityLabel", type: "text", def: "Capacity", help: "Switch button: capacity view" },
+          { key: "unitsLabel",    type: "text", def: "Number of units", help: "Switch button: units view" },
+          { key: "pInstalled",    type: "text", def: "Installed", help: "Panel heading: installed" },
+          { key: "pRetired",      type: "text", def: "Retired", help: "Panel heading: retired" },
+          { key: "pDev",          type: "text", def: "In development", help: "Panel heading: in development" },
+          { key: "pCancelled",    type: "text", def: "Cancelled", help: "Panel heading: cancelled" },
+          { key: "unitsWord",     type: "text", def: "units", help: "Word after unit counts in the tooltip" }
+        ]
+      }),
+      { name: "Bars", fields: [
+        { key: "showSwitch",   type: "check", def: true, help: "Show the capacity / units switch" },
+        { key: "switchColor",  type: "color", def: "#fef751", help: "Background of the selected switch button" },
+        { key: "legendToggle", type: "check", def: true, help: "Clicking a legend item hides or shows that status" },
+        { key: "legendPos",    type: "select", options: ["left", "center", "right"], def: "center", help: "Legend alignment" },
+        { key: "rowHeight",    type: "range", min: 20, max: 120, step: 2, def: 64, help: "Height of each bar in px" },
+        { key: "barGap",       type: "range", min: 0, max: 0.6, step: 0.02, def: 0, help: "Space between the two bars of a panel, as a share of the bar" },
+        { key: "labelSize",    type: "range", min: 10, max: 30, step: 0.5, def: 19, help: "Size of 2023 / Currently in px" },
+        { key: "totalSize",    type: "range", min: 10, max: 30, step: 0.5, def: 19, help: "Size of the totals after the bars in px" }
+      ]},
+      { name: "Layout", fields: [
+        { key: "colGap", type: "range", min: 0, max: 100, step: 2, def: 40, help: "Space between the two columns of panels in px" },
+        { key: "rowGap", type: "range", min: 0, max: 80, step: 2, def: 24, help: "Space between the rows of panels in px" }
+      ]}
+    ],
+
+    build: function (ctx) {
+      var S = ctx.S;
+      if (!ctx.raw) {
+        // reshape: one row per period, columns "<status> (GW)" and "<status> (units)"
+        ctx.raw = ctx.data;
+        // a status with capacity but no units (or the reverse) usually means cells stored as text
+        // that the sheet export dropped: use the built-in data rather than show wrong numbers
+        var gaps = ctx.raw.filter(function (d) {
+          return ctx.headers.some(function (h) {
+            var m = /^(.+) \(GW\)$/.exec(h); if (!m) return false;
+            return (+d[h] > 0) !== (+d[m[1] + " (units)"] > 0);
+          });
+        });
+        if (gaps.length) {
+          console.warn("Data visual: using fallback data (capacity and units don't match for: " + gaps.map(function (d) { return d.Status; }).join(", ") + ")");
+          var fb = DV.parseTable(FALLBACK); ctx.raw = fb.data; ctx.headers = fb.headers;
+        }
+        var periods = ctx.headers.map(function (h) { var m = /^(.+) \(GW\)$/.exec(h); return m && m[1]; }).filter(Boolean);
+        STATUSES = ctx.raw.map(function (d) { return d.Status; }).filter(function (k) { return PALETTE_KEY[k]; });
+        ctx.data = periods.map(function (p) {
+          var o = { Period: p };
+          ctx.raw.forEach(function (d) { o[d.Status + " (GW)"] = +d[p + " (GW)"] || 0; o[d.Status + " (units)"] = +d[p + " (units)"] || 0; });
+          return o;
+        });
+        ctx.P = "Period";
+      }
+      DV.chartText(S);
+      document.documentElement.style.setProperty("--dvc-switch-on", S.switchColor);
+      var vh = document.getElementById("views");
+      vh.style.display = S.showSwitch ? "" : "none";
+      DV.viewButtons({ el: vh, value: view, ariaLabel: "Show the data as",
+        items: [{ key: "capacity", label: S.capacityLabel }, { key: "units", label: S.unitsLabel }],
+        onChange: function (k) {
+          view = k;
+          var g = document.getElementById("grid"); g.classList.add("fading");
+          setTimeout(function () { ctx.rerender(); g.classList.remove("fading"); }, 180);
+        } });
+      var lg = DV.chartLegend({ items: STATUSES.map(function (k) { return { key: k, label: k, color: S[PALETTE_KEY[k]] }; }),
+        toggle: S.legendToggle, hidden: hidden, onToggle: function () { ctx.rerender(); } });
+      lg.classList.add("dvc-" + S.legendPos);
+      var host = document.getElementById("legend"); DV.clear(host); host.appendChild(lg);
+      var grid = document.getElementById("grid"); DV.clear(grid);
+      PANELS.forEach(function (p) {
+        var d = document.createElement("div"); d.className = "dvc-panel";
+        var h = document.createElement("h2"); h.textContent = S[p.title]; d.appendChild(h);
+        p.svg = DV.el("svg", {}, d);
+        p.tip = document.createElement("div"); p.tip.className = "dv-tooltip"; d.appendChild(p.tip);
+        grid.appendChild(d);
+      });
+    },
+
+    render: function (ctx) {
+      var S = ctx.S, rows = ctx.data, P = ctx.P, V = VIEWS[view];
+      DV.chartSizes(ctx);
+      var grid = document.getElementById("grid");
+      grid.style.setProperty("--dvc-gap-x", S.colGap + "px");
+      grid.style.setProperty("--dvc-gap-y", S.rowGap + "px");
+      var col = function (s) { return s + V.suffix; };
+      var fmt = function (v) { return view === "units" ? DV.fmt(v, "", 0) : DV.fmt(v, V.unit, V.decimals); };
+      var sumOf = function (d, keys) { return keys.reduce(function (a, k) { return a + (hidden[k] ? 0 : d[col(k)] || 0); }, 0); };
+      var xMax = 0;
+      PANELS.forEach(function (p) { rows.forEach(function (d) { xMax = Math.max(xMax, sumOf(d, p.keys)); }); });
+      var lsz = ctx.sz(S.labelSize, 12), lw = 0;
+      rows.forEach(function (d) { lw = Math.max(lw, DV.textWidth(d[P], lsz, 700)); });
+      var tsz = ctx.sz(S.totalSize, 12);
+      PANELS.forEach(function (p) {
+        var w = p.svg.parentNode.clientWidth;
+        var series = p.keys.filter(function (k) { return !hidden[k]; }).map(function (k) { return { key: col(k), label: k, color: S[PALETTE_KEY[k]] }; });
+        DV.hbars({ S: S, svg: p.svg, tip: p.tip, width: w, rows: rows, label: function (d) { return d[P]; }, labelW: lw + 12,
+          labelSize: lsz, labelWeight: 700, series: series, xMax: xMax || 1, tickStep: 0, rowH: S.rowHeight * (ctx.stacked ? 0.75 : 1),
+          gap: S.barGap, sep: S.pageBg === "transparent" ? "#fff" : S.pageBg, sepWidth: 1,
+          total: function (d, i, t) { return fmt(t); }, totalSize: tsz, totalZero: true, right: DV.textWidth(fmt(xMax), tsz, 700) + 10,
+          tooltip: function (i) {
+            var d = rows[i], h = "<b>" + S[p.title] + ", " + d[P] + "</b>";
+            series.forEach(function (s) { h += DV.tipRow(s.color, s.label, fmt(d[s.key]) + (view === "units" ? " " + S.unitsWord : "")); });
+            return h;
+          } });
+      });
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New coal power plant projects by region</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="../shared/v1/core.css">
+<link rel="stylesheet" href="../shared/v1/charts.css">
+</head>
+<body>
+<div class="dv" id="dv">
+  <h1 class="dv-title" id="dv-title"></h1>
+  <div class="dvc-sub" id="sub"></div>
+  <p class="dvc-hint dv-control" id="hint"></p>
+  <div id="legend"></div>
+  <div class="dvc-grid" id="grid"></div>
+  <p class="dv-footer" id="dv-footer"></p>
+  <div class="dvc-notes" id="notes"></div>
+</div>
+
+<script src="../shared/brand.js"></script>
+<script>
+// ==== SETTINGS START ====
+/* ================================================================
+ * DESIGN SETTINGS FOR THIS GRAPHIC
+ * Change any value below to restyle this graphic. Colours are hex
+ * codes, sizes are in pixels. Keep the quotes and the comma on each line.
+ * Fonts, text colours and palette colours are shared by all graphics:
+ * they live in shared/brand.js.
+ * Easier: open this page with ?design at the end of its address to
+ * adjust everything with sliders, then download the result.
+ * ================================================================ */
+var SETTINGS = {
+  // ---- Text ----
+  title: "New coal power plant projects: almost there, but there’s still work to do", // Main title
+  subtitle: "While the EU has not only cancelled coal plants already under construction but also prevented others from ever starting operations, the Western Balkans are slower to stop new coal projects.", // Subtitle under the title, one paragraph per line (empty = none)
+  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
+  hint: "Click each status below to toggle them off and on", // Line above the legend (empty = none)
+  heading: "{region} (~{total} GW)",           // Panel headings; {region} and {total} (largest total, GW) are filled in
+  unitLabel: "GW",                             // Unit in the tooltip
+  footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Coal power plant projects tracked since Jan 2016 | Last update: July 2026", // Footer; links as [text](https://…). Leave empty to hide
+  notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
+
+  // ---- Text sizes ----
+  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  headingSize: 21,                             // Chart heading (subtitle) size in px
+  footerSize: 18,                              // Footer (footnote) text size in px
+  legendSize: 14,                              // Legend text size in px
+  axisSize: 14,                                // Axis label size in px
+  tooltipSize: 14,                             // Tooltip (popup) text size in px
+
+  // ---- Spacing ----
+  padTop: 16,                                  // Space above the graphic in px
+  padSides: 16,                                // Space left and right of the graphic in px
+  padBottom: 12,                               // Space below the graphic in px
+
+  // ---- Background ----
+  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+
+  // ---- Bars ----
+  legendToggle: true,                          // Clicking a legend item hides or shows that status
+  legendPos: "left",                           // Legend alignment
+  barGap: 0.04,                                // Space between bars, as a share of each bar's slot
+  labelEvery: 8,                               // Label every n quarters on the x-axis
+  headingAlign: "center",                      // Panel heading alignment
+
+  // ---- Layout ----
+  chartHeight: 0.95,                           // Chart height as a share of its width
+  chartGap: 24,                                // Space between panels in px
+};
+// ==== SETTINGS END ====
+</script>
+<script src="../shared/v1/core.js"></script>
+<script src="../shared/v1/charts.js"></script>
+<script>
+(function () {
+  /* ------------------------------------------------------------------
+   * C7: what happened to new coal power plant projects, by region (share of capacity).
+   * Sheet tab "C7": Region, Period, then one column per status (GW), in legend order.
+   * One panel per region, in sheet order. Each bar is 100% of that quarter's capacity;
+   * the "~7 GW" in the headings is the region's largest total, rounded.
+   * ------------------------------------------------------------------ */
+  var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
+  var FALLBACK = [
+    "Region\tPeriod\tAnnounced & pre-construction\tInto construction/operation\tCancelled before completion\tShelved & cancelled",
+    "W. Balkans\t2016 Q1\t6.775\t0\t0\t0",
+    "W. Balkans\t2016 Q2\t6.775\t0\t0\t0",
+    "W. Balkans\t2016 Q3\t6.775\t0\t0\t0",
+    "W. Balkans\t2016 Q4\t6.775\t0\t0\t0",
+    "W. Balkans\t2017 Q1\t6.775\t0\t0\t0",
+    "W. Balkans\t2017 Q2\t6.775\t0\t0\t0",
+    "W. Balkans\t2017 Q3\t6.905\t0\t0\t0",
+    "W. Balkans\t2017 Q4\t6.905\t0\t0\t0",
+    "W. Balkans\t2018 Q1\t7.335\t0\t0\t0",
+    "W. Balkans\t2018 Q2\t7.335\t0\t0\t0",
+    "W. Balkans\t2018 Q3\t6.235\t0\t0\t1.1",
+    "W. Balkans\t2018 Q4\t6.235\t0\t0\t1.1",
+    "W. Balkans\t2019 Q1\t6.263\t0\t0\t1.1",
+    "W. Balkans\t2019 Q2\t6.613\t0\t0\t0.75",
+    "W. Balkans\t2019 Q3\t6.585\t0\t0\t0.75",
+    "W. Balkans\t2019 Q4\t6.36\t0\t0\t0.975",
+    "W. Balkans\t2020 Q1\t5.33\t0.38\t0\t1.655",
+    "W. Balkans\t2020 Q2\t5.33\t0.38\t0\t1.655",
+    "W. Balkans\t2020 Q3\t4.88\t0.38\t0\t2.105",
+    "W. Balkans\t2020 Q4\t4.88\t0.38\t0\t2.105",
+    "W. Balkans\t2021 Q1\t4.88\t0.38\t0\t2.105",
+    "W. Balkans\t2021 Q2\t4.88\t0.38\t0\t2.105",
+    "W. Balkans\t2021 Q3\t4.88\t0.38\t0\t2.105",
+    "W. Balkans\t2021 Q4\t4.88\t0.38\t0\t2.105",
+    "W. Balkans\t2022 Q1\t4.88\t0.38\t0\t2.105",
+    "W. Balkans\t2022 Q2\t4.88\t0.38\t0\t2.105",
+    "W. Balkans\t2022 Q3\t4.88\t0.38\t0\t2.105",
+    "W. Balkans\t2022 Q4\t4.88\t0.38\t0\t2.105",
+    "W. Balkans\t2023 Q1\t3.4\t0.38\t0\t3.585",
+    "W. Balkans\t2023 Q2\t3.4\t0.38\t0\t3.585",
+    "W. Balkans\t2023 Q3\t3.05\t0.38\t0\t3.935",
+    "W. Balkans\t2023 Q4\t3.05\t0.38\t0\t3.935",
+    "W. Balkans\t2024 Q1\t3.05\t0.38\t0\t3.935",
+    "W. Balkans\t2024 Q2\t3.05\t0.38\t0\t3.935",
+    "W. Balkans\t2024 Q3\t3.05\t0.38\t0\t3.935",
+    "W. Balkans\t2024 Q4\t1.7\t0.38\t0\t5.285",
+    "W. Balkans\t2025 Q1\t1.05\t0.38\t0\t5.935",
+    "W. Balkans\t2025 Q2\t1.05\t0.38\t0\t5.935",
+    "W. Balkans\t2025 Q3\t1.05\t0.38\t0\t5.935",
+    "W. Balkans\t2025 Q4\t1.05\t0.38\t0\t5.935",
+    "W. Balkans\t2026 Q1\t1.05\t0.38\t0\t5.935",
+    "W. Balkans\t2026 Q2\t1.05\t0.38\t0\t5.935",
+    "EU [+UK]\t2016 Q1\t14.866\t0.053\t0\t0",
+    "EU [+UK]\t2016 Q2\t14.866\t0.053\t0\t0",
+    "EU [+UK]\t2016 Q3\t11.72\t0.053\t0\t2.926",
+    "EU [+UK]\t2016 Q4\t11.06\t0.713\t0\t2.926",
+    "EU [+UK]\t2017 Q1\t10.24\t0.713\t0\t3.746",
+    "EU [+UK]\t2017 Q2\t10.24\t0.713\t0\t3.746",
+    "EU [+UK]\t2017 Q3\t10.24\t0.713\t0\t3.746",
+    "EU [+UK]\t2017 Q4\t10.24\t0.713\t0\t3.746",
+    "EU [+UK]\t2018 Q1\t9.77\t1.713\t0\t4.316",
+    "EU [+UK]\t2018 Q2\t9.77\t1.713\t0\t4.316",
+    "EU [+UK]\t2018 Q3\t10.38\t1.713\t0\t4.316",
+    "EU [+UK]\t2018 Q4\t10.38\t1.713\t0\t4.316",
+    "EU [+UK]\t2019 Q1\t9.38\t1.713\t0\t4.316",
+    "EU [+UK]\t2019 Q2\t9.38\t1.713\t0\t4.316",
+    "EU [+UK]\t2019 Q3\t6.735\t1.713\t0\t7.016",
+    "EU [+UK]\t2019 Q4\t6.635\t1.822\t0\t7.016",
+    "EU [+UK]\t2020 Q1\t6.2\t1.822\t0\t7.466",
+    "EU [+UK]\t2020 Q2\t6.2\t1.822\t0\t7.466",
+    "EU [+UK]\t2020 Q3\t1.78\t1.822\t1\t11.886",
+    "EU [+UK]\t2020 Q4\t1.78\t1.822\t1\t11.886",
+    "EU [+UK]\t2021 Q1\t0.57\t1.822\t1\t13.096",
+    "EU [+UK]\t2021 Q2\t0.5\t1.822\t1\t13.151",
+    "EU [+UK]\t2021 Q3\t0.5\t1.822\t1\t13.151",
+    "EU [+UK]\t2021 Q4\t0.5\t1.822\t1\t13.151",
+    "EU [+UK]\t2022 Q1\t0.5\t1.822\t1\t13.151",
+    "EU [+UK]\t2022 Q2\t0.5\t1.822\t1\t13.151",
+    "EU [+UK]\t2022 Q3\t0.5\t1.822\t1\t13.151",
+    "EU [+UK]\t2022 Q4\t0.5\t1.822\t1\t13.151",
+    "EU [+UK]\t2023 Q1\t0\t1.822\t1\t13.651",
+    "EU [+UK]\t2023 Q2\t0\t1.822\t1\t13.651",
+    "EU [+UK]\t2023 Q3\t0\t1.822\t1\t13.651",
+    "EU [+UK]\t2023 Q4\t0\t1.822\t1\t13.651",
+    "EU [+UK]\t2024 Q1\t0\t1.822\t1\t13.651",
+    "EU [+UK]\t2024 Q2\t0\t1.822\t1\t13.651",
+    "EU [+UK]\t2024 Q3\t0\t1.822\t1\t13.651",
+    "EU [+UK]\t2024 Q4\t0\t1.822\t1\t13.651",
+    "EU [+UK]\t2025 Q1\t0\t1.822\t1\t13.651",
+    "EU [+UK]\t2025 Q2\t0\t1.822\t1\t13.651",
+    "EU [+UK]\t2025 Q3\t0\t1.822\t1\t13.651",
+    "EU [+UK]\t2025 Q4\t0\t1.822\t1\t13.651",
+    "EU [+UK]\t2026 Q1\t0\t1.822\t1\t13.651",
+    "EU [+UK]\t2026 Q2\t0\t1.822\t1\t13.651",
+    "Türkiye\t2016 Q1\t66.609\t0\t0\t0",
+    "Türkiye\t2016 Q2\t66.609\t0\t0\t0",
+    "Türkiye\t2016 Q3\t64.719\t0\t0\t5.29",
+    "Türkiye\t2016 Q4\t64.719\t0\t0\t5.29",
+    "Türkiye\t2017 Q1\t56.979\t0\t0\t15.48",
+    "Türkiye\t2017 Q2\t56.469\t0.51\t0\t15.48",
+    "Türkiye\t2017 Q3\t57.129\t0.51\t0\t15.48",
+    "Türkiye\t2017 Q4\t57.929\t0.51\t0\t15.48",
+    "Türkiye\t2018 Q1\t46.859\t0.51\t0\t27.1",
+    "Türkiye\t2018 Q2\t46.859\t0.51\t0\t27.1",
+    "Türkiye\t2018 Q3\t41.815\t0.51\t0\t32.884",
+    "Türkiye\t2018 Q4\t41.815\t0.51\t0\t32.884",
+    "Türkiye\t2019 Q1\t41.615\t0.51\t0\t33.084",
+    "Türkiye\t2019 Q2\t41.615\t0.51\t0\t33.084",
+    "Türkiye\t2019 Q3\t35.685\t0.51\t0\t39.054",
+    "Türkiye\t2019 Q4\t34.365\t1.83\t0\t39.054",
+    "Türkiye\t2020 Q1\t32.775\t1.83\t0\t40.624",
+    "Türkiye\t2020 Q2\t32.775\t1.83\t0\t40.624",
+    "Türkiye\t2020 Q3\t30.915\t1.83\t0\t43.114",
+    "Türkiye\t2020 Q4\t30.915\t1.83\t0\t43.114",
+    "Türkiye\t2021 Q1\t32.185\t1.83\t0\t43.249",
+    "Türkiye\t2021 Q2\t20.44\t1.83\t0\t54.994",
+    "Türkiye\t2021 Q3\t12.185\t1.83\t0\t63.249",
+    "Türkiye\t2021 Q4\t12.185\t1.83\t0\t63.249",
+    "Türkiye\t2022 Q1\t12.05\t1.83\t0\t63.384",
+    "Türkiye\t2022 Q2\t10.07\t1.83\t0\t65.364",
+    "Türkiye\t2022 Q3\t10.488\t1.83\t0\t65.634",
+    "Türkiye\t2022 Q4\t10.488\t1.83\t0\t65.634",
+    "Türkiye\t2023 Q1\t10.488\t1.83\t0\t65.634",
+    "Türkiye\t2023 Q2\t10.488\t1.83\t0\t65.634",
+    "Türkiye\t2023 Q3\t8.238\t1.83\t0\t67.884",
+    "Türkiye\t2023 Q4\t8.238\t1.83\t0\t67.884",
+    "Türkiye\t2024 Q1\t8.238\t1.83\t0\t67.884",
+    "Türkiye\t2024 Q2\t6.438\t1.83\t0\t69.684",
+    "Türkiye\t2024 Q3\t5.688\t1.83\t0\t70.434",
+    "Türkiye\t2024 Q4\t1.768\t1.83\t0\t74.354",
+    "Türkiye\t2025 Q1\t0.688\t1.83\t0\t75.434",
+    "Türkiye\t2025 Q2\t0.688\t1.83\t0\t75.434",
+    "Türkiye\t2025 Q3\t0.688\t1.83\t0\t75.434",
+    "Türkiye\t2025 Q4\t0.688\t1.83\t0\t75.434",
+    "Türkiye\t2026 Q1\t0.688\t1.83\t0\t75.434",
+    "Türkiye\t2026 Q2\t1.738\t1.83\t0\t75.434"
+  ].join("\n");
+  var PALETTE_KEY = { "Announced & pre-construction": "coalPlanned", "Into construction/operation": "coalConstruction",
+    "Cancelled before completion": "coalRetired", "Shelved & cancelled": "coalCancelled" };
+  // Stack order, bottom first (projects that went ahead at the bottom, as in the Flourish version)
+  var STACK = ["Into construction/operation", "Cancelled before completion", "Announced & pre-construction", "Shelved & cancelled"];
+  var hidden = {}, panels = [];
+
+  DV.create({
+    sheetId: SHEET_ID,
+    sheetTab: "C7",
+    fallback: FALLBACK,
+    columns: ["Period"].concat(Object.keys(PALETTE_KEY)),
+    text: true,
+
+    groups: [
+      DV.chartTextGroup({
+        title: "New coal power plant projects: almost there, but there’s still work to do",
+        subtitle: "While the EU has not only cancelled coal plants already under construction but also prevented others from ever starting operations, the Western Balkans are slower to stop new coal projects.",
+        footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Coal power plant projects tracked since Jan 2016 | Last update: July 2026",
+        extra: [
+          { key: "hint",    type: "text", def: "Click each status below to toggle them off and on", help: "Line above the legend (empty = none)" },
+          { key: "heading", type: "text", def: "{region} (~{total} GW)", help: "Panel headings; {region} and {total} (largest total, GW) are filled in" },
+          { key: "unitLabel", type: "text", def: "GW", help: "Unit in the tooltip" }
+        ]
+      }),
+      { name: "Bars", fields: [
+        { key: "legendToggle", type: "check", def: true, help: "Clicking a legend item hides or shows that status" },
+        { key: "legendPos",    type: "select", options: ["left", "center", "right"], def: "left", help: "Legend alignment" },
+        { key: "barGap",       type: "range", min: 0, max: 0.5, step: 0.02, def: 0.04, help: "Space between bars, as a share of each bar's slot" },
+        { key: "labelEvery",   type: "range", min: 1, max: 16, step: 1, def: 8, help: "Label every n quarters on the x-axis" },
+        { key: "headingAlign", type: "select", options: ["left", "center"], def: "center", help: "Panel heading alignment" }
+      ]},
+      { name: "Layout", fields: [
+        { key: "chartHeight", type: "range", min: 0.4, max: 1.6, step: 0.02, def: 0.95, help: "Chart height as a share of its width" },
+        { key: "chartGap",    type: "range", min: 0, max: 80, step: 2, def: 24, help: "Space between panels in px" }
+      ]}
+    ],
+
+    build: function (ctx) {
+      var S = ctx.S;
+      DV.chartText(S);
+      document.getElementById("hint").textContent = S.legendToggle ? S.hint : "";
+      var keys = DV.byColumns(ctx.headers, Object.keys(PALETTE_KEY));
+      var lg = DV.chartLegend({ items: keys.map(function (k) { return { key: k, label: k, color: S[PALETTE_KEY[k]] }; }),
+        toggle: S.legendToggle, hidden: hidden, shape: "square", onToggle: function () { ctx.rerender(); } });
+      lg.classList.add("dvc-" + S.legendPos);
+      var host = document.getElementById("legend"); DV.clear(host); host.appendChild(lg);
+
+      // one panel per region, in sheet order
+      var grid = document.getElementById("grid"); DV.clear(grid); panels = [];
+      var byRegion = {};
+      ctx.data.forEach(function (d) {
+        var r = d.Region;
+        if (!byRegion[r]) { byRegion[r] = []; panels.push({ name: r, rows: byRegion[r] }); }
+        var row = { Period: d.Period };
+        Object.keys(PALETTE_KEY).forEach(function (k) { row[k] = +String(d[k]).replace(/,/g, "") || 0; });
+        byRegion[r].push(row);
+      });
+      panels.forEach(function (p) {
+        var max = Math.max.apply(null, p.rows.map(function (r) { return Object.keys(PALETTE_KEY).reduce(function (a, k) { return a + r[k]; }, 0); }));
+        var div = document.createElement("div"); div.className = "dvc-panel";
+        var h = document.createElement("h2"); h.style.textAlign = S.headingAlign;
+        h.textContent = S.heading.replace(/\{region\}/g, p.name).replace(/\{total\}/g, DV.fmt(Math.round(max), "", 0));
+        div.appendChild(h);
+        p.svg = DV.el("svg", {}, div);
+        p.tip = document.createElement("div"); p.tip.className = "dv-tooltip"; div.appendChild(p.tip);
+        p.head = h;
+        grid.appendChild(div);
+      });
+      grid.style.setProperty("--dvc-cols", panels.length);
+    },
+
+    render: function (ctx) {
+      var S = ctx.S, u = S.unitLabel;
+      DV.chartSizes(ctx);
+      var grid = document.getElementById("grid");
+      grid.style.setProperty("--dvc-gap-x", S.chartGap + "px");
+      DV.alignHeads(panels.map(function (p) { return p.head; }), !ctx.stacked);
+      var series = STACK.filter(function (k) { return !hidden[k]; }).map(function (k) { return { key: k, label: k, color: S[PALETTE_KEY[k]] }; });
+      var legendOrder = DV.byColumns(ctx.headers, Object.keys(PALETTE_KEY));
+      panels.forEach(function (p, pi) {
+        var w = p.svg.parentNode.clientWidth;
+        var h = DV.clamp(w * S.chartHeight * (ctx.stacked ? 0.7 : 1), 200, 620);
+        DV.bars({ S: S, svg: p.svg, tip: p.tip, width: w, height: h, rows: p.rows, percent: true,
+          label: function (d) { return d.Period; }, xLabelAt: function (i) { return i % S.labelEvery === 0; },
+          gap: S.barGap, sep: S.pageBg === "transparent" ? "#fff" : S.pageBg, sepWidth: 0.5, series: series,
+          yMax: 100, tickStep: 50, fmtY: function (v) { return v + "%"; }, yAxis: pi === 0 || ctx.stacked,
+          tooltip: function (i) {
+            var d = p.rows[i], tot = series.reduce(function (a, s) { return a + d[s.key]; }, 0);
+            var html = "<b>" + p.name + ", " + d.Period + "</b>";
+            legendOrder.forEach(function (k) {
+              if (hidden[k]) return;
+              html += DV.tipRow(S[PALETTE_KEY[k]], k, DV.fmt(d[k], u, 2) + " (" + DV.fmt(tot ? d[k] / tot * 100 : 0, "", 0) + "%)");
+            });
+            return html;
+          } });
+      });
+    }
+  });
+})();
+</script>
+</body>
+</html>

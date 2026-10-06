@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Value of realistic buildable capacity in the queue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="../shared/v1/core.css">
+<link rel="stylesheet" href="../shared/v1/charts.css">
+</head>
+<body>
+<div class="dv" id="dv">
+  <h1 class="dv-title" id="dv-title"></h1>
+  <div class="dvc-sub" id="sub"></div>
+  <div class="dvc-panel" id="panel"><div id="legend"></div><svg id="chart"></svg><div class="dv-tooltip" id="tip"></div></div>
+  <p class="dv-footer" id="dv-footer"></p>
+  <div class="dvc-notes" id="notes"></div>
+</div>
+
+<script src="../shared/brand.js"></script>
+<script>
+// ==== SETTINGS START ====
+/* ================================================================
+ * DESIGN SETTINGS FOR THIS GRAPHIC
+ * Change any value below to restyle this graphic. Colours are hex
+ * codes, sizes are in pixels. Keep the quotes and the comma on each line.
+ * Fonts, text colours and palette colours are shared by all graphics:
+ * they live in shared/brand.js.
+ * Easier: open this page with ?design at the end of its address to
+ * adjust everything with sliders, then download the result.
+ * ================================================================ */
+var SETTINGS = {
+  // ---- Text ----
+  title: "Value of \"realistic buildable\" capacity in the queue", // Main title
+  subtitle: "",                                // Subtitle under the title, one paragraph per line (empty = none)
+  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
+  totalName: "Total",                          // Name of the total bar (empty = no total bar)
+  prefix: "€",                                 // Before each number
+  suffix: "bn",                                // After each number
+  footer: "Source: [AFRY and BFF report \"Grid expectations: The distribution backlog stalling Europe's energy transition\"](https://beyondfossilfuels.org/2026/06/02/grid-expectations-the-distribution-backlog-stalling-europes-energy-transition/)", // Footer; links as [text](https://…). Leave empty to hide
+  notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
+
+  // ---- Text sizes ----
+  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  headingSize: 21,                             // Chart heading (subtitle) size in px
+  footerSize: 18,                              // Footer (footnote) text size in px
+  legendSize: 14,                              // Legend text size in px
+  axisSize: 14,                                // Axis label size in px
+  tooltipSize: 14,                             // Tooltip (popup) text size in px
+
+  // ---- Spacing ----
+  padTop: 16,                                  // Space above the graphic in px
+  padSides: 16,                                // Space left and right of the graphic in px
+  padBottom: 12,                               // Space below the graphic in px
+
+  // ---- Background ----
+  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+
+  // ---- Bars ----
+  legendPos: "center",                         // Legend alignment
+  barGap: 0.2,                                 // Space between bars, as a share of each bar's slot
+  sigFigs: 2,                                  // Labels above the bars: significant figures (2: 45, 7, 0.03, 100)
+  topLabelSize: 20,                            // Size of the labels above the bars in px
+  decimals: 2,                                 // Decimals in the tooltip
+
+  // ---- Layout ----
+  chartHeight: 0.62,                           // Chart height as a share of its width
+  minHeight: 340,                              // Smallest chart height in px (phones)
+};
+// ==== SETTINGS END ====
+</script>
+<script src="../shared/v1/core.js"></script>
+<script src="../shared/v1/charts.js"></script>
+<script>
+(function () {
+  /* ------------------------------------------------------------------
+   * F1: value of "realistic buildable" capacity in the grid queue (€bn), waterfall.
+   * Sheet tab "F1": Country, then one column per technology, TOP of the stack first.
+   * Each country's bar starts where the previous one ended; the Total bar is
+   * added here (a row called "Total" in the sheet is ignored).
+   * ------------------------------------------------------------------ */
+  var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
+  var FALLBACK = [
+    "Country\tWind\tSolar PV\tBESS",
+    "Germany\t17.1\t18\t9.9",
+    "UK\t4.86\t5.22\t7.92",
+    "Poland\t1.92\t4.32\t5.76",
+    "Italy\t0.72\t9.6\t1.68",
+    "Spain\t1.96\t3.29\t1.75",
+    "Czechia\t2.46\t2.1\t1.44",
+    "Greece\t0.06\t0.49\t0.45",
+    "Bulgaria\t0.003\t0.027\t0"
+  ].join("\n");
+  var PALETTE_KEY = { "Wind": "wind", "Solar PV": "solar", "BESS": "bess" };
+
+  DV.create({
+    sheetId: SHEET_ID,
+    sheetTab: "F1",
+    fallback: FALLBACK,
+    columns: Object.keys(PALETTE_KEY),
+
+    groups: [
+      DV.chartTextGroup({
+        title: "Value of \"realistic buildable\" capacity in the queue",
+        footer: "Source: [AFRY and BFF report \"Grid expectations: The distribution backlog stalling Europe's energy transition\"](https://beyondfossilfuels.org/2026/06/02/grid-expectations-the-distribution-backlog-stalling-europes-energy-transition/)",
+        extra: [
+          { key: "totalName",  type: "text", def: "Total", help: "Name of the total bar (empty = no total bar)" },
+          { key: "prefix",     type: "text", def: "€", help: "Before each number" },
+          { key: "suffix",     type: "text", def: "bn", help: "After each number" }
+        ]
+      }),
+      { name: "Bars", fields: [
+        { key: "legendPos",   type: "select", options: ["left", "center", "right"], def: "center", help: "Legend alignment" },
+        { key: "barGap",      type: "range", min: 0, max: 0.7, step: 0.02, def: 0.2, help: "Space between bars, as a share of each bar's slot" },
+        { key: "sigFigs",     type: "range", min: 1, max: 4, step: 1, def: 2, help: "Labels above the bars: significant figures (2: 45, 7, 0.03, 100)" },
+        { key: "topLabelSize", type: "range", min: 9, max: 32, step: 0.5, def: 20, help: "Size of the labels above the bars in px" },
+        { key: "decimals",    type: "range", min: 0, max: 3, step: 1, def: 2, help: "Decimals in the tooltip" }
+      ]},
+      { name: "Layout", fields: [
+        { key: "chartHeight", type: "range", min: 0.3, max: 1.2, step: 0.02, def: 0.62, help: "Chart height as a share of its width" },
+        { key: "minHeight",   type: "range", min: 200, max: 700, step: 10, def: 340, help: "Smallest chart height in px (phones)" }
+      ]}
+    ],
+
+    build: function (ctx) {
+      var S = ctx.S;
+      DV.chartText(S);
+      var keys = DV.byColumns(ctx.headers, Object.keys(PALETTE_KEY));
+      var lg = DV.chartLegend({ items: keys.map(function (k) { return { key: k, label: k, color: S[PALETTE_KEY[k]] }; }) });
+      lg.classList.add("dvc-" + S.legendPos);
+      var host = document.getElementById("legend"); DV.clear(host); host.appendChild(lg);
+    },
+
+    render: function (ctx) {
+      var S = ctx.S, P = ctx.P;
+      DV.chartSizes(ctx);
+      var keys = DV.byColumns(ctx.headers, Object.keys(PALETTE_KEY));
+      var sum = function (d) { return keys.reduce(function (a, k) { return a + d[k]; }, 0); };
+      var rows = ctx.data.filter(function (d) { return String(d[P]).trim().toLowerCase() !== "total"; });
+      var bases = [], acc = 0;
+      rows.forEach(function (d) { bases.push(acc); acc += sum(d); });
+      if (S.totalName) {
+        var t = {}; t[P] = S.totalName;
+        keys.forEach(function (k) { t[k] = rows.reduce(function (a, d) { return a + d[k]; }, 0); });
+        rows = rows.concat([t]); bases.push(0);
+      }
+      var money = function (v, sig) { return S.prefix + DV.fmt(sig ? DV.sigFig(v, sig) : v, "", sig ? 4 : S.decimals) + S.suffix; };
+      var w = document.getElementById("panel").clientWidth, narrow = w < 560;
+      var h = Math.max(S.minHeight, w * S.chartHeight);
+      var ax = DV.niceAxis(acc, 5);
+      DV.bars({ S: S, svg: document.getElementById("chart"), tip: document.getElementById("tip"), width: w, height: h,
+        rows: rows, label: function (d) { return d[P]; }, gap: S.barGap, xEvery: 1, sep: S.pageBg === "transparent" ? "#fff" : S.pageBg,
+        series: keys.slice().reverse().map(function (k) { return { key: k, color: S[PALETTE_KEY[k]] }; }),
+        base: function (d, i) { return bases[i]; }, topLabel: function (d) { return money(sum(d), S.sigFigs); },
+        topLabelSize: ctx.sz(S.topLabelSize, narrow ? 9 : 12), fs: narrow ? Math.max(9, S.axisSize * 0.75) : null,
+        yMax: ax.max, tickStep: ax.step, fmtY: function (v) { return money(v); },
+        tooltip: function (i) {
+          var d = rows[i], h = "<b>" + d[P] + "</b>";
+          keys.forEach(function (k) { h += DV.tipRow(S[PALETTE_KEY[k]], k, money(d[k])); });
+          return h + DV.tipRow("", S.totalName || "Total", money(sum(d)), "t");
+        } });
+    }
+  });
+})();
+</script>
+</body>
+</html>
