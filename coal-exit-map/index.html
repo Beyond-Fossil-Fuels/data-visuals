@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Europe's coal exit: country map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="../shared/v1/core.css">
+<link rel="stylesheet" href="../shared/v1/map.css">
+<style>
+  /* Country details (hover popup and click panel) */
+  .c1-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; padding-right: 22px; }
+  .c1-head img { width: 32px; height: 24px; flex: none; }
+  .c1-head b { font-size: 1.3em; line-height: 1.15; margin: 0; display: inline; }
+  .c1-status { font-weight: 700; font-size: 1.1em; line-height: 1.3; }
+  .c1-status.dot { display: flex; align-items: flex-start; gap: 8px; color: #000; }
+  .c1-status.dot i { width: 0.85em; height: 0.85em; border-radius: 50%; flex: none; margin-top: 0.22em; }
+  .c1-status + .c1-status { margin-top: 8px; }
+  .c1-desc { margin: 10px 0 0; }
+  .c1-share { margin-top: 12px; }
+  .c1-share .lab { margin-bottom: 4px; }
+  .c1-share .row { display: flex; align-items: center; gap: 8px; }
+  .c1-share .bar { flex: 1; height: 10px; border-radius: 4px; background: #dbdbdb; overflow: hidden; }
+  .c1-share .bar span { display: block; height: 100%; }
+</style>
+</head>
+<body>
+<div class="dv" id="dv">
+  <h1 class="dv-title" id="dv-title"></h1>
+  <div id="map"></div>
+  <p class="dv-footer" id="dv-footer"></p>
+</div>
+
+<script src="../shared/brand.js"></script>
+<script>
+// ==== SETTINGS START ====
+/* ================================================================
+ * DESIGN SETTINGS FOR THIS GRAPHIC
+ * Change any value below to restyle this graphic. Colours are hex
+ * codes, sizes are in pixels. Keep the quotes and the comma on each line.
+ * Fonts, text colours and palette colours are shared by all graphics:
+ * they live in shared/brand.js.
+ * Easier: open this page with ?design at the end of its address to
+ * adjust everything with sliders, then download the result.
+ * ================================================================ */
+var SETTINGS = {
+  // ---- Text ----
+  title: "Overview of country coal phase-out announcements and plans in Europe", // Main title
+  footer: "Source: [Beyond Fossil Fuels coal tracker](https://beyondfossilfuels.org/coal/) | Last update: {last}", // Footer; {last} is the newest date in the data; [text](https://…) makes a link. Leave empty to hide
+  legendTitle: "",                             // Legend title (empty = none)
+  statusLabels: "no-coal :: No coal in electricity mix\nby-2030 :: Coal phase-out commitment 2030 or earlier\nafter-2030 :: Coal phase-out commitment, but after 2030\ndiscussion :: Coal phase-out under official discussion\nno-discussion :: No official coal phase-out discussion", // Legend wording, one line per status: code :: wording. The line order is the legend order
+  searchPlaceholder: "Select country",         // Search box placeholder
+  shareLabel: "Coal % of power mix (Ember, 2025):", // Label above the coal share bar
+  latestText: "Current ({date})",              // Slider label at the newest date; {date} is that date
+  pastText: "Status in {date}: {status}",      // Popup status line for past dates; {date} and {status} are filled in
+  nowText: "Current status: {status}",         // Popup line with today's status, under the past status; {status} is filled in
+  noDataText: "No data",                       // Popup text when a country has no status at that date
+
+  // ---- Text sizes ----
+  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  headingSize: 21,                             // Chart heading (subtitle) size in px
+  footerSize: 18,                              // Footer (footnote) text size in px
+
+  // ---- Spacing ----
+  padTop: 16,                                  // Space above the graphic in px
+  padSides: 16,                                // Space left and right of the graphic in px
+  padBottom: 12,                               // Space below the graphic in px
+
+  // ---- Background ----
+  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+
+  // ---- Legend and search ----
+  legendPos: "top-left corner",                // Legend position (on phones, corners and sides move above the map)
+  legendDir: "vertical",                       // Legend direction
+  legendGap: 5,                                // Space between legend items in px (between rows when vertical, between items when horizontal)
+  legendFilter: true,                          // Click a legend item to show only that status
+  searchPos: "top-right corner",               // Country search position
+  searchWidth: 140,                            // Search box width in px
+
+  // ---- Popup and panel ----
+  tooltipShow: true,                           // Show a popup when hovering over a country (mouse only)
+  tooltipWidth: 320,                           // Popup maximum width in px
+  statusStyle: "coloured text",                // Status in the popup and panel
+  pastStatus: true,                            // When the slider shows a past date, the popup gives that date's status and today's status
+  panelPos: "side panel (right)",              // Panel opened by clicking a country or searching (on phones it goes below the map; hidden = no panel)
+  panelWidth: 340,                             // Panel width in px
+  panelBg: "#f4f4f4",                          // Side panel background
+  panelTextSize: 16,                           // Panel text size in px (the popup uses the brand tooltip size)
+
+  // ---- Time slider ----
+  sliderPos: "below map",                      // Position (on phones, corners and sides move below the map)
+  sliderStart: "latest",                       // Date shown when the map opens
+  sliderWidth: 520,                            // Width of the whole slider (button, track and date) in px
+  sliderLabelPos: "right",                     // Date label: right of the track or above it
+  sliderTicks: true,                           // Show a tick for each date with data
+  sliderYears: true,                           // Show the first and last year under the track
+  playStyle: "filled circle",                  // Play button style
+  playSize: 30,                                // Play button size in px
+  sliderThickness: 3,                          // Track thickness in px
+  sliderThumbStyle: "circle",                  // Handle style
+  sliderThumb: 16,                             // Handle size in px
+  sliderColor: "#000000",                      // Button, handle and the track up to the date shown
+  sliderRestColor: "#c8c8c8",                  // Track after the date shown
+  playSpeed: 900,                              // Play: time per date, in milliseconds
+
+  // ---- Map shapes ----
+  geometry: "Medium (Natural Earth 50m)",      // Country shapes, Simple: few islands and smooth coasts; Detailed: what Flourish used
+  mapDetail: 1,                                // Coastline detail, share of points kept (1 = all, lower = smoother)
+  mapMinIsland: 0,                             // Hide islands smaller than this, in km² (0 = show all; for scale: Mallorca is about 3,600, Rhodes 1,400)
+  noDataShow: "hidden",                        // Countries without data, hidden: only countries with data; BFF countries only: also BFF countries with no data; all countries: neighbours too
+  smallMode: "zoomed box",                     // Very small countries (list below), as they are: their real size; circle: a dot you can hover; zoomed box: an enlarged copy in a box
+  smallList: "MT",                             // Very small countries, ISO codes separated by commas (e.g. MT, LU)
+  smallSize: 5,                                // Size of the zoomed box (or circle), in % of the map width
+  smallDX: 5,                                  // Zoomed box position sideways from the country, in % of the map width: + right
+  smallDY: -1.5,                               // Zoomed box position up or down from the country, in % of the map width: + down
+
+  // ---- Projection and view ----
+  projection: "Natural Earth",                 // Map projection
+  mapCentreLon: 0,                             // Central meridian (longitude); 0 matches Flourish, around 15 straightens Europe
+  viewWest: -11,                               // View box: west edge (longitude)
+  viewEast: 44,                                // View box: east edge (longitude)
+  viewSouth: 34,                               // View box: south edge (latitude)
+  viewNorth: 71,                               // View box: north edge (latitude)
+  mapZoom: 1,                                  // Zoom (1 = the view box fits the map area)
+  mapShiftX: 0,                                // Move the map sideways, in % of its width: + right, - left
+  mapShiftY: 0,                                // Move the map up or down, in % of its height: + down, - up
+  mapHeight: 0.72,                             // Map height as a share of its width
+  mapHeightPhone: 0.85,                        // Map height on phones, as a share of its width (phones = narrower than the brand stackBelow width)
+  mapZoomPhone: 1,                             // Extra zoom on phones (1 = same as wide screens)
+
+  // ---- Map colours and borders ----
+  noDataFill: "#dcdcdc",                       // BFF countries without data
+  otherFill: "#eceef0",                        // Other countries (neighbours)
+  borderColor: "#ffffff",                      // Country borders
+  borderWidth: 0.7,                            // Border width in px
+  smallBoxColor: "#8a8a8a",                    // Zoomed box and its line
+
+  // ---- Hover and selection ----
+  hoverStyle: "outline",                       // What happens to the country under the pointer
+  hoverColor: "#000000",                       // Hover outline colour
+  hoverWidth: 1.5,                             // Hover outline width in px
+  fadeOpacity: 0.4,                            // How visible the other countries stay when faded (0 = invisible, 1 = no fade)
+  selectColor: "#000000",                      // Outline of the selected (clicked or searched) country
+  selectWidth: 2.5,                            // Selected outline width in px
+};
+// ==== SETTINGS END ====
+</script>
+<script src="../shared/v1/core.js"></script>
+<script src="../shared/bff-countries.js"></script>
+<script src="../shared/vendor/d3-array.min.js"></script>
+<script src="../shared/vendor/d3-geo.min.js"></script>
+<script src="../shared/vendor/topojson-client.min.js"></script>
+<script src="../shared/vendor/topojson-simplify.min.js"></script>
+<script src="../shared/v1/map.js"></script>
+<script>
+(function () {
+  /* ------------------------------------------------------------------
+   * DATA: live from the "C1" tab of the public Google Sheet.
+   * One row per country:
+   *   ISO            two-letter country code (GB, GR, XK for Kosovo; UK and EL also work)
+   *   Country        name shown in the popup and the search box
+   *   Status detail  current status in words, e.g. "Coal phase-out by 2038"
+   *   Description    optional extra sentence
+   *   Coal share     optional, % of coal in the power mix (shown as a bar)
+   *   then one column per date (e.g. "January 2016" ... "March 2026"), holding the
+   *   status code at that date (see STATUS_COLORS; the legend wording works too).
+   *   The newest date is the current map.
+   * Format the whole tab as Plain text, so Google doesn't turn the date headers into dates.
+   * FALLBACK is shown only if the sheet can't be reached or doesn't have these columns.
+   * ------------------------------------------------------------------ */
+  var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
+  var SHEET_TAB = "C1";
+  var FALLBACK = [
+    "ISO\tCountry\tStatus detail\tDescription\tCoal share\tJanuary 2016\tJanuary 2017\tJanuary 2018\tJanuary 2019\tJanuary 2020\tJanuary 2021\tJuly 2021\tOctober 2021\tNovember 2021\tJanuary 2022\tJune 2022\tJanuary 2023\tJanuary 2024\tJune 2024\tOctober 2024\tJune 2025\tAugust 2025\tMarch 2026",
+    "AL\tAlbania\tNo coal ever in the electricity mix\t\t\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal",
+    "AT\tAustria\tNo coal in electricity mix since 2020\t\t\tno-discussion\tby-2030\tby-2030\tby-2030\tby-2030\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tby-2030\tby-2030\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal",
+    "BE\tBelgium\tNo coal in electricity mix since 2016\t\t\tby-2030\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal",
+    "BA\tBosnia-Herzegovina\tNo official coal phase-out discussion\t\t55.7\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion",
+    "BG\tBulgaria\tCoal phase-out by 2038 or 2040\t\t22.5\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030",
+    "HR\tCroatia\tCoal phase-out by 2033\t\t5.0\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tdiscussion\tdiscussion\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030",
+    "CY\tCyprus\tNo coal ever in the electricity mix\t\t\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal",
+    "CZ\tCzech Republic\tCoal phase-out by 2033\t\t35.2\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tdiscussion\tdiscussion\tdiscussion\tdiscussion\tdiscussion\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030",
+    "DK\tDenmark\tCoal phase-out by 2028\tNegligible coal in electricity mix\t\tdiscussion\tdiscussion\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030",
+    "EE\tEstonia\tNo coal ever in the electricity mix\t\t\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal",
+    "FI\tFinland\tCoal phase-out by 2029\tNegligible coal in electricity mix\t\tno-discussion\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030",
+    "FR\tFrance\tCoal phase-out by 2027\tNegligible coal in electricity mix\t\tno-discussion\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030",
+    "DE\tGermany\tCoal phase-out by 2038\t\t20.6\tno-discussion\tdiscussion\tdiscussion\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030",
+    "GR\tGreece\tCoal phase-out by 2026\t\t4.7\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030",
+    "HU\tHungary\tCoal phase-out by 2029\t\t3.4\tno-discussion\tno-discussion\tno-discussion\tdiscussion\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030",
+    "IE\tIreland\tNo coal in electricity mix since 2025\t\t\tno-discussion\tno-discussion\tdiscussion\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tno-coal\tno-coal\tno-coal",
+    "IT\tItaly\tCoal phase-out by 2038\tNegligible coal in electricity mix\t\tno-discussion\tno-discussion\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tafter-2030",
+    "XK\tKosovo\tNo official coal phase-out discussion\t\t88.9\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion",
+    "LV\tLatvia\tNo coal ever in the electricity mix\t\t\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal",
+    "LT\tLithuania\tNo coal ever in the electricity mix\t\t\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal",
+    "LU\tLuxembourg\tNo coal ever in the electricity mix\t\t\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal",
+    "MT\tMalta\tNo coal ever in the electricity mix\t\t\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal",
+    "MD\tMoldova\tCoal phase-out under official discussion\t\t\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tdiscussion\tdiscussion",
+    "ME\tMontenegro\tCoal phase-out by 2041\t\t24.4\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030",
+    "NL\tNetherlands\tCoal phase-out by 2029\t\t7.1\tdiscussion\tdiscussion\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030",
+    "MK\tNorth Macedonia\tCoal phase-out by 2030\t\t29.2\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tdiscussion\tdiscussion\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030",
+    "NO\tNorway\tNo coal in electricity mix\tNo coal since the last CHP plant in the far north of Longyearbyen, Svalbard, closed in 2023.\t\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal",
+    "PL\tPoland\tNo official coal phase-out discussion\t\t50.6\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion",
+    "PT\tPortugal\tNo coal in electricity mix since 2021\t\t\tno-discussion\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal",
+    "RO\tRomania\tCoal phase-out by 2032\t\t15.2\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tdiscussion\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030",
+    "RS\tSerbia\tCoal phase-out under official discussion\t\t65.0\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tdiscussion\tdiscussion\tdiscussion\tdiscussion\tdiscussion",
+    "SK\tSlovakia\tCoal phase-out by 2026\tNegligible coal in electricity mix\t\tno-discussion\tno-discussion\tdiscussion\tdiscussion\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030",
+    "SI\tSlovenia\tCoal phase-out by 2033\t\t14.7\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tdiscussion\tdiscussion\tdiscussion\tdiscussion\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030",
+    "ES\tSpain\tCoal phase-out by 2030\tNegligible coal in electricity mix\t\tno-discussion\tno-discussion\tno-discussion\tdiscussion\tdiscussion\tdiscussion\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030",
+    "SE\tSweden\tNo coal in electricity mix since 2020\t\t\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal",
+    "CH\tSwitzerland\tNo coal ever in the electricity mix\t\t\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal\tno-coal",
+    "TR\tTürkiye\tNo official coal phase-out discussion\t\t34.3\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion",
+    "GB\tUnited Kingdom\tNo coal in electricity mix since 2024\t\t\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tby-2030\tno-coal\tno-coal\tno-coal\tno-coal",
+    "UA\tUkraine\tCoal phase-out by 2035\t\t\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tno-discussion\tdiscussion\tdiscussion\tdiscussion\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030\tafter-2030"
+  ].join("\n");
+
+  // Status code -> colour in the brand palette ("Coal phase-out map").
+  // The legend order and wording come from the "statusLabels" setting.
+  var STATUS_COLORS = {
+    "no-coal": "phaseoutNoCoal",
+    "by-2030": "phaseout2030OrEarlier",
+    "after-2030": "phaseoutAfter2030",
+    "discussion": "phaseoutUnderDiscussion",
+    "no-discussion": "phaseoutNoDiscussion"
+  };
+  var TEXT_COLUMNS = ["ISO", "Country", "Status detail", "Description", "Coal share"];
+
+  var state = { rows: [], byId: {}, dates: [], cats: [], idx: 0, start: null, active: null, selected: null, topo: null, geometry: null };
+  var ui = null;
+
+  function norm(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, ""); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function fill(text, vars) { return String(text || "").replace(/\{(\w+)\}/g, function (m, k) { return k in vars ? vars[k] : m; }); }
+
+  // "code :: legend wording" lines -> categories in legend order
+  function categories(S) {
+    return String(S.statusLabels || "").split(/\n/).map(function (line) {
+      var m = /^\s*(?:status\s+)?([\w-]+)\s*::\s*(.+?)\s*$/i.exec(line);
+      if (!m) return null;
+      var code = m[1].toLowerCase();
+      if (!STATUS_COLORS[code]) { console.warn("C1: unknown status code '" + code + "' in the legend wording setting"); return null; }
+      return { code: code, label: m[2], color: S[STATUS_COLORS[code]] };
+    }).filter(Boolean);
+  }
+  // A status cell -> category (by code or by its legend wording)
+  function category(v) {
+    var n = norm(v);
+    if (!n) return null;
+    return state.cats.filter(function (c) { return norm(c.code) === n || norm(c.label) === n; })[0] || null;
+  }
+
+  function prepare(ctx) {
+    state.cats = categories(ctx.S);
+    state.dates = ctx.headers
+      .filter(function (h) { return TEXT_COLUMNS.indexOf(h) < 0 && DV.parseDate(h) != null; })
+      .map(function (h) { return { key: h, label: h, t: DV.parseDate(h) }; })
+      .sort(function (a, b) { return a.t - b.t; });
+    state.byId = {};
+    state.rows = ctx.data.map(function (d) {
+      var r = { id: DV.isoCode(d.ISO), name: d.Country || d.ISO, detail: d["Status detail"] || "", desc: d.Description || "",
+        share: d["Coal share"] === "" || d["Coal share"] == null ? null : parseFloat(String(d["Coal share"]).replace(",", ".")) };
+      r.cats = state.dates.map(function (dt) {
+        var c = category(d[dt.key]);
+        if (d[dt.key] && !c) console.warn("C1: unknown status '" + d[dt.key] + "' for " + r.name + " in " + dt.key);
+        return c;
+      });
+      state.byId[r.id] = r;
+      return r;
+    });
+  }
+
+  // Fill colour of each country at the date shown (null = no data: design mode decides)
+  function style(S) {
+    return function (f) {
+      var r = state.byId[f.id];
+      if (!r) return null;
+      var c = r.cats[state.idx];
+      if (!c || (state.active && !state.active[c.code])) return { fill: S.noDataFill, on: true };
+      return { fill: c.color, on: true };
+    };
+  }
+
+  // One status line: coloured text, or black text with a coloured dot
+  function statusLine(S, c, text) {
+    if (!c) return '<div class="c1-status">' + esc(text) + "</div>";
+    if (S.statusStyle === "black text with colour dot") {
+      return '<div class="c1-status dot"><i style="background:' + c.color + '"></i><span>' + esc(text) + "</span></div>";
+    }
+    return '<div class="c1-status" style="color:' + c.color + '">' + esc(text) + "</div>";
+  }
+
+  // Popup / panel content
+  function info(S, r) {
+    var n = state.dates.length, latest = state.idx === n - 1, c = r.cats[state.idx], cNow = r.cats[n - 1];
+    var now = r.detail || (cNow ? cNow.label : S.noDataText);
+    var h = '<div class="c1-head"><img src="' + DV.sharedUrl + "flags/" + esc(r.id) + '.svg" alt="" onerror="this.remove()"><b>' + esc(r.name) + "</b></div>";
+    if (S.pastStatus && !latest) {
+      h += statusLine(S, c, fill(S.pastText, { date: state.dates[state.idx].label, status: c ? c.label : S.noDataText }));
+      h += statusLine(S, cNow, fill(S.nowText, { status: now }));
+    } else {
+      h += statusLine(S, cNow, now);
+    }
+    if (r.desc) h += '<p class="c1-desc">' + esc(r.desc) + "</p>";
+    if (r.share != null && isFinite(r.share)) {
+      h += '<div class="c1-share"><div class="lab">' + esc(S.shareLabel) + '</div><div class="row"><div class="bar"><span style="width:' +
+        DV.clamp(r.share, 0, 100) + "%;background:" + (cNow ? cNow.color : "#000") + '"></span></div><b>' + DV.fmt(r.share, "", 1) + "%</b></div></div>";
+    }
+    return h;
+  }
+
+  function select(ctx, id) {
+    var S = ctx.S;
+    state.selected = state.byId[id] ? id : null;
+    ui.view.select(state.selected);
+    ui.search.set(state.selected);
+    ui.panelOpen = !!state.selected && S.panelPos !== "hidden";
+    if (ui.panelOpen) ui.panelBody.innerHTML = info(S, state.byId[state.selected]);
+    ctx.rerender();   // the panel may change the layout (and the iframe height)
+  }
+
+  function makeUI(ctx) {
+    var layout = DV.mapLayout(document.getElementById("map"), ctx.root);
+    var view = DV.mapView(layout.stage);
+    var panel = document.createElement("div"); panel.className = "dvm-panel dv-control";
+    var close = document.createElement("button"); close.className = "dvm-panel-close"; close.type = "button";
+    close.setAttribute("aria-label", "Close"); close.innerHTML = "&times;";
+    var body = document.createElement("div");
+    panel.appendChild(close); panel.appendChild(body);
+    ui = { layout: layout, view: view, panel: panel, panelBody: body, panelOpen: false };
+    close.addEventListener("click", function () { select(ctx, null); });
+
+    view.onHover = function (id) {
+      var r = state.byId[id];
+      return r && ctx.S.tooltipShow && !(state.selected === id && ui.panelOpen) ? info(ctx.S, r) : "";
+    };
+    view.onClick = function (id) { select(ctx, id === state.selected ? null : id); };
+
+    ui.search = DV.mapSearch({
+      items: state.rows.slice().sort(function (a, b) { return a.name.localeCompare(b.name); })
+        .map(function (r) { return { id: r.id, label: r.name }; }),
+      onSelect: function (id) { select(ctx, id); }
+    });
+    ui.slider = DV.timeSlider({
+      dates: state.dates, index: state.dates.length - 1,
+      onChange: function (i) {
+        state.idx = i;
+        ui.view.restyle();
+        if (ui.panelOpen) ui.panelBody.innerHTML = info(ctx.S, state.byId[state.selected]);
+      }
+    });
+  }
+
+  DV.create({
+    sheetId: SHEET_ID,
+    sheetTab: SHEET_TAB,
+    fallback: FALLBACK,
+    columns: ["ISO", "Country"],
+    text: true,
+
+    groups: [
+      { name: "Text", fields: [
+        { key: "title",             type: "text", def: "Overview of country coal phase-out announcements and plans in Europe", help: "Main title" },
+        { key: "footer",            type: "text", def: "Source: [Beyond Fossil Fuels coal tracker](https://beyondfossilfuels.org/coal/) | Last update: {last}", help: "Footer; {last} is the newest date in the data; [text](https://…) makes a link. Leave empty to hide" },
+        { key: "legendTitle",       type: "text", def: "", help: "Legend title (empty = none)" },
+        { key: "statusLabels",      type: "textarea", rows: 5, def: [
+            "no-coal :: No coal in electricity mix",
+            "by-2030 :: Coal phase-out commitment 2030 or earlier",
+            "after-2030 :: Coal phase-out commitment, but after 2030",
+            "discussion :: Coal phase-out under official discussion",
+            "no-discussion :: No official coal phase-out discussion"
+          ].join("\n"), help: "Legend wording, one line per status: code :: wording. The line order is the legend order" },
+        { key: "searchPlaceholder", type: "text", def: "Select country", help: "Search box placeholder" },
+        { key: "shareLabel",        type: "text", def: "Coal % of power mix (Ember, 2025):", help: "Label above the coal share bar" },
+        { key: "latestText",        type: "text", def: "Current ({date})", help: "Slider label at the newest date; {date} is that date" },
+        { key: "pastText",          type: "text", def: "Status in {date}: {status}", help: "Popup status line for past dates; {date} and {status} are filled in" },
+        { key: "nowText",           type: "text", def: "Current status: {status}", help: "Popup line with today's status, under the past status; {status} is filled in" },
+        { key: "noDataText",        type: "text", def: "No data", help: "Popup text when a country has no status at that date" }
+      ]},
+      { name: "Legend and search", fields: [
+        { key: "legendPos",    type: "select", options: DV.POSITIONS, def: "top-left corner", help: "Legend position (on phones, corners and sides move above the map)" },
+        { key: "legendDir",    type: "select", options: ["vertical", "horizontal"], def: "vertical", help: "Legend direction" },
+        { key: "legendGap",    type: "range", min: 0, max: 40, step: 1, def: 5, help: "Space between legend items in px (between rows when vertical, between items when horizontal)" },
+        { key: "legendFilter", type: "check", def: true, help: "Click a legend item to show only that status" },
+        { key: "searchPos",    type: "select", options: DV.POSITIONS, def: "top-right corner", help: "Country search position" },
+        { key: "searchWidth",  type: "range", min: 80, max: 400, step: 5, def: 140, help: "Search box width in px" }
+      ]},
+      { name: "Popup and panel", fields: [
+        { key: "tooltipShow",  type: "check", def: true, help: "Show a popup when hovering over a country (mouse only)" },
+        { key: "tooltipWidth", type: "range", min: 180, max: 480, step: 5, def: 320, help: "Popup maximum width in px" },
+        { key: "statusStyle",  type: "select", options: ["coloured text", "black text with colour dot"], def: "coloured text", help: "Status in the popup and panel" },
+        { key: "pastStatus",   type: "check", def: true, help: "When the slider shows a past date, the popup gives that date's status and today's status" },
+        { key: "panelPos",     type: "select", options: DV.PANEL_POSITIONS, def: "side panel (right)", help: "Panel opened by clicking a country or searching (on phones it goes below the map; hidden = no panel)" },
+        { key: "panelWidth",   type: "range", min: 200, max: 480, step: 5, def: 340, help: "Panel width in px" },
+        { key: "panelBg",      type: "color", def: "#f4f4f4", help: "Side panel background" },
+        { key: "panelTextSize", type: "range", min: 11, max: 24, step: 0.5, def: 16, help: "Panel text size in px (the popup uses the brand tooltip size)" }
+      ]}
+    ].concat(DV.sliderGroup(), DV.mapGroups()),
+
+    build: function (ctx) {
+      var S = ctx.S;
+      prepare(ctx);
+      if (!ui) makeUI(ctx);
+      var st = ctx.root.style;
+      st.setProperty("--dvm-search-width", S.searchWidth + "px");
+      st.setProperty("--dvm-tip-width", S.tooltipWidth + "px");
+      st.setProperty("--dvm-panel-width", S.panelWidth + "px");
+      st.setProperty("--dvm-panel-bg", S.panelBg);
+      st.setProperty("--dvm-panel-size", S.panelTextSize + "px");
+
+      var last = state.dates.length ? state.dates[state.dates.length - 1].label : "";
+      document.getElementById("dv-footer").innerHTML = DV.linkify(fill(S.footer, { last: last }));
+
+      // legend (rebuilt so wording and colour changes show)
+      if (ui.legend) ui.legend.remove();
+      state.active = null;
+      ui.legend = DV.mapLegend({
+        title: S.legendTitle,
+        items: state.cats.map(function (c) { return { key: c.code, label: c.label, color: c.color }; }),
+        onToggle: S.legendFilter ? function (active) { state.active = active; ui.view.restyle(); } : null
+      });
+      ui.legend.setLayout(S.legendDir, S.legendGap);
+      ui.search.setPlaceholder(S.searchPlaceholder);
+
+      // time slider: start date (applied when the setting changes), style and label
+      if (state.start !== S.sliderStart) {
+        state.start = S.sliderStart;
+        state.idx = S.sliderStart === "earliest" ? 0 : state.dates.length - 1;
+        ui.slider.set(state.idx);
+      }
+      ui.slider.setStyle(S);
+      ui.slider.setLabel(function (i) {
+        return i === state.dates.length - 1 ? fill(S.latestText, { date: state.dates[i].label }) : state.dates[i].label;
+      });
+      if (ui.panelOpen) ui.panelBody.innerHTML = info(S, state.byId[state.selected]);
+      if (ui.view.features.length) ui.view.restyle(style(S));
+
+      // country shapes (loaded once per choice, then the map redraws)
+      if (state.geometry !== S.geometry) {
+        state.geometry = S.geometry;
+        DV.loadGeo(S.geometry).then(function (topo) {
+          if (state.geometry !== S.geometry) return;
+          state.topo = topo;
+          var missing = state.rows.filter(function (r) { return !topo.objects.countries.geometries.some(function (g) { return g.id === r.id; }); });
+          if (missing.length) console.warn("C1: no shape for " + missing.map(function (r) { return r.id + " (" + r.name + ")"; }).join(", "));
+          ctx.rerender();
+        }, function (e) { console.warn("C1: map shapes could not be loaded (" + e.message + ")"); });
+      }
+    },
+
+    render: function (ctx) {
+      var S = ctx.S, narrow = ctx.stacked;
+      ui.layout.place([
+        [ui.legend, S.legendPos],
+        [ui.search, S.searchPos],
+        [ui.panel, ui.panelOpen ? S.panelPos : "hidden", true],
+        [ui.slider, state.dates.length > 1 ? S.sliderPos : "hidden", true]
+      ], narrow);
+      if (!state.topo) return;
+
+      var w = ui.layout.stage.clientWidth;
+      var h = Math.round(w * (narrow ? S.mapHeightPhone : S.mapHeight));
+      var view = Object.create(S);
+      if (narrow) view.mapZoom = S.mapZoom * S.mapZoomPhone;
+      ui.view.draw({
+        S: S, width: w, height: h,
+        projection: DV.mapProjection(view, w, h),
+        features: DV.mapShapes(state.topo, S),
+        style: style(S),
+        label: S.title + ": map of Europe coloured by coal phase-out status"
+      });
+    }
+  });
+})();
+</script>
+</body>
+</html>

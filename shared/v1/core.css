@@ -97,7 +97,7 @@ body.gd-on { padding-right: 360px; }
 .gd-panel button:hover { filter: brightness(0.96); }
 .gd-msg { margin-top: 8px; font-size: 12px; color: #1a7f37; min-height: 1em; }
 .gd-msg.err { color: #cf222e; }
-.gd-out { width: 100%; height: 160px; margin-top: 8px; font: 11px/1.4 ui-monospace, Menlo, monospace; display: none; }
+.gd-out { width: 100%; height: 110px; margin-top: 8px; font: 11px/1.4 ui-monospace, Menlo, monospace; display: none; }
 .gd-width { display: flex; align-items: center; gap: 6px; font-size: 12px; }
 .gd-width input[type=range] { flex: 1; }
 .gd-section { padding: 14px 14px 6px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #59636e; background: #f6f8fa; border-bottom: 1px solid #eceef1; }
@@ -108,6 +108,11 @@ body.gd-on { padding-right: 360px; }
 .gd-row label { display: block; font-weight: 500; margin-bottom: 3px; }
 .gd-row small { display: block; color: #6e7781; font-size: 11px; margin-top: 2px; }
 .gd-row small.gd-warn { color: #9a6700; }
+.gd-panel { padding-bottom: 40vh; }
+.gd-panel .gd-img { background: #fbfbfc; }
+.gd-area { flex: 1; min-width: 0; font: 12px/1.45 ui-monospace, Menlo, monospace; padding: 5px 6px; border: 1px solid #c9ced4; border-radius: 5px; resize: vertical; }
+.gd-panel button:disabled { opacity: .5; cursor: wait; }
+.dv-footer a { color: inherit; }
 .gd-ctl { display: flex; align-items: center; gap: 6px; }
 .gd-ctl input[type=text], .gd-ctl select { flex: 1; font: inherit; padding: 4px 6px; border: 1px solid #c9ced4; border-radius: 5px; min-width: 0; }
 .gd-ctl input[type=range] { flex: 1; min-width: 0; }

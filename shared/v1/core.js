@@ -34,7 +34,7 @@
       { key: "tooltipSize",   type: "range", min: 10, max: 18, step: 0.5, def: 13, help: "Tooltip text size in px" }
     ]},
     { name: "Colours", fields: [
-      { key: "background",   type: "color", def: "#ffffff", help: "Page background" },
+      { key: "background",   type: "color", def: "#ffffff", help: "Page background (each graphic can use it, white or transparent)" },
       { key: "textColor",    type: "color", def: "#000000", help: "Title and footer text" },
       { key: "headingColor", type: "color", def: "#000000", help: "Chart headings and legend text" },
       { key: "axisColor",    type: "color", def: "#000000", help: "Axis numbers and labels" },
@@ -72,6 +72,15 @@
       { key: "titleSize",   type: "range", min: 16, max: 72, step: 1, def: 46, help: "Main title size in px (shrinks on small screens)" },
       { key: "headingSize", type: "range", min: 11, max: 32, step: 0.5, def: 21, help: "Chart heading (subtitle) size in px" },
       { key: "footerSize",  type: "range", min: 10, max: 32, step: 0.5, def: 18, help: "Footer (footnote) text size in px" }
+    ]},
+    { name: "Spacing", fields: [
+      { key: "padTop",    type: "range", min: 0, max: 80, step: 1, def: 16, help: "Space above the graphic in px" },
+      { key: "padSides",  type: "range", min: 0, max: 80, step: 1, def: 16, help: "Space left and right of the graphic in px" },
+      { key: "padBottom", type: "range", min: 0, max: 80, step: 1, def: 12, help: "Space below the graphic in px" }
+    ]},
+    { name: "Background", fields: [
+      { key: "bgMode", type: "select", options: ["brand colour", "white", "transparent"], def: "brand colour",
+        help: "Page background, brand colour: the brand Page background; transparent: the website shows through" }
     ]}
   ];
   function withBaseGroups(groups) {
@@ -106,6 +115,9 @@
     " * then use \"Download brand.js\" and replace this file with it.",
     " * ================================================================ */"
   ].join("\n");
+  // Image export in design mode only (loaded on demand, pinned versions)
+  var LIB_IMAGE = "https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js";
+  var LIB_PDF = "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js";
   var MARK_START = "// ==== SETTINGS " + "START ====";
   var MARK_END = "// ==== SETTINGS " + "END ====";
 
@@ -134,6 +146,11 @@
   DV.footerPeriod = function (p) {
     var m = /^(\d{2})Q([1-4])$/.exec(p);
     return m ? "20" + m[1] + " Q" + m[2] : p;
+  };
+  // Text with links written as [link text](https://...) -> safe HTML (links open in the page around the iframe)
+  DV.linkify = function (text) {
+    var esc = String(text == null ? "" : text).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; });
+    return esc.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_top">$1</a>');
   };
   // A "round" tick step (1, 2, 5, 10, 20, 50 ...) close to x
   DV.niceStep = function (x) {
@@ -166,7 +183,8 @@
   /* ------------------------------------------------------------------
    * DATA: Google Sheet (gviz CSV) with a built-in fallback
    * ------------------------------------------------------------------ */
-  function parseTable(text) {
+  // keepText: leave every cell as text (maps: names, statuses, links). Otherwise columns after the first are numbers.
+  function parseTable(text, keepText) {
     text = text.replace(/^﻿/, "").trim();
     var sep = text.split(/\r?\n/)[0].indexOf("\t") > -1 ? "\t" : ",";
     var rows = [], row = [], cell = "", q = false;
@@ -192,7 +210,7 @@
         var o = {};
         headers.forEach(function (h, i) {
           var v = (r[i] || "").trim();
-          o[h] = i === 0 ? v : (v === "" ? 0 : +v.replace(/,/g, ""));
+          o[h] = i === 0 || keepText ? v : (v === "" ? 0 : +v.replace(/,/g, ""));
         });
         return o;
       });
@@ -200,22 +218,22 @@
   }
   DV.parseTable = parseTable;
 
-  function isValid(t, columns) {
+  function isValid(t, columns, keepText) {
     return t.data.length > 0 && (columns || []).every(function (k) {
-      return t.headers.indexOf(k) > -1 && t.data.every(function (d) { return isFinite(d[k]); });
+      return t.headers.indexOf(k) > -1 && (keepText || t.data.every(function (d) { return isFinite(d[k]); }));
     });
   }
 
   function loadData(cfg) {
-    var fallback = parseTable(cfg.fallback);
+    var fallback = parseTable(cfg.fallback, cfg.text);
     if (!cfg.sheetId || !window.fetch) return Promise.resolve(fallback);
     var url = "https://docs.google.com/spreadsheets/d/" + cfg.sheetId +
       "/gviz/tq?tqx=out:csv&headers=1&sheet=" + encodeURIComponent(cfg.sheetTab);
     return fetch(url, { cache: "no-store" })
       .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
       .then(function (text) {
-        var t = parseTable(text);
-        if (!isValid(t, cfg.columns)) throw new Error("the sheet's columns don't match the expected headers");
+        var t = parseTable(text, cfg.text);
+        if (!isValid(t, cfg.columns, cfg.text)) throw new Error("the sheet's columns don't match the expected headers");
         return t;
       })
       .catch(function (err) {
@@ -513,7 +531,8 @@
   /* ------------------------------------------------------------------
    * DV.create: sets up a graphic.
    * cfg = { root: "dv" (element id), sheetId, sheetTab, fallback (text), columns (required),
-   *         groups (this graphic's settings schema), build(ctx), render(ctx) }
+   *         groups (this graphic's settings schema), build(ctx), render(ctx),
+   *         text (optional: true keeps every cell as text, e.g. for maps) }
    * ctx = { S (all settings), data, headers, P (period column), root, W (width),
    *         k (scale 0-1), stacked, sz(size, min) }
    * ------------------------------------------------------------------ */
@@ -566,7 +585,8 @@
     var extraNames = Object.keys(cfg.datasets || {});
     Promise.all([loadData(cfg)].concat(extraNames.map(function (n) {
       var d = cfg.datasets[n];
-      return loadData({ sheetId: d.sheetId || cfg.sheetId, sheetTab: d.sheetTab, fallback: d.fallback, columns: d.columns || cfg.columns });
+      return loadData({ sheetId: d.sheetId || cfg.sheetId, sheetTab: d.sheetTab, fallback: d.fallback, columns: d.columns || cfg.columns,
+        text: "text" in d ? d.text : cfg.text });
     }))).then(function (tables) {
       var table = tables[0];
       ctx.datasets = {};
@@ -593,6 +613,7 @@
         st.setProperty("--dv-heading-size", ctx.sz(S.headingSize, 15) + "px");
         st.setProperty("--dv-legend-size", ctx.sz(S.legendSize, 12) + "px");
         st.setProperty("--dv-footer-size", ctx.sz(S.footerSize, 15) + "px");
+        if (S.padTop != null) st.padding = S.padTop + "px " + S.padSides + "px " + S.padBottom + "px";
         cfg.render(ctx);
         postHeight();
       }
@@ -609,7 +630,9 @@
         de.setProperty("--dv-heading-weight", S.headingWeight);
         de.setProperty("--dv-tooltip-size", S.tooltipSize + "px");
         de.setProperty("--dv-legend-align", { left: "flex-start", center: "center" }[S.legendAlign] || "flex-end");
-        de.setProperty("--dv-bg", S.background);
+        // each graphic picks the brand background, white or transparent
+        S.pageBg = S.bgMode === "white" ? "#ffffff" : S.bgMode === "transparent" ? "transparent" : S.background;
+        de.setProperty("--dv-bg", S.pageBg);
         de.setProperty("--dv-text", S.textColor);
         de.setProperty("--dv-heading", S.headingColor);
         root.style.maxWidth = S.maxWidth + "px";
@@ -618,9 +641,9 @@
         var title = document.getElementById("dv-title");
         if (title) title.textContent = S.title || "";
         var footer = document.getElementById("dv-footer");
-        if (footer) footer.textContent = (S.footer || "")
+        if (footer) footer.innerHTML = DV.linkify((S.footer || "")
           .replace(/\{first\}/g, ctx.data[0][ctx.P])
-          .replace(/\{last\}/g, DV.footerPeriod(ctx.data[ctx.data.length - 1][ctx.P]));
+          .replace(/\{last\}/g, DV.footerPeriod(ctx.data[ctx.data.length - 1][ctx.P])));
 
         cfg.build(ctx);
         render(true);
@@ -655,7 +678,7 @@
             '<div class="gd-btns"><button data-w="375">Phone</button><button data-w="768">Tablet</button><button data-w="0">Fit window</button></div>' +
             '<div class="gd-btns"><b>This graphic</b><button class="gd-primary" id="gd-dl">Download index.html</button><button id="gd-copy">Copy settings</button></div>' +
             '<div class="gd-btns"><b>Brand</b><button class="gd-primary" id="gd-dlb">Download brand.js</button><button id="gd-copyb">Copy</button></div>' +
-            '<div class="gd-btns"><button id="gd-reset">Reset all changes</button></div>' +
+            '<div class="gd-btns"><button id="gd-reset">Reset all changes</button><button id="gd-fold">Open all sections</button></div>' +
             '<div class="gd-msg" id="gd-msg"></div>' +
             '<textarea class="gd-out" id="gd-out" readonly wrap="off"></textarea>' +
           "</div>";
@@ -682,6 +705,22 @@
           fields.forEach(function (f) { det.appendChild(control(f, get, set, noteFor && noteFor(f))); });
           panel.appendChild(det);
         }
+
+        // Download the graphic as an image (PNG or PDF), at any width and resolution
+        var imgBox = document.createElement("details");
+        imgBox.className = "gd-img";
+        imgBox.innerHTML = "<summary>Download image (PNG / PDF)</summary>" +
+          '<div class="gd-row"><label for="gd-if">Format</label><div class="gd-ctl"><select id="gd-if"><option>PNG</option><option>PDF</option></select></div></div>' +
+          '<div class="gd-row"><label for="gd-iw">Width in px</label><div class="gd-ctl"><input type="number" id="gd-iw" min="300" max="4000" step="10"></div></div>' +
+          '<div class="gd-row"><label for="gd-ih">Height in px</label><div class="gd-ctl"><input type="number" id="gd-ih" min="0" max="6000" step="10" value="0"></div>' +
+            "<small>0 = as tall as the graphic at that width; a larger height adds space above and below</small></div>" +
+          '<div class="gd-row"><label for="gd-is">Resolution</label><div class="gd-ctl"><select id="gd-is">' +
+            '<option value="1">1x (screen)</option><option value="2" selected>2x (sharp on screens)</option><option value="3">3x</option><option value="4">4x (print)</option></select></div>' +
+            "<small>The image is width x resolution pixels wide. PDFs hold the same picture (not editable vector shapes).</small></div>" +
+          '<div class="gd-row"><label for="gd-ic">Include interactive controls</label><div class="gd-ctl"><input type="checkbox" id="gd-ic"></div>' +
+            "<small>Search box, time slider, open panels… (usually left out of a still image)</small></div>" +
+          '<div class="gd-btns" style="padding:0 14px 12px"><button class="gd-primary" id="gd-img">Download image</button></div>';
+        panel.appendChild(imgBox);
 
         section("This graphic");
         groups.forEach(function (g, i) {
@@ -776,6 +815,11 @@
               set(f.key, name);
             });
             ctl.appendChild(input); ctl.appendChild(other);
+          } else if (f.type === "textarea") {
+            input = document.createElement("textarea"); input.value = val; input.rows = f.rows || 6;
+            input.className = "gd-area"; input.spellcheck = false; input.wrap = "off";
+            input.addEventListener("input", function () { set(f.key, input.value); });
+            ctl.appendChild(input);
           } else {
             input = document.createElement("input"); input.type = "text"; input.value = val;
             if (f.key === "adobeKitId") {
@@ -814,6 +858,19 @@
           if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(ok, function () { document.execCommand("copy"); ok(); });
           else { document.execCommand("copy"); ok(); }
         }
+        function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+        function loadScript(src) {
+          return new Promise(function (res, rej) {
+            var sc = document.createElement("script"); sc.src = src; sc.onload = res;
+            sc.onerror = function () { rej(new Error("couldn't load " + src)); };
+            document.head.appendChild(sc);
+          });
+        }
+        function downloadBlob(name, blob) {
+          var a = document.createElement("a");
+          a.href = URL.createObjectURL(blob); a.download = name;
+          document.body.appendChild(a); a.click(); a.remove();
+        }
         function download(name, text) {
           var a = document.createElement("a");
           a.href = URL.createObjectURL(new Blob([text], { type: name.slice(-3) === ".js" ? "text/javascript" : "text/html" }));
@@ -842,6 +899,60 @@
             })
             .catch(function () { say("Download only works on the published page or a local preview server. Use Copy settings instead.", true); });
         });
+        var fold = panel.querySelector("#gd-fold");
+        fold.addEventListener("click", function () {
+          var open = fold.textContent.indexOf("Open") === 0;
+          Array.prototype.forEach.call(panel.querySelectorAll("details"), function (d) { d.open = open; });
+          fold.textContent = open ? "Close all sections" : "Open all sections";
+        });
+
+        var iw = panel.querySelector("#gd-iw");
+        iw.value = Math.round(Math.min(ctx.S.maxWidth, frame.clientWidth || ctx.S.maxWidth));
+        panel.querySelector("#gd-img").addEventListener("click", function () {
+          var btn = this, fmt = panel.querySelector("#gd-if").value;
+          var W = DV.clamp(+iw.value || 1000, 300, 4000), H = Math.max(0, +panel.querySelector("#gd-ih").value || 0);
+          var scale = +panel.querySelector("#gd-is").value || 2, controls = panel.querySelector("#gd-ic").checked;
+          var name = (location.pathname.replace(/\/(index\.html)?$/, "").split("/").pop() || "graphic") + "-" + W + "px";
+          var keep = { w: frame.style.width, mw: frame.style.maxWidth };
+          btn.disabled = true; say("Preparing the image…");
+          frame.style.maxWidth = "none"; frame.style.width = W + "px";
+          Array.prototype.forEach.call(root.querySelectorAll(".dv-tooltip"), function (t) { t.classList.remove("on"); });
+          wait(300).then(function () { rerender(); return wait(150); })
+            .then(function () { return window.htmlToImage ? null : loadScript(LIB_IMAGE); })
+            .then(function () {
+              return window.htmlToImage.toCanvas(frame, {
+                pixelRatio: scale, backgroundColor: ctx.S.pageBg === "transparent" ? undefined : ctx.S.pageBg, cacheBust: true,
+                style: { margin: "0", boxShadow: "none" },
+                filter: function (n) {
+                  return !(n.classList && (n.classList.contains("sr-only") || (!controls && n.classList.contains("dv-control"))));
+                }
+              });
+            })
+            .then(function (canvas) {
+              var natH = canvas.height / scale, outH = H > 0 ? H : natH, out = canvas;
+              if (H > 0) {
+                out = document.createElement("canvas");
+                out.width = Math.round(W * scale); out.height = Math.round(outH * scale);
+                var g = out.getContext("2d");
+                if (ctx.S.pageBg !== "transparent") { g.fillStyle = ctx.S.pageBg; g.fillRect(0, 0, out.width, out.height); }
+                g.drawImage(canvas, 0, Math.round((outH - natH) / 2 * scale));
+              }
+              if (fmt === "PNG") {
+                return new Promise(function (res) { out.toBlob(function (b) { downloadBlob(name + ".png", b); res(); }, "image/png"); });
+              }
+              return (window.jspdf ? Promise.resolve() : loadScript(LIB_PDF)).then(function () {
+                var pdf = new window.jspdf.jsPDF({ orientation: W > outH ? "landscape" : "portrait", unit: "px", format: [W, outH], hotfixes: ["px_scaling"], compress: true });
+                pdf.addImage(out.toDataURL("image/png"), "PNG", 0, 0, W, outH, undefined, "SLOW");
+                pdf.save(name + ".pdf");
+              });
+            })
+            .then(function () { say("Downloaded the " + fmt + " (" + W + " px wide, " + scale + "x)."); },
+              function (e) { say("Couldn't make the image: " + (e && e.message || e), true); })
+            .then(function () {
+              frame.style.width = keep.w; frame.style.maxWidth = keep.mw; btn.disabled = false; rerender();
+            });
+        });
+
         panel.querySelector("#gd-reset").addEventListener("click", function () {
           if (!confirm("Discard all your design-mode changes (this graphic and brand) and go back to the saved files?")) return;
           try { localStorage.removeItem(storeB); localStorage.removeItem(storeG); } catch (e) {}

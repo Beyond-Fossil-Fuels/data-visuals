@@ -17,7 +17,7 @@ var BRAND = {
   tooltipSize: 13.5,                           // Tooltip text size in px
 
   // ---- Colours ----
-  background: "#ffffff",                       // Page background
+  background: "#fffaf2",                       // Page background (each graphic can use it, white or transparent)
   textColor: "#000000",                        // Title and footer text
   headingColor: "#000000",                     // Chart headings and legend text
   axisColor: "#000000",                        // Axis numbers and labels
