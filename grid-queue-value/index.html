@@ -38,13 +38,14 @@ var SETTINGS = {
   totalName: "Total",                          // Name of the total bar (empty = no total bar)
   prefix: "€",                                 // Before each number
   suffix: "bn",                                // After each number
+  tipLabel: "Value of realistic buildable capacity", // Tooltip: label of the total (the only figure shown; the split by technology is read off the report's figure)
   footer: "Source: [AFRY and BFF report \"Grid expectations: The distribution backlog stalling Europe's energy transition\"](https://beyondfossilfuels.org/2026/06/02/grid-expectations-the-distribution-backlog-stalling-europes-energy-transition/)", // Footer; links as [text](https://…). Leave empty to hide
   notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
 
   // ---- Text sizes ----
   titleSize: 46,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
-  footerSize: 18,                              // Footer (footnote) text size in px
+  footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
   axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
@@ -107,7 +108,8 @@ var SETTINGS = {
         extra: [
           { key: "totalName",  type: "text", def: "Total", help: "Name of the total bar (empty = no total bar)" },
           { key: "prefix",     type: "text", def: "€", help: "Before each number" },
-          { key: "suffix",     type: "text", def: "bn", help: "After each number" }
+          { key: "suffix",     type: "text", def: "bn", help: "After each number" },
+          { key: "tipLabel",   type: "text", def: "Value of realistic buildable capacity", help: "Tooltip: label of the total (the only figure shown; the split by technology is read off the report's figure)" }
         ]
       }),
       { name: "Bars", fields: [
@@ -156,9 +158,9 @@ var SETTINGS = {
         topLabelSize: ctx.sz(S.topLabelSize, narrow ? 9 : 12), fs: narrow ? Math.max(9, S.axisSize * 0.75) : null,
         yMax: ax.max, tickStep: ax.step, fmtY: function (v) { return money(v); },
         tooltip: function (i) {
-          var d = rows[i], h = "<b>" + d[P] + "</b>";
-          keys.forEach(function (k) { h += DV.tipRow(S[PALETTE_KEY[k]], k, money(d[k])); });
-          return h + DV.tipRow("", S.totalName || "Total", money(sum(d)), "t");
+          // only the total: the split by technology was read off the report's figure, so it isn't exact
+          var d = rows[i];
+          return "<b>" + d[P] + "</b>" + DV.tipRow("", S.tipLabel, money(sum(d), S.sigFigs));
         } });
     }
   });

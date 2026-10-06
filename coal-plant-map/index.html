@@ -32,7 +32,7 @@
   .c2-body td + td { font-variant-numeric: tabular-nums; width: 100%; }
   .c2-body tr.sec td { font-weight: 700; }
   /* Notes under the footer */
-  .c2-notes { margin: 6px 0 0; font-size: var(--c2-notes-size); }
+  .c2-notes { margin: 6px 0 0; font-size: var(--dv-footer-size); }
   .c2-notes p { margin: 0 0 4px; }
   .c2-notes:empty { display: none; }
 </style>
@@ -62,7 +62,6 @@ var SETTINGS = {
   title: "Coal power plants in Europe",        // Main title (empty = none)
   footer: "Source: [Beyond Fossil Fuels coal tracker](https://beyondfossilfuels.org/coal/) | Plant retirements tracked since Jan 2016 | Last update: July 2026", // Footer; [text](https://…) makes a link. Leave empty to hide
   notes: "Note: The map excludes all coal power plants that retired or were cancelled before 2016 and includes all those that were planned, under construction, or open at the beginning of 2016. Plants that are not announced to retire but under a non-legislated national phase-out commitment, appear under \"no retirement announcement\" (check out the map of [national coal phase-out commitments](https://beyondfossilfuels.org/europes-coal-exit/)).\nThe status of Ukraine's coal units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.", // Notes under the footer, one paragraph per line; [text](https://…) makes a link
-  notesSize: 14,                               // Notes text size in px
   legendTitle: "",                             // Legend title (empty = none)
   statusLabels: "planned :: Planned\nconstruction :: Construction\ncancelled :: Cancelled\nopen-no-retirement :: Open, no retirement announcement\nopen-after-2030 :: Open, announced to retire after 2030\nopen-by-2030 :: Open, retires 2030 at the latest\nretired :: Retired", // Legend wording, one line per status: code :: wording. The line order is the legend order
   popupLabels: "general :: General information\nstatus :: Status:\nfuel :: Fuel type:\nowner :: Owner:\nco2 :: CO2 emissions (2025, Mt):\nfirstUnit :: Year commissioning first unit:\nlastUnit :: Year retirement last unit:\ncapacity :: Capacity (MW)\nplanned :: - Planned:\ncancelled :: - Cancelled or shelved:\nconstruction :: - Construction:\nopen :: - Open:\nretired :: - Retired since 2016:", // Popup wording, one line per row: key :: wording (rows with no data are left out)
@@ -71,7 +70,7 @@ var SETTINGS = {
   // ---- Text sizes ----
   titleSize: 46,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
-  footerSize: 18,                              // Footer (footnote) text size in px
+  footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
   axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
@@ -818,7 +817,6 @@ var SETTINGS = {
             "Note: The map excludes all coal power plants that retired or were cancelled before 2016 and includes all those that were planned, under construction, or open at the beginning of 2016. Plants that are not announced to retire but under a non-legislated national phase-out commitment, appear under \"no retirement announcement\" (check out the map of [national coal phase-out commitments](https://beyondfossilfuels.org/europes-coal-exit/)).",
             "The status of Ukraine's coal units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war."
           ].join("\n"), help: "Notes under the footer, one paragraph per line; [text](https://…) makes a link" },
-        { key: "notesSize",         type: "range", min: 10, max: 24, step: 0.5, def: 14, help: "Notes text size in px" },
         { key: "legendTitle",       type: "text", def: "", help: "Legend title (empty = none)" },
         { key: "statusLabels",      type: "textarea", rows: 7, def: [
             "planned :: Planned",
@@ -904,7 +902,6 @@ var SETTINGS = {
 
     render: function (ctx) {
       var S = ctx.S, narrow = ctx.stacked;
-      ctx.root.style.setProperty("--c2-notes-size", ctx.sz(S.notesSize, 12) + "px");
       if (ui.sizeLegend) { ui.sizeLegend.remove(); ui.sizeLegend = null; }
       var w0 = ui.layout.stage.clientWidth || ctx.W;
       var maxCap = Math.max.apply(null, state.plants.map(function (p) { return p.cap || 0; }));

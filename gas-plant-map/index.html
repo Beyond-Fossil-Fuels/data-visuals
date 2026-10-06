@@ -32,7 +32,7 @@
   .c2-body td + td { font-variant-numeric: tabular-nums; width: 100%; }
   .c2-body tr.sec td { font-weight: 700; }
   /* Notes under the footer */
-  .c2-notes { margin: 6px 0 0; font-size: var(--c2-notes-size); }
+  .c2-notes { margin: 6px 0 0; font-size: var(--dv-footer-size); }
   .c2-notes p { margin: 0 0 4px; }
   .c2-notes:empty { display: none; }
 </style>
@@ -62,7 +62,6 @@ var SETTINGS = {
   title: "Europe’s existing and planned gas power plants", // Main title (empty = none)
   footer: "Sources: [Beyond Fossil Fuels](https://beyondfossilfuels.org/gas/), [Global Energy Monitor](https://globalenergymonitor.org/) | Plant retirements tracked since Jan 2023 | Last update: July 2026", // Footer; [text](https://…) makes a link. Leave empty to hide
   notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.", // Notes under the footer, one paragraph per line; [text](https://…) makes a link
-  notesSize: 14,                               // Notes text size in px
   legendTitle: "",                             // Legend title (empty = none)
   statusLabels: "operating :: Operating\nmothballed :: Mothballed\nannounced :: Announced\npre-construction :: Pre-construction\nconstruction :: Construction\nshelved :: Shelved\ncancelled :: Cancelled\nretired :: Retired", // Legend wording, one line per status: code :: wording. The line order is the legend order
   popupLabels: "general :: General information\nstatus :: Status:\nowner :: Owners:\nchp :: CHP:\nfirstUnit :: Start year first unit:\nretiredIn :: Retired in:\nplannedRetirement :: Planned retirement last unit:\ncapacity :: Capacity (MW)\noperating :: - Operating:\nmothballed :: - Mothballed:\nannounced :: - Announced:\npreConstruction :: - Pre-construction:\nconstruction :: - Construction:\nshelved :: - Shelved:\ncancelled :: - Cancelled:\nretired :: - Retired:", // Popup wording, one line per row: key :: wording (rows with no data are left out)
@@ -71,7 +70,7 @@ var SETTINGS = {
   // ---- Text sizes ----
   titleSize: 46,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
-  footerSize: 18,                              // Footer (footnote) text size in px
+  footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
   axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
@@ -1383,7 +1382,6 @@ var SETTINGS = {
         { key: "title",             type: "text", def: "Europe’s existing and planned gas power plants", help: "Main title (empty = none)" },
         { key: "footer",            type: "text", def: "Sources: [Beyond Fossil Fuels](https://beyondfossilfuels.org/gas/), [Global Energy Monitor](https://globalenergymonitor.org/) | Plant retirements tracked since Jan 2023 | Last update: July 2026", help: "Footer; [text](https://…) makes a link. Leave empty to hide" },
         { key: "notes",             type: "textarea", rows: 6, def: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.", help: "Notes under the footer, one paragraph per line; [text](https://…) makes a link" },
-        { key: "notesSize",         type: "range", min: 10, max: 24, step: 0.5, def: 14, help: "Notes text size in px" },
         { key: "legendTitle",       type: "text", def: "", help: "Legend title (empty = none)" },
         { key: "statusLabels",      type: "textarea", rows: 7, def: [
             "operating :: Operating",
@@ -1473,7 +1471,6 @@ var SETTINGS = {
 
     render: function (ctx) {
       var S = ctx.S, narrow = ctx.stacked;
-      ctx.root.style.setProperty("--c2-notes-size", ctx.sz(S.notesSize, 12) + "px");
       if (ui.sizeLegend) { ui.sizeLegend.remove(); ui.sizeLegend = null; }
       var w0 = ui.layout.stage.clientWidth || ctx.W;
       var maxCap = Math.max.apply(null, state.plants.map(function (p) { return p.cap || 0; }));

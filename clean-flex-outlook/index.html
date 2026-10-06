@@ -36,14 +36,14 @@ var SETTINGS = {
   subtitle: "Installed capacity in GW, with 2030 figures from the TYNDP Baseline (National Trends) Scenario, a snapshot of aggregated European national system plans, while 2035 to 2050 come from its Global Ambition Scenario", // Subtitle under the title, one paragraph per line (empty = none)
   subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
   unitLabel: "GW",                             // Unit after the numbers
-  totalLabel: "Total",                         // Tooltip: total
+  totalLabel: "Total clean flexibility",       // Tooltip: label of the total (the only figure shown; the split by technology is read off the report's figure)
   footer: "Source: [Report “Clean Flexibility: Opportunities in Europe” prepared by The Brattle Group and Acousmatics for BFF](https://beyondfossilfuels.org/2026/02/23/clean-flexibility-supports-a-reliable-grid-without-fossil-fuels/)", // Footer; links as [text](https://…). Leave empty to hide
   notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
 
   // ---- Text sizes ----
   titleSize: 46,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
-  footerSize: 18,                              // Footer (footnote) text size in px
+  footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
   axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
@@ -112,7 +112,7 @@ var SETTINGS = {
         footer: "Source: [Report “Clean Flexibility: Opportunities in Europe” prepared by The Brattle Group and Acousmatics for BFF](https://beyondfossilfuels.org/2026/02/23/clean-flexibility-supports-a-reliable-grid-without-fossil-fuels/)",
         extra: [
           { key: "unitLabel", type: "text", def: "GW", help: "Unit after the numbers" },
-          { key: "totalLabel", type: "text", def: "Total", help: "Tooltip: total" }
+          { key: "totalLabel", type: "text", def: "Total clean flexibility", help: "Tooltip: label of the total (the only figure shown; the split by technology is read off the report's figure)" }
         ]
       }),
       { name: "Reference line", fields: [
@@ -167,8 +167,8 @@ var SETTINGS = {
         refs: S.refShow ? [{ y: S.refValue, label: S.refLabel, size: ctx.sz(S.refSize, 11) }] : null,
         tooltip: function (i) {
           var h = "<b>" + rows[i].Year + "</b>" + (rows[i][ctx.P] && ctx.P !== "Year" ? '<div class="r"><span>' + rows[i][ctx.P] + "</span></div>" : "");
-          keys.forEach(function (k) { h += DV.tipRow(S[PALETTE_KEY[k]], k, DV.fmt(rows[i][k], u, 1)); });
-          return h + DV.tipRow("", S.totalLabel, DV.fmt(tot[i], u, 1), "t");
+          // only the total: the split by technology was read off the report's figure, so it isn't exact
+          return h + DV.tipRow("", S.totalLabel, DV.fmt(tot[i], u, 0));
         } });
     }
   });

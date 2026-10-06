@@ -68,7 +68,7 @@
     { name: "Text sizes", fields: [
       { key: "titleSize",   type: "range", min: 16, max: 72, step: 1, def: 46, help: "Main title size in px (shrinks on small screens)" },
       { key: "headingSize", type: "range", min: 11, max: 32, step: 0.5, def: 21, help: "Chart heading (subtitle) size in px" },
-      { key: "footerSize",  type: "range", min: 10, max: 32, step: 0.5, def: 18, help: "Footer (footnote) text size in px" },
+      { key: "footerSize",  type: "range", min: 10, max: 32, step: 0.5, def: 14, help: "Footer (sources and notes) text size in px (never larger than the legend)" },
       { key: "legendSize",  type: "range", min: 10, max: 22, step: 0.5, def: 14, help: "Legend text size in px" },
       { key: "axisSize",    type: "range", min: 9, max: 22, step: 0.5, def: 14, help: "Axis label size in px" },
       { key: "tooltipSize", type: "range", min: 10, max: 18, step: 0.5, def: 14, help: "Tooltip (popup) text size in px" }
@@ -660,7 +660,7 @@
         st.setProperty("--dv-title-gap", ctx.sz(36, 16) + "px");
         st.setProperty("--dv-heading-size", ctx.sz(S.headingSize, 15) + "px");
         st.setProperty("--dv-legend-size", ctx.sz(S.legendSize, 12) + "px");
-        st.setProperty("--dv-footer-size", ctx.sz(S.footerSize, 15) + "px");
+        st.setProperty("--dv-footer-size", Math.min(ctx.sz(S.footerSize, 12), ctx.sz(S.legendSize, 12)) + "px");   // never larger than the legend
         if (S.padTop != null) st.padding = S.padTop + "px " + S.padSides + "px " + S.padBottom + "px";
         cfg.render(ctx);
         postHeight();

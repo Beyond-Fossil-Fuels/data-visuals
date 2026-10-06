@@ -7,7 +7,7 @@
 .dvc-sub:empty { display: none; }
 .dvc-sub p { margin: 0 0 .5em; }
 .dvc-sub p:last-child { margin: 0; }
-.dvc-notes { font-size: calc(var(--dv-footer-size) * 0.85); color: var(--dv-text); margin-top: 4px; }
+.dvc-notes { font-size: var(--dv-footer-size); color: var(--dv-text); margin-top: 4px; }
 .dvc-notes:empty { display: none; }
 .dvc-notes p { margin: 0 0 .25em; }
 .dvc-notes a, .dvc-sub a { color: inherit; }

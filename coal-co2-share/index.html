@@ -45,13 +45,13 @@ var SETTINGS = {
   totalLabel: "Total",                         // Tooltip: total
   shareLabel: "Coal power share",              // Tooltip: share
   unitLabel: "Gt",                             // Unit after numbers in the tooltip
-  footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/en/datahub/datahubitem-view/98f04097-26de-4fca-86c4-63834818c0c0), [UK Government](https://www.gov.uk/government/statistics/electricity-chapter-5-digest-of-united-kingdom-energy-statistics-dukes), [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: September 2026", // Footer; links as [text](https://…). Leave empty to hide
+  footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/data-and-maps/data/national-emissions-reported-to-the-unfccc-and-to-the-eu-greenhouse-gas-monitoring-mechanism-18), [UK Government](https://www.gov.uk/government/statistics/electricity-chapter-5-digest-of-united-kingdom-energy-statistics-dukes), [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: September 2026", // Footer; links as [text](https://…). Leave empty to hide
   notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
 
   // ---- Text sizes ----
   titleSize: 46,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
-  footerSize: 18,                              // Footer (footnote) text size in px
+  footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
   axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
@@ -124,7 +124,7 @@ var SETTINGS = {
       DV.chartTextGroup({
         title: "EU+UK: Relevance of CO2 from coal power relative to all GHG emissions",
         subtitle: "CO2 emissions from coal power are in rapid decline, both in whole terms and as part of total greenhouse gas emissions.",
-        footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/en/datahub/datahubitem-view/98f04097-26de-4fca-86c4-63834818c0c0), [UK Government](https://www.gov.uk/government/statistics/electricity-chapter-5-digest-of-united-kingdom-energy-statistics-dukes), [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: September 2026",
+        footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/data-and-maps/data/national-emissions-reported-to-the-unfccc-and-to-the-eu-greenhouse-gas-monitoring-mechanism-18), [UK Government](https://www.gov.uk/government/statistics/electricity-chapter-5-digest-of-united-kingdom-energy-statistics-dukes), [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: September 2026",
         extra: [
           { key: "leftTitle",  type: "text", def: "Coal power CO2 emissions in relation to {all other GHG emissions} (gigatonnes)", help: "Heading above the bars; words in {braces} take the colour of all other GHG emissions" },
           { key: "rightTitle", type: "text", def: "Coal power as share of all GHG emissions", help: "Heading above the area chart" },

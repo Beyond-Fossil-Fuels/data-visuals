@@ -12,6 +12,8 @@
   .pict-legend { display: flex; flex-direction: column; gap: 4px; font-size: var(--dv-legend-size); color: var(--dv-heading); margin: 0 0 10px; }
   .pict-legend span { display: inline-flex; align-items: center; gap: .4em; }
   .pict-legend svg { width: 1em; height: 1em; flex: none; }
+  .dv-tooltip { max-width: 300px; }
+  .dv-tooltip div { margin-top: 2px; }
   .pict-legend.row { flex-direction: row; flex-wrap: wrap; gap: 4px 18px; }
 </style>
 </head>
@@ -43,13 +45,16 @@ var SETTINGS = {
   subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
   unitLabel: "TWh",                            // Unit after the numbers
   iconNote: "",                                // Extra legend line, e.g. Each icon = {per} TWh (empty = none)
+  tip1: "€100 billion of imported fossil gas, burned once for electricity, produces {value} of electricity.", // Tooltip text for the first group; {value}, {count} (icons) and {per} (TWh per icon) are filled in
+  tip2: "€100 billion of imported solar panels produces {value} of electricity over their 25-year lifetime.", // Tooltip text for the second group (same placeholders)
+  tipIcons: "Each icon = {per} TWh ({count} icons)", // Last tooltip line (empty = none)
   footer: "Sources: [Eurostat](https://ec.europa.eu/eurostat/web/main/data/database), [SolarPower Europe](https://www.solarpowereurope.org/insights/outlooks/eu-market-outlook-for-solar-power-2024-2028/detail), [Bruegel](https://www.bruegel.org/dataset/eu-renewables-value-tracker)", // Footer; links as [text](https://…). Leave empty to hide
-  notes: "Methodology and underlying data available here.", // Notes under the footer, one paragraph per line; links as [text](https://…)
+  notes: "Methodology and underlying data available [here](https://docs.google.com/spreadsheets/d/1gBCz32Kq0v4UEcsvCQzWvQb4B9mfSwxYpf9wVwPwF6s/edit?usp=sharing).", // Notes under the footer, one paragraph per line; links as [text](https://…)
 
   // ---- Text sizes ----
   titleSize: 46,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
-  footerSize: 18,                              // Footer (footnote) text size in px
+  footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
   axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
@@ -71,8 +76,10 @@ var SETTINGS = {
   iconSize: 30,                                // Largest icon size in px (smaller if there isn't room)
   iconGap: 0.4,                                // Space between icons, as a share of the icon size
   valueSize: 26,                               // Size of the totals above the icons in px
-  nameSize: 24,                                // Size of the names under the icons in px
-  showLegend: true,                            // Show the legend
+  nameSize: 24,                                // Size of the group names (titles above the icons) in px
+  nameWeight: 700,                             // Group name boldness
+  fadeOthers: 0.3,                             // On hover, how visible the other group stays (1 = no fading)
+  showLegend: false,                           // Show the legend (the group names above the icons usually make it unnecessary)
   legendRow: false,                            // Legend items side by side (instead of one per line)
 
   // ---- Layout ----
@@ -117,10 +124,13 @@ var SETTINGS = {
         title: "Spending €100 billion on solar panel imports instead of gas imports could produce 9x more electricity",
         subtitle: "EU27, 2024 import data: gas burned once for electricity vs. solar panels over a 25-year lifetime",
         footer: "Sources: [Eurostat](https://ec.europa.eu/eurostat/web/main/data/database), [SolarPower Europe](https://www.solarpowereurope.org/insights/outlooks/eu-market-outlook-for-solar-power-2024-2028/detail), [Bruegel](https://www.bruegel.org/dataset/eu-renewables-value-tracker)",
-        notes: "Methodology and underlying data available here.",
+        notes: "Methodology and underlying data available [here](https://docs.google.com/spreadsheets/d/1gBCz32Kq0v4UEcsvCQzWvQb4B9mfSwxYpf9wVwPwF6s/edit?usp=sharing).",
         extra: [
           { key: "unitLabel", type: "text", def: "TWh", help: "Unit after the numbers" },
-          { key: "iconNote",  type: "text", def: "", help: "Extra legend line, e.g. Each icon = {per} TWh (empty = none)" }
+          { key: "iconNote",  type: "text", def: "", help: "Extra legend line, e.g. Each icon = {per} TWh (empty = none)" },
+          { key: "tip1", type: "textarea", rows: 3, def: "€100 billion of imported fossil gas, burned once for electricity, produces {value} of electricity.", help: "Tooltip text for the first group; {value}, {count} (icons) and {per} (TWh per icon) are filled in" },
+          { key: "tip2", type: "textarea", rows: 3, def: "€100 billion of imported solar panels produces {value} of electricity over their 25-year lifetime.", help: "Tooltip text for the second group (same placeholders)" },
+          { key: "tipIcons", type: "text", def: "Each icon = {per} TWh ({count} icons)", help: "Last tooltip line (empty = none)" }
         ]
       }),
       { name: "Icons", fields: [
@@ -132,8 +142,10 @@ var SETTINGS = {
         { key: "iconSize",   type: "range", min: 8, max: 60, step: 1, def: 30, help: "Largest icon size in px (smaller if there isn't room)" },
         { key: "iconGap",    type: "range", min: 0, max: 1, step: 0.05, def: 0.4, help: "Space between icons, as a share of the icon size" },
         { key: "valueSize",  type: "range", min: 10, max: 40, step: 0.5, def: 26, help: "Size of the totals above the icons in px" },
-        { key: "nameSize",   type: "range", min: 10, max: 40, step: 0.5, def: 24, help: "Size of the names under the icons in px" },
-        { key: "showLegend", type: "check", def: true, help: "Show the legend" },
+        { key: "nameSize",   type: "range", min: 10, max: 40, step: 0.5, def: 24, help: "Size of the group names (titles above the icons) in px" },
+        { key: "nameWeight", type: "select", options: [300, 400, 500, 600, 700, 800, 900], def: 700, help: "Group name boldness" },
+        { key: "fadeOthers", type: "range", min: 0, max: 1, step: 0.05, def: 0.3, help: "On hover, how visible the other group stays (1 = no fading)" },
+        { key: "showLegend", type: "check", def: false, help: "Show the legend (the group names above the icons usually make it unnecessary)" },
         { key: "legendRow",  type: "check", def: false, help: "Legend items side by side (instead of one per line)" }
       ]},
       { name: "Layout", fields: [
@@ -171,18 +183,22 @@ var SETTINGS = {
       var rowsOf = counts.map(function (c) { return Math.ceil(c / S.perRow); });
       var gridH = rowsOf.map(function (r) { return r * pitch; });
       var maxH = Math.max.apply(null, gridH);
-      var blockH = function (i) { return vs * 1.5 + (side ? maxH : gridH[i]) + ns * 1.6; };
-      var H = side ? blockH(0) + 4 : blockH(0) + blockH(1) + 24;
+      // each block: group name (title) on top, then the total, then the icons (bottoms aligned side by side)
+      var titleH = ns * 1.5, valueH = vs * 1.5;
+      var blockH = function (i) { return titleH + valueH + (side ? maxH : gridH[i]) + 6; };
+      var H = side ? blockH(0) : blockH(0) + blockH(1) + 24;
       DV.clear(svg);
       svg.setAttribute("width", W); svg.setAttribute("height", H); svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+      var groups = [];
       rows.forEach(function (d, i) {
         var n = counts[i], cols = Math.min(n, S.perRow), nr = rowsOf[i];
         var gx = side ? i * (groupW + S.groupGap) : 0;
         var top = side ? 0 : (i ? blockH(0) + 24 : 0);
-        var gridBottom = top + vs * 1.5 + (side ? maxH : gridH[i]);
+        var gridBottom = top + titleH + valueH + (side ? maxH : gridH[i]);
         var x0 = gx + (groupW - cols * pitch) / 2;
-        var g = DV.el("g", { "class": "dvc-hit dvc-hit-h" }, svg);
-        var full = Math.floor(n / S.perRow), rest = n - full * S.perRow;
+        var g = DV.el("g", { "class": "dvc-hit dvc-hit-h", style: "transition: opacity .15s" }, svg);
+        groups.push(g);
+        var full = Math.floor(n / S.perRow);
         for (var k = 0; k < n; k++) {
           // full rows from the bottom up; the incomplete row on top, from the left
           var r, c;
@@ -193,18 +209,26 @@ var SETTINGS = {
             transform: "translate(" + cx.toFixed(1) + "," + cy.toFixed(1) + ") scale(" + (size / 600).toFixed(4) + ")" }, g);
         }
         var gridTop = gridBottom - nr * pitch;
-        DV.el("text", { x: gx + groupW / 2, y: gridTop - vs * 0.55, "text-anchor": "middle", "font-size": vs, fill: S.headingColor }, svg)
+        var title = DV.el("text", { x: gx + groupW / 2, y: top + ns, "text-anchor": "middle", "font-size": ns, "font-weight": S.nameWeight, fill: S.headingColor }, g);
+        DV.multiline(title, d[P], gx + groupW / 2, top + ns, ns * 1.15, groupW, ns, S.nameWeight);
+        DV.el("text", { x: gx + groupW / 2, y: gridTop - vs * 0.5, "text-anchor": "middle", "font-size": vs, fill: S.headingColor }, g)
           .textContent = DV.fmt(d.TWh, S.unitLabel, 0);
-        DV.el("text", { x: gx + groupW / 2, y: gridBottom + ns * 1.25, "text-anchor": "middle", "font-size": ns, fill: S.headingColor }, svg)
-          .textContent = d[P];
-        DV.el("rect", { x: gx, y: gridTop - vs * 1.5, width: groupW, height: gridBottom - gridTop + vs * 1.5, fill: "transparent" }, g);
-        var show = function () {
-          DV.placeTip(tip, svg, gx + groupW / 2, gridTop, "<b>" + d[P] + "</b>" + DV.tipRow(colorOf(S, i), DV.fmt(d.TWh, S.unitLabel, 1),
-            DV.fmt(n, "", 0) + " × " + DV.fmt(S.perIcon, S.unitLabel, 0)));
+        DV.el("rect", { x: gx, y: top, width: groupW, height: gridBottom - top, fill: "transparent" }, g);
+        var fill = function (t) {
+          return String(t || "").replace(/\{value\}/g, DV.fmt(d.TWh, S.unitLabel, 0)).replace(/\{count\}/g, DV.fmt(n, "", 0))
+            .replace(/\{per\}/g, DV.fmt(S.perIcon, "", 0));
+        };
+        var show = function (e) {
+          groups.forEach(function (o, j) { o.style.opacity = j === i ? 1 : S.fadeOthers; });
+          var html = '<b style="color:' + colorOf(S, i) + '">' + d[P] + "</b><div>" + fill(S["tip" + (i + 1)]) + "</div>" +
+            (S.tipIcons ? '<div class="r t"><span>' + fill(S.tipIcons) + "</span></div>" : "");
+          // next to the pointer, so it never covers the group title
+          var rc = svg.getBoundingClientRect(), k = W / rc.width;
+          DV.placeTip(tip, svg, (e.clientX - rc.left) * k, (e.clientY - rc.top) * k + 40, html);
         };
         g.addEventListener("pointermove", show);
         g.addEventListener("pointerdown", show);
-        g.addEventListener("pointerleave", function () { DV.hideTip(tip); });
+        g.addEventListener("pointerleave", function () { DV.hideTip(tip); groups.forEach(function (o) { o.style.opacity = 1; }); });
       });
     }
   });

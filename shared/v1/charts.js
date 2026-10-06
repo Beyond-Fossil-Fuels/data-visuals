@@ -303,7 +303,7 @@
    *       rowH, gap (0-1 of the row), labelW (px for category labels), labelSize, labelWeight,
    *       percent, bg (panel background colour), inside: fn(v, pct, s) -> text in the segment (shown if it fits),
    *       insideSize, total: fn(row, i, sum) -> text after the bar, totalSize, totalWeight,
-   *       tooltip: fn(i) -> html, grid (dashed vertical lines), top, bottom }
+   *       tooltip: fn(i) -> html, grid (dashed vertical lines), gridValues ([numbers]: solid lines there), gridColor, top, bottom }
    * Sets the svg height; returns { height, x(v), m }.
    * ------------------------------------------------------------------ */
   DV.hbars = function (o) {
@@ -326,6 +326,10 @@
 
     var g = el("g", {}, svg);
     if (o.bg) el("rect", { x: m.left, y: m.top, width: iw, height: n * rowH, fill: o.bg }, g);
+    // gridValues: solid lines at chosen values (e.g. [0, 20, 40, 60])
+    (o.gridValues || []).forEach(function (v) {
+      if (v >= 0 && v <= o.xMax) el("line", { x1: x(v), x2: x(v), y1: m.top, y2: m.top + n * rowH, stroke: o.gridColor || S.gridColor, "stroke-width": 1 }, g);
+    });
     xt.forEach(function (v) {
       if (o.grid && v > 0) el("line", { x1: x(v), x2: x(v), y1: m.top, y2: m.top + n * rowH, stroke: S.gridColor, "stroke-dasharray": "4 4" }, g);
       el("text", { x: x(v), y: m.top + n * rowH + fs + 6, "text-anchor": "middle", "font-size": fs, fill: S.axisColor }, g).textContent = fmtX(v);
