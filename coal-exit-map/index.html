@@ -56,19 +56,20 @@ var SETTINGS = {
   pastText: "Status in {date}: {status}",      // Popup status line for past dates; {date} and {status} are filled in
   nowText: "Current status: {status}",         // Popup line with today's status, under the past status; {status} is filled in
   noDataText: "No data",                       // Popup text when a country has no status at that date
-
-  // ---- Text sizes ----
-  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  // Text sizes:
+  titleSize: 32,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
   footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
-  axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
+  panelTextSize: 16,                           // Panel text size in px (the popup uses the brand tooltip size)
+  smallSize: 5,                                // Size of the zoomed box (or circle), in % of the map width
 
   // ---- Spacing ----
   padTop: 16,                                  // Space above the graphic in px
   padSides: 16,                                // Space left and right of the graphic in px
   padBottom: 12,                               // Space below the graphic in px
+  blockGap: 14,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
 
   // ---- Background ----
   bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
@@ -89,7 +90,6 @@ var SETTINGS = {
   panelPos: "side panel (right)",              // Panel opened by clicking a country or searching (on phones it goes below the map; hidden = no panel)
   panelWidth: 340,                             // Panel width in px
   panelBg: "#f4f4f4",                          // Side panel background
-  panelTextSize: 16,                           // Panel text size in px (the popup uses the brand tooltip size)
 
   // ---- Time slider ----
   sliderPos: "below map",                      // Position (on phones, corners and sides move below the map)
@@ -114,7 +114,6 @@ var SETTINGS = {
   noDataShow: "hidden",                        // Countries without data, hidden: only countries with data; BFF countries only: also BFF countries with no data; all countries: neighbours too
   smallMode: "zoomed box",                     // Very small countries (list below), as they are: their real size; circle: a dot you can hover; zoomed box: an enlarged copy in a box
   smallList: "MT",                             // Very small countries, ISO codes separated by commas (e.g. MT, LU)
-  smallSize: 5,                                // Size of the zoomed box (or circle), in % of the map width
   smallDX: 5,                                  // Zoomed box position sideways from the country, in % of the map width: + right
   smallDY: -1.5,                               // Zoomed box position up or down from the country, in % of the map width: + down
 
@@ -139,7 +138,8 @@ var SETTINGS = {
   mapZoom: 1,                                  // Zoom (1 = the view box fits the map area)
   mapShiftX: 0,                                // Move the map sideways, in % of its width: + right, - left
   mapShiftY: 0,                                // Move the map up or down, in % of its height: + down, - up
-  mapHeight: 0.72,                             // Map height as a share of its width
+  graphicHeight: 860,                          // Height of the whole graphic on wide screens, in px: the map gets whatever the title, legends and footer leave (the same for every map; 0 = use the share below)
+  mapHeight: 0.72,                             // Map height as a share of its width (when the graphic height is 0)
   mapHeightPhone: 0.85,                        // Map height on phones, as a share of its width (phones = narrower than the brand stackBelow width)
   mapZoomPhone: 1,                             // Extra zoom on phones (1 = same as wide screens)
 
@@ -365,6 +365,7 @@ var SETTINGS = {
   }
 
   DV.create({
+    axes: false,   // no axes: design mode leaves out the axis label size
     sheetId: SHEET_ID,
     sheetTab: SHEET_TAB,
     fallback: FALLBACK,
@@ -472,7 +473,7 @@ var SETTINGS = {
       if (!state.topo) return;
 
       var w = ui.layout.stage.clientWidth;
-      var h = Math.round(w * (narrow ? S.mapHeightPhone : S.mapHeight));
+      var h = DV.mapHeightFor(ctx, S, w, narrow, ui.layout.stage);   // same total height for every map (setting "Graphic height")
       var view = Object.create(S);
       if (narrow) view.mapZoom = S.mapZoom * S.mapZoomPhone;
       ui.view.draw({

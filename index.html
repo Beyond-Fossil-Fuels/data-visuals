@@ -70,7 +70,8 @@
   .side-foot { border-top: 1px solid var(--line); padding: 10px 8px; }
 
   main { min-width: 0; padding: 24px clamp(16px, 3vw, 40px) 64px; }
-  .head { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+  /* title and details, then the buttons underneath (the same for every graphic, whatever the title's length) */
+  .head { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; margin-bottom: 16px; }
   .head h2 { font-size: clamp(20px, 2.4vw, 28px); font-weight: 800; margin: 0 0 4px; }
   .meta { font-size: 13px; color: var(--muted); }
   .meta code { background: #f1efe9; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
@@ -117,7 +118,6 @@
     </div>
     <div class="search"><input id="search" type="search" placeholder="Search graphics…" aria-label="Search graphics"></div>
     <nav id="nav" aria-label="Graphics"></nav>
-    <div class="side-foot"><nav><a href="#embedding" data-slug="embedding">How to embed<small>Adding a graphic to the website</small></a></nav></div>
   </aside>
   <main id="main"></main>
 </div>
@@ -135,11 +135,11 @@
    * ------------------------------------------------------------------ */
   var GRAPHICS = [
     { id: "C1", name: "Europe’s Coal exit country map", section: "Coal core page", slug: "coal-exit-map", tab: "C1",
-      title: "Overview of country coal phase-out announcements and plans in Europe", height: 900 },
+      title: "Overview of country coal phase-out announcements and plans in Europe", height: 860 },
     { id: "C2", name: "Coal Power plant tracker map", section: "Coal core page", slug: "coal-plant-map", tab: "C2",
-      title: "Coal power plants in Europe", height: 950 },
+      title: "Coal power plants in Europe", height: 860 },
     { id: "C3", name: "Coal CO2 map", section: "Coal data tool page", slug: "coal-co2-map", tab: "C3",
-      title: "CO2 emissions from coal power plants in Europe", height: 950 },
+      title: "CO2 emissions from coal power plants in Europe", height: 860 },
     { id: "C4", name: "CO2 coal share of GHG", section: "Coal data tool page", slug: "coal-co2-share", tab: "C4",
       title: "EU+UK: Relevance of CO2 from coal power relative to all GHG emissions", height: 780 },
     { id: "C5", name: "Coal capacity", section: "Coal data tool page", slug: "coal-capacity", tab: "C5",
@@ -157,25 +157,29 @@
         title: "Tracking new gas projects", height: 720 }
     ]},
     { id: "G2", name: "The import trap comparison", section: "Gas core page", slug: "gas-import-map", tab: "G2",
-      title: "Doubling down: current gas import reliance vs. planned capacity", height: 900 },
+      title: "Doubling down: current gas import reliance vs. planned capacity", height: 860 },
     { id: "G3", name: "Power plant map", section: "Gas data tool page", slug: "gas-plant-map", tab: "G3",
-      title: "Europe’s existing and planned gas power plants", height: 950 },
+      title: "Europe’s existing and planned gas power plants", height: 860 },
     { id: "G4", name: "Overall gas tracking progress", section: "Gas data tool page", slug: "gas-tracking-progress", tab: "G4",
       title: "Overall gas tracking progress", height: 660 },
     { id: "G5", name: "Europe's existing fleet and new plant projects capacity (MW)", section: "Gas data tool page", slug: "gas-fleet-by-country", tab: "G5+G6",
-      title: "Europe’s existing fleet and new plant projects capacity (MW)", height: 1370 },
+      title: "Europe’s existing fleet and new plant projects capacity", height: 1300 },
     { id: "G6", name: "Europe's existing fleet and new plant projects capacity (%)", section: "Gas data tool page", slug: "gas-fleet-by-country-share", tab: "G5+G6",
-      title: "Europe’s existing fleet and new plant projects capacity (%)", height: 1440 },
+      title: "Share of capacity by status in Europe’s existing fleet and new plant projects", height: 1300 },
     { id: "R1", name: "Europe power mix", section: "Renewables", slug: "power-mix", tab: "R1",
       title: "Share of total electricity generation by source, 2015 to 2025", height: 800 },
-    { id: "R2", name: "Gas vs solar investment", section: "Renewables", slug: "gas-vs-solar-imports", tab: "R2",
-      title: "Spending €100 billion on solar panel imports instead of gas imports could produce 9x more electricity", height: 680 },
+    { id: "R2", name: "Gas vs solar investment", section: "Renewables", versions: [
+      { id: "R2.1", label: "Side by side (two columns)", slug: "gas-vs-solar-imports", tab: "R2",
+        title: "Spending €100 billion on solar panel imports instead of gas imports could produce 9x more electricity", height: 640 },
+      { id: "R2.2", label: "One above the other (two rows)", slug: "gas-vs-solar-imports", query: "?type=rows", tab: "R2",
+        title: "Spending €100 billion on solar panel imports instead of gas imports could produce 9x more electricity", height: 640 }
+    ]},
     { id: "F1", name: "The grid bottleneck", section: "Clean flex", slug: "grid-queue-value", tab: "F1",
       title: "Value of realistic buildable capacity in the queue", height: 860 },
     { id: "F2", name: "Growth outlook", section: "Clean flex", slug: "clean-flex-outlook", tab: "F2",
       title: "Outlook for European clean flexibility growth", height: 840 },
     { id: "F3", name: "Batteries and storage", section: "Clean flex", slug: "battery-storage", tab: "F3",
-      title: "Top 5 European countries for installed and planned grid-scale battery capacity (GW)", height: 600 }
+      title: "Top 5 European countries for installed and planned grid-scale battery capacity", height: 600 }
   ];
 
   // Every version as one flat list (a single-version graphic is its own version)
@@ -184,10 +188,14 @@
     (g.versions || [g]).forEach(function (v) {
       v.graphic = g;
       v.fullLabel = g.versions ? g.name + " – " + v.label : g.name;
+      // query: optional URL options for a version of the same page, e.g. "?type=bars"
+      v.query = v.query || "";
+      v.key = v.slug + (v.query ? v.query.replace(/^\?/, "~") : "");
+      v.src = v.slug + "/" + v.query;
       VERSIONS.push(v);
     });
   });
-  function bySlug(slug) { return VERSIONS.filter(function (v) { return v.slug === slug; })[0]; }
+  function bySlug(key) { return VERSIONS.filter(function (v) { return v.key === key; })[0]; }
 
   var base = location.href.replace(/[?#].*$/, "").replace(/index\.html$/, "");
   var nav = document.getElementById("nav"), main = document.getElementById("main");
@@ -197,9 +205,9 @@
   // Embed: the iframe (data-track-height lets the website's shared listener resize it) plus a small script
   // that resizes only this iframe, so it also works on pages without that listener. Both use the same height.
   function embedCode(g) {
-    var id = "dv-" + g.slug;
+    var id = "dv-" + g.key.replace(/[^a-z0-9-]/gi, "-");
     return [
-      '<iframe id="' + id + '" src="' + base + g.slug + '/" title="' + g.title + '"',
+      '<iframe id="' + id + '" src="' + base + g.src + '" title="' + g.title + '"',
       '        data-track-height style="width:100%;border:0;height:' + g.height + 'px" scrolling="no" loading="lazy"></iframe>',
       "<script>",
       "  (function () {",
@@ -219,8 +227,8 @@
 
   /* ---------- side panel ---------- */
   function versionLink(v, showName) {
-    return '<a href="#' + esc(v.slug) + '" data-slug="' + esc(v.slug) + '"><b class="vid">' + esc(v.id) + "</b> " +
-      esc(showName ? v.fullLabel : v.label) + "<small>" + esc(v.tab) + "</small></a>";
+    return '<a href="#' + esc(v.key) + '" data-slug="' + esc(v.key) + '"><b class="vid">' + esc(v.id) + "</b> " +
+      esc(showName ? v.fullLabel : v.label) + "</a>";
   }
   function buildNav(filter) {
     var q = (filter || "").trim().toLowerCase();
@@ -293,9 +301,9 @@
     VERSIONS.forEach(function (v) {
       var sec = v.graphic.section || "Other";
       if (sec !== lastSection) { if (lastSection !== null) html += "</optgroup>"; html += '<optgroup label="' + esc(sec) + '">'; lastSection = sec; }
-      html += '<option value="' + esc(v.slug) + '">' + esc(v.id + " · " + v.fullLabel) + "</option>";
+      html += '<option value="' + esc(v.key) + '">' + esc(v.id + " · " + v.fullLabel) + "</option>";
     });
-    html += '</optgroup><option value="embedding">How to embed</option>';
+    html += "</optgroup>";
     picker.innerHTML = html;
     picker.addEventListener("change", function () { location.hash = picker.value; });
   }
@@ -315,33 +323,31 @@
   }
   function current() {
     var h = decodeURIComponent(location.hash.slice(1));
-    if (h === "embedding" || bySlug(h)) return h;
-    return VERSIONS.length ? VERSIONS[0].slug : "embedding";
+    return bySlug(h) ? h : VERSIONS[0].key;
   }
 
   /* ---------- main area ---------- */
   function show() {
-    var slug = current();
+    var key = current();
     markActive();
-    if (slug === "embedding") { showEmbedding(); return; }
-    var g = bySlug(slug), parent = g.graphic;
+    var g = bySlug(key), parent = g.graphic;
     document.title = g.id + " " + g.fullLabel + " · BFF data visuals";
     main.innerHTML =
       '<div class="head"><div><h2>' + esc(g.title) + "</h2>" +
         '<div class="meta"><b>' + esc(g.id) + "</b> · " + esc(g.fullLabel) + " · Sheet tab <code>" + esc(g.tab) + "</code> · Folder <code>" + esc(g.slug) + "/</code></div>" +
         (parent.versions ? '<div class="versions">' + parent.versions.map(function (v) {
-          return '<a href="#' + esc(v.slug) + '" class="' + (v === g ? "on" : "") + '"><b>' + esc(v.id) + "</b> " + esc(v.label) + "</a>";
+          return '<a href="#' + esc(v.key) + '" class="' + (v === g ? "on" : "") + '"><b>' + esc(v.id) + "</b> " + esc(v.label) + "</a>";
         }).join("") + "</div>" : "") +
         "</div>" +
         '<div class="actions">' +
           '<button class="primary" id="copy-embed">Copy embed code</button>' +
-          '<a class="btn" href="' + esc(g.slug) + '/" target="_blank" rel="noopener">Open</a>' +
-          '<a class="btn" href="' + esc(g.slug) + '/?design" target="_blank" rel="noopener">Design mode</a>' +
+          '<a class="btn" href="' + esc(g.src) + '" target="_blank" rel="noopener">Open</a>' +
+          '<a class="btn" href="' + esc(g.slug) + "/" + (g.query ? esc(g.query) + "&amp;design" : "?design") + '" target="_blank" rel="noopener">Design mode</a>' +
         "</div></div>" +
       '<div class="toolbar"><span>Preview width</span><div class="widths">' +
         '<button data-w="100%">Full</button><button data-w="768px">Tablet</button><button data-w="375px">Phone</button>' +
       "</div></div>" +
-      '<div class="stage"><div class="frame" id="frame"><iframe src="' + esc(g.slug) + '/" scrolling="no" title="' + esc(g.title) + '"></iframe></div></div>' +
+      '<div class="stage"><div class="frame" id="frame"><iframe src="' + esc(g.src) + '" scrolling="no" title="' + esc(g.title) + '"></iframe></div></div>' +
       "<h3>Embed code</h3>" +
       '<pre id="embed"></pre>' +
       '<p class="note">Paste this into a <b>Custom HTML</b> block in WordPress. It includes a small script that resizes the graphic to fit, so nothing else is needed on the site.</p>';
@@ -360,19 +366,6 @@
       b.classList.toggle("on", b.getAttribute("data-w") === width);
     });
   }
-  function showEmbedding() {
-    document.title = "How to embed · BFF data visuals";
-    main.innerHTML =
-      '<div class="head"><div><h2>How to embed</h2><div class="meta">For the website (WordPress)</div></div></div>' +
-      '<p class="note"><b>1.</b> Pick the graphic in the side panel and click <b>Copy embed code</b>.</p>' +
-      '<p class="note"><b>2.</b> In WordPress, add a <b>Custom HTML</b> block where the graphic should appear and paste the code.</p>' +
-      '<p class="note"><b>That\'s all.</b> Each embed code is self-contained: it includes a small script that makes the graphic ' +
-      "grow or shrink to fit, with no scrollbars. Several graphics can go on the same page. " +
-      "The <code>data-track-height</code> attribute also lets the website's own shared resize listener handle it " +
-      "(each graphic sends <code>{ href, height }</code>, where href is the iframe's address). " +
-      "If WordPress removes the script (only Administrators can save scripts), the graphic still shows, at a fixed height.</p>";
-  }
-
   function copy(text, btn) {
     var done = function () {
       var old = btn.textContent; btn.textContent = "Copied ✓";

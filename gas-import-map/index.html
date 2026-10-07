@@ -24,6 +24,7 @@
   .g2-notes { margin: 6px 0 0; font-size: var(--dv-footer-size); }
   .g2-notes p { margin: 0 0 4px; }
   .g2-notes:empty { display: none; }
+  .g2-size-note { font-size: 0.85em; color: #555; margin-top: 4px; max-width: 170px; line-height: 1.25; }
 </style>
 </head>
 <body>
@@ -49,8 +50,8 @@
 var SETTINGS = {
   // ---- Text ----
   title: "Doubling down: current gas import reliance vs. planned capacity", // Main title (empty = none)
-  footer: "Sources: [BFF gas power plant database](https://beyondfossilfuels.org/gas/) (July 2026); 2024 energy balances from [Eurostat](https://ec.europa.eu/eurostat/databrowser/view/nrg_bal_c/default/table?lang=en) and, for the UK, [DUKES](https://www.gov.uk/government/statistics/natural-gas-chapter-4-digest-of-united-kingdom-energy-statistics-dukes). Note: plants in development include those at announced, pre-construction, construction and shelved statuses; gas imports are each country's total natural gas imports in 2024.", // Footer; [text](https://…) makes a link. Leave empty to hide
-  notes: "",                                   // Notes under the footer, one paragraph per line; [text](https://…) makes a link
+  footer: "Sources: [BFF gas power plant database](https://beyondfossilfuels.org/gas/) (July 2026); 2024 energy balances from [Eurostat](https://ec.europa.eu/eurostat/databrowser/view/nrg_bal_c/default/table?lang=en) and, for the UK, [DUKES](https://www.gov.uk/government/statistics/natural-gas-chapter-4-digest-of-united-kingdom-energy-statistics-dukes).", // Footer; [text](https://…) makes a link. Leave empty to hide
+  notes: "Note: plants in development include those at announced, pre-construction, construction and shelved statuses; gas imports are each country's total natural gas imports in 2024.", // Notes under the footer, one paragraph per line; [text](https://…) makes a link
   importsTitle: "Gas imports (TWh)",           // Title of the gas imports colour legend
   statusTitle: "Gas power capacity",           // Title of the operating / in development legend (empty = none)
   statusLabels: "operating :: Operating\ndevelopment :: In development", // Legend wording, one line per status: code :: wording
@@ -58,35 +59,41 @@ var SETTINGS = {
   importsUnit: "TWh",                          // Unit after gas imports in the popup
   capacityUnit: "GW",                          // Unit after capacities in the popup
   searchPlaceholder: "Select country",         // Search box placeholder
-
-  // ---- Text sizes ----
-  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  // Text sizes:
+  titleSize: 32,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
   footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
-  axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
+  smallSize: 5,                                // Size of the zoomed box (or circle), in % of the map width
 
   // ---- Spacing ----
   padTop: 16,                                  // Space above the graphic in px
   padSides: 16,                                // Space left and right of the graphic in px
   padBottom: 12,                               // Space below the graphic in px
+  blockGap: 14,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
 
   // ---- Background ----
-  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+  bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
 
   // ---- Symbols ----
   symbolMode: "pie chart",                     // Capacity symbols, pie chart: one pie per country sized by total capacity; side by side or nested: one circle per status
   pointPosition: "label point (as in the R map)", // Where the symbols sit, label point: inside each country's main territory (Natural Earth, as in the R map); sheet coordinates: the Lat and Lon columns (capitals, as in Flourish)
   symbolGap: 1,                                // Space between the two circles side by side, in px
+  sizeFloor: 1,                                // Symbols are sized strictly by area; totals below this many GW are drawn at this size (0 = use the bubble sizes below instead)
+  sizeFloorNote: "Under 1 GW shown at the 1 GW size", // Note next to the size legend (empty = none)
   statusLegendPos: "above map",                // Operating / in development legend position
   legendDir: "horizontal",                     // Operating / in development legend direction
   legendGap: 14,                               // Space between legend items in px
   legendFilter: true,                          // Click a legend item to show only that status (like Flourish's switch)
 
   // ---- Gas imports colours ----
-  importsLow: "#f1e9e4",                       // Colour for no gas imports (the scale starts at 0)
-  importsHigh: "#6D330C",                      // Colour for the largest gas imports (the brand's gas colour)
+  importsPalette: "yellow to red",             // Colour scale, yellow to red: three colours, as in the Flourish design; brown: light to the brand's gas colour
+  importsLow: "#f1e9e4",                       // Brown scale: colour for no gas imports (the scale starts at 0)
+  importsHigh: "#6D330C",                      // Brown scale: colour for the largest gas imports (the brand's gas colour)
+  importsYellow: "#ffaa00",                    // Yellow to red scale: lowest
+  importsOrange: "#f96500",                    // Yellow to red scale: middle
+  importsRed: "#d80505",                       // Yellow to red scale: highest
   importsScale: "linear",                      // Colour scale, linear: as in the R map; square root: more contrast between smaller importers
   importsMax: 0,                               // Value that gets the darkest colour (0 = the largest in the data)
   importsLegendPos: "above map",               // Gas imports legend position
@@ -122,7 +129,6 @@ var SETTINGS = {
   noDataShow: "BFF countries only",            // Countries without data, hidden: only countries with data; BFF countries only: also BFF countries with no data; all countries: neighbours too
   smallMode: "as they are",                    // Very small countries (list below), as they are: their real size; circle: a dot you can hover; zoomed box: an enlarged copy in a box
   smallList: "MT",                             // Very small countries, ISO codes separated by commas (e.g. MT, LU)
-  smallSize: 5,                                // Size of the zoomed box (or circle), in % of the map width
   smallDX: 5,                                  // Zoomed box position sideways from the country, in % of the map width: + right
   smallDY: -1.5,                               // Zoomed box position up or down from the country, in % of the map width: + down
 
@@ -147,7 +153,8 @@ var SETTINGS = {
   mapZoom: 1,                                  // Zoom (1 = the view box fits the map area)
   mapShiftX: 0,                                // Move the map sideways, in % of its width: + right, - left
   mapShiftY: 0,                                // Move the map up or down, in % of its height: + down, - up
-  mapHeight: 0.72,                             // Map height as a share of its width
+  graphicHeight: 860,                          // Height of the whole graphic on wide screens, in px: the map gets whatever the title, legends and footer leave (the same for every map; 0 = use the share below)
+  mapHeight: 0.72,                             // Map height as a share of its width (when the graphic height is 0)
   mapHeightPhone: 0.85,                        // Map height on phones, as a share of its width (phones = narrower than the brand stackBelow width)
   mapZoomPhone: 1,                             // Extra zoom on phones (1 = same as wide screens)
 
@@ -272,7 +279,8 @@ var SETTINGS = {
     return +S.importsMax > 0 ? +S.importsMax : Math.max.apply(null, state.rows.map(function (r) { return r.imports || 0; }));
   }
   function importsColor(S) {
-    var ramp = DV.colorRamp([S.importsLow, S.importsHigh]), max = importsMax(S) || 1;
+    var stops = S.importsPalette === "yellow to red" ? [S.importsYellow, S.importsOrange, S.importsRed] : [S.importsLow, S.importsHigh];
+    var ramp = DV.colorRamp(stops), max = importsMax(S) || 1;
     return function (v) {
       var t = DV.clamp(v / max, 0, 1);
       return ramp(S.importsScale === "square root" ? Math.sqrt(t) : t);
@@ -301,12 +309,14 @@ var SETTINGS = {
       (r.imports == null ? na : esc(DV.fmt(r.imports, S.importsUnit, 1))) + "</td></tr>";
     STATUSES.forEach(function (st) {
       var v = r.cap[st.code];
-      if (st.code === "development" && !(v > 0)) return;   // no capacity in development: no row
+      if (!(v > 0)) return;   // no capacity in this status: no row (gas imports keep their "no data" line)
       h += '<tr><td><i style="background:' + S[st.color] + '"></i>' + esc(L[st.code] || "") + "</td><td>" +
-        (v == null ? na : esc(DV.fmt(v, S.capacityUnit, 2))) + "</td></tr>";
+        esc(DV.fmt(v, S.capacityUnit, 2)) + "</td></tr>";
     });
     return h + "</table>";
   }
+  // A country with no gas imports figure and no capacity at all gets no popup
+  function hasData(r) { return r && (r.imports != null || STATUSES.some(function (st) { return r.cap[st.code] > 0; })); }
 
   // The symbols for each country, for the chosen style
   function symbols(S, w) {
@@ -323,6 +333,11 @@ var SETTINGS = {
       else codes.forEach(function (c) { max = Math.max(max, val(r, c)); });
     });
     var radius = DV.bubbleRadius(S, max, w);
+    if (+S.sizeFloor > 0 && max > 0) {
+      // strictly area-proportional from the largest symbol down; small totals drawn at the floor's size
+      var rMax = radius(max), floor = +S.sizeFloor;
+      radius = function (v) { return rMax * Math.sqrt(Math.max(v, floor) / max); };
+    }
     state.rows.forEach(function (r) {
       var p = pos(r);
       if (!p) return;
@@ -376,7 +391,7 @@ var SETTINGS = {
     function countryOf(id) { return String(id || "").split("|")[0]; }
     view.onHover = function (id) {
       var r = state.byId[countryOf(id)];
-      return r && ctx.S.tooltipShow ? info(ctx.S, r) : "";
+      return hasData(r) && ctx.S.tooltipShow ? info(ctx.S, r) : "";
     };
     view.onClick = function (id) {
       var iso = countryOf(id), touch = view.lastPointer === "touch" || view.lastPointer === "pen";
@@ -390,6 +405,7 @@ var SETTINGS = {
   }
 
   DV.create({
+    axes: false,   // no axes: design mode leaves out the axis label size
     sheetId: SHEET_ID,
     sheetTab: SHEET_TAB,
     fallback: FALLBACK,
@@ -399,8 +415,8 @@ var SETTINGS = {
     groups: [
       { name: "Text", fields: [
         { key: "title",        type: "text", def: "Doubling down: current gas import reliance vs. planned capacity", help: "Main title (empty = none)" },
-        { key: "footer",       type: "text", def: "Sources: [BFF gas power plant database](https://beyondfossilfuels.org/gas/) (July 2026); 2024 energy balances from [Eurostat](https://ec.europa.eu/eurostat/databrowser/view/nrg_bal_c/default/table?lang=en) and, for the UK, [DUKES](https://www.gov.uk/government/statistics/natural-gas-chapter-4-digest-of-united-kingdom-energy-statistics-dukes). Note: plants in development include those at announced, pre-construction, construction and shelved statuses; gas imports are each country's total natural gas imports in 2024.", help: "Footer; [text](https://…) makes a link. Leave empty to hide" },
-        { key: "notes",        type: "textarea", rows: 4, def: "", help: "Notes under the footer, one paragraph per line; [text](https://…) makes a link" },
+        { key: "footer",       type: "text", def: "Sources: [BFF gas power plant database](https://beyondfossilfuels.org/gas/) (July 2026); 2024 energy balances from [Eurostat](https://ec.europa.eu/eurostat/databrowser/view/nrg_bal_c/default/table?lang=en) and, for the UK, [DUKES](https://www.gov.uk/government/statistics/natural-gas-chapter-4-digest-of-united-kingdom-energy-statistics-dukes).", help: "Footer; [text](https://…) makes a link. Leave empty to hide" },
+        { key: "notes",        type: "textarea", rows: 4, def: "Note: plants in development include those at announced, pre-construction, construction and shelved statuses; gas imports are each country's total natural gas imports in 2024.", help: "Notes under the footer, one paragraph per line; [text](https://…) makes a link" },
         { key: "importsTitle", type: "text", def: "Gas imports (TWh)", help: "Title of the gas imports colour legend" },
         { key: "statusTitle",  type: "text", def: "Gas power capacity", help: "Title of the operating / in development legend (empty = none)" },
         { key: "statusLabels", type: "textarea", rows: 2, def: "operating :: Operating\ndevelopment :: In development", help: "Legend wording, one line per status: code :: wording" },
@@ -413,14 +429,20 @@ var SETTINGS = {
         { key: "symbolMode",    type: "select", options: SYMBOLS, def: "pie chart", help: "Capacity symbols, pie chart: one pie per country sized by total capacity; side by side or nested: one circle per status" },
         { key: "pointPosition", type: "select", options: POSITIONS, def: POSITIONS[0], help: "Where the symbols sit, label point: inside each country's main territory (Natural Earth, as in the R map); sheet coordinates: the Lat and Lon columns (capitals, as in Flourish)" },
         { key: "symbolGap",     type: "range", min: 0, max: 10, step: 0.5, def: 1, help: "Space between the two circles side by side, in px" },
+        { key: "sizeFloor",     type: "range", min: 0, max: 5, step: 0.1, def: 1, help: "Symbols are sized strictly by area; totals below this many GW are drawn at this size (0 = use the bubble sizes below instead)" },
+        { key: "sizeFloorNote", type: "text", def: "Under 1 GW shown at the 1 GW size", help: "Note next to the size legend (empty = none)" },
         { key: "statusLegendPos", type: "select", options: DV.POSITIONS, def: "above map", help: "Operating / in development legend position" },
         { key: "legendDir",     type: "select", options: ["vertical", "horizontal"], def: "horizontal", help: "Operating / in development legend direction" },
         { key: "legendGap",     type: "range", min: 0, max: 40, step: 1, def: 14, help: "Space between legend items in px" },
         { key: "legendFilter",  type: "check", def: true, help: "Click a legend item to show only that status (like Flourish's switch)" }
       ]},
       { name: "Gas imports colours", fields: [
-        { key: "importsLow",       type: "color", def: "#f1e9e4", help: "Colour for no gas imports (the scale starts at 0)" },
-        { key: "importsHigh",      type: "color", def: "#6D330C", help: "Colour for the largest gas imports (the brand's gas colour)" },
+        { key: "importsPalette",   type: "select", options: ["yellow to red", "brown"], def: "yellow to red", help: "Colour scale, yellow to red: three colours, as in the Flourish design; brown: light to the brand's gas colour" },
+        { key: "importsLow",       type: "color", def: "#f1e9e4", help: "Brown scale: colour for no gas imports (the scale starts at 0)" },
+        { key: "importsHigh",      type: "color", def: "#6D330C", help: "Brown scale: colour for the largest gas imports (the brand's gas colour)" },
+        { key: "importsYellow",    type: "color", def: "#ffaa00", help: "Yellow to red scale: lowest" },
+        { key: "importsOrange",    type: "color", def: "#f96500", help: "Yellow to red scale: middle" },
+        { key: "importsRed",       type: "color", def: "#d80505", help: "Yellow to red scale: highest" },
         { key: "importsScale",     type: "select", options: ["linear", "square root"], def: "linear", help: "Colour scale, linear: as in the R map; square root: more contrast between smaller importers" },
         { key: "importsMax",       type: "range", min: 0, max: 1500, step: 10, def: 0, help: "Value that gets the darkest colour (0 = the largest in the data)" },
         { key: "importsLegendPos", type: "select", options: DV.POSITIONS, def: "above map", help: "Gas imports legend position" },
@@ -494,6 +516,10 @@ var SETTINGS = {
       if (S.sizeLegendPos !== "hidden" && values.length) {
         ui.sizeLegend = DV.bubbleLegend({ title: S.sizeLegendTitle, values: values, r: sym0.radius,
           fmt: function (v) { return DV.fmt(v, S.capacityUnit, 0); } });
+        if (+S.sizeFloor > 0 && S.sizeFloorNote) {
+          var note = document.createElement("div"); note.className = "g2-size-note"; note.textContent = S.sizeFloorNote;
+          ui.sizeLegend.appendChild(note);
+        }
       }
       var list = [[ui.importsLegend, S.importsLegendPos], [ui.statusLegend, S.statusLegendPos]];
       if (ui.sizeLegend) list.push([ui.sizeLegend, S.sizeLegendPos]);
@@ -502,7 +528,7 @@ var SETTINGS = {
       if (!state.topo) return;
 
       var w = ui.layout.stage.clientWidth;
-      var h = Math.round(w * (narrow ? S.mapHeightPhone : S.mapHeight));
+      var h = DV.mapHeightFor(ctx, S, w, narrow, ui.layout.stage);   // same total height for every map (setting "Graphic height")
       var view = Object.create(S);
       if (narrow) view.mapZoom = S.mapZoom * S.mapZoomPhone;
       ui.view.draw({

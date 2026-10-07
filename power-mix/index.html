@@ -34,34 +34,34 @@ var SETTINGS = {
   // ---- Text ----
   title: "Share of total electricity generation by source, 2015 to 2025", // Main title
   subtitle: "",                                // Subtitle under the title, one paragraph per line (empty = none)
-  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
   markerRef: "Solar and wind",                 // Markers: the source that overtakes the others (a column name)
   markers: "Hydro :: Solar + wind|outpaces hydro\nNuclear :: Solar + wind|outpaces nuclear\nFossil :: Solar + wind|outpaces fossil", // Markers, one per line: source (or a year such as 2018.5) :: label; | = line break. Empty = no markers
   footer: "Source: [Ember yearly electricity data](https://ember-energy.org/data/yearly-electricity-data/)", // Footer; links as [text](https://…). Leave empty to hide
   notes: "BFF Europe as EU, UK, Norway, Switzerland, Western Balkans, Moldova and Türkiye. Albania and Ukraine not included due to data incompleteness. Other renewables also include biomass, while fossil includes coal, gas and other fossil.", // Notes under the footer, one paragraph per line; links as [text](https://…)
-
-  // ---- Text sizes ----
-  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  // Text sizes:
+  titleSize: 32,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
   footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
   axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
+  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
+  markerSize: 15,                              // Marker label size in px
 
   // ---- Spacing ----
   padTop: 16,                                  // Space above the graphic in px
   padSides: 16,                                // Space left and right of the graphic in px
   padBottom: 12,                               // Space below the graphic in px
+  blockGap: 14,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
 
   // ---- Background ----
-  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+  bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
 
   // ---- Legend and lines ----
   legendToggle: true,                          // Clicking a legend item hides or shows that line
   legendPos: "left",                           // Legend alignment
   lineWidthR1: 4,                              // Line thickness in px
   dotSizeR1: 0,                                // Dot size in px (0 = none)
-  markerSize: 15,                              // Marker label size in px
   decimals: 1,                                 // Decimals in the tooltip
 
   // ---- Layout ----

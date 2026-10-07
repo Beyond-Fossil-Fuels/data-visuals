@@ -37,20 +37,21 @@ var SETTINGS = {
   title: "Tracking number of new gas unit projects", // Main title
   leftTitle: "In development",                 // Heading above the left chart
   rightTitle: "Already left development since start of tracking", // Heading above the right chart
-  footer: "Power plants tracked since {first} | Last update: {last}", // Footer; {first} and {last} are filled in from the data. Leave empty to hide
-
-  // ---- Text sizes ----
-  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Power plants tracked since {first} | Last update: {last}", // Footer; {first} and {last} are filled in from the data. Leave empty to hide
+  // Text sizes:
+  titleSize: 32,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
   footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
   axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
+  areaLabelSize: 19,                           // Largest label size in px (it shrinks to fit inside the dark area, and on small screens)
 
   // ---- Spacing ----
   padTop: 16,                                  // Space above the graphic in px
   padSides: 16,                                // Space left and right of the graphic in px
   padBottom: 12,                               // Space below the graphic in px
+  blockGap: 14,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
 
   // ---- Background ----
   bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
@@ -58,7 +59,6 @@ var SETTINGS = {
   // ---- Label on the dark area ----
   areaLabelShow: true,                         // Show the label inside the dark area
   areaLabelText: "Already left development|since start of tracking", // Label text; use | for a line break
-  areaLabelSize: 19,                           // Largest label size in px (it shrinks to fit inside the dark area, and on small screens)
   areaLabelWeight: 700,                        // Label boldness
   areaLabelColor: "#ffffff",                   // Label colour
   areaLabelWidth: 0.8,                         // Widest a label line gets, as a share of the chart width
@@ -159,7 +159,7 @@ var SETTINGS = {
         { key: "title",      type: "text", def: "Tracking number of new gas unit projects", help: "Main title" },
         { key: "leftTitle",  type: "text", def: "In development", help: "Heading above the left chart" },
         { key: "rightTitle", type: "text", def: "Already left development since start of tracking", help: "Heading above the right chart" },
-        { key: "footer",     type: "text", def: "Power plants tracked since {first} | Last update: {last}", help: "Footer; {first} and {last} are filled in from the data. Leave empty to hide" }
+        { key: "footer",     type: "text", def: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Power plants tracked since {first} | Last update: {last}", help: "Footer; {first} and {last} are filled in from the data. Leave empty to hide" }
       ]},
       { name: "Label on the dark area", fields: [
         { key: "areaLabelShow",   type: "check", def: true, help: "Show the label inside the dark area" },

@@ -32,29 +32,30 @@
  * ================================================================ */
 var SETTINGS = {
   // ---- Text ----
-  title: "Top 5 European countries for installed and planned grid-scale battery capacity (GW)", // Main title
+  title: "Top 5 European countries for installed and planned grid-scale battery capacity", // Main title
   subtitle: "",                                // Subtitle under the title, one paragraph per line (empty = none)
-  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
-  unitLabel: "GW",                             // Unit in the tooltip
+  unitLabel: "GW",                             // Unit after the numbers (axis and tooltip)
   totalLabel: "Total",                         // Tooltip: total
   footer: "Source: [European Energy Storage Inventory, Joint Research Centre](https://ses.jrc.ec.europa.eu/storage-inventory) | Last update: October 2026", // Footer; links as [text](https://…). Leave empty to hide
   notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
-
-  // ---- Text sizes ----
-  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  // Text sizes:
+  titleSize: 32,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
   footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
   axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
+  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
+  labelSize: 19,                               // Country name size in px
 
   // ---- Spacing ----
   padTop: 16,                                  // Space above the graphic in px
   padSides: 16,                                // Space left and right of the graphic in px
   padBottom: 12,                               // Space below the graphic in px
+  blockGap: 14,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
 
   // ---- Background ----
-  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+  bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
 
   // ---- Status colours ----
   statusColors: "Operational :: #A954D1\nAnnounced :: #FFA3A3\nPermitted :: #F46245\nUnder construction :: #F92B21\nInactive :: #AFA36A", // One line per status: column name :: #colour (starts from the brand's gas status colours)
@@ -65,7 +66,6 @@ var SETTINGS = {
   legendPos: "left",                           // Legend alignment
   rowHeight: 64,                               // Height of each country's row in px
   barGap: 0.2,                                 // Space between bars, as a share of the row
-  labelSize: 19,                               // Country name size in px
   labelWeight: 700,                            // Country name boldness
   showTotals: false,                           // Show each country's total after its bar
   decimals: 1,                                 // Decimals in the tooltip
@@ -151,10 +151,10 @@ var SETTINGS = {
 
     groups: [
       DV.chartTextGroup({
-        title: "Top 5 European countries for installed and planned grid-scale battery capacity (GW)",
+        title: "Top 5 European countries for installed and planned grid-scale battery capacity",
         footer: "Source: [European Energy Storage Inventory, Joint Research Centre](https://ses.jrc.ec.europa.eu/storage-inventory) | Last update: October 2026",
         extra: [
-          { key: "unitLabel",  type: "text", def: "GW", help: "Unit in the tooltip" },
+          { key: "unitLabel",  type: "text", def: "GW", help: "Unit after the numbers (axis and tooltip)" },
           { key: "totalLabel", type: "text", def: "Total", help: "Tooltip: total" }
         ]
       }),
@@ -215,7 +215,7 @@ var SETTINGS = {
       DV.hbars({ S: S, svg: document.getElementById("chart"), tip: document.getElementById("tip"), width: w, rows: rows,
         label: function (d) { return d[P]; }, labelW: lw + 14, labelSize: lsz, labelWeight: S.labelWeight,
         series: series, xMax: ax.max, tickStep: ax.step, rowH: Math.max(26, S.rowHeight * (w < 500 ? 0.7 : 1)), gap: S.barGap,
-        gridValues: grid, gridColor: S.gridLineColor, tickValues: picked,
+        gridValues: grid, gridColor: S.gridLineColor, tickValues: picked, fmtX: function (v) { return DV.fmt(v, u, 0); },
         total: S.showTotals ? function (d, i, t) { return DV.fmt(t, u, 1); } : null, top: 10,
         tooltip: function (i) {
           var h = "<b>" + rows[i][P] + "</b>";

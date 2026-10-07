@@ -42,30 +42,37 @@ var SETTINGS = {
   // ---- Text ----
   title: "Spending €100 billion on solar panel imports instead of gas imports could produce 9x more electricity", // Main title
   subtitle: "EU27, 2024 import data: gas burned once for electricity vs. solar panels over a 25-year lifetime", // Subtitle under the title, one paragraph per line (empty = none)
-  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
   unitLabel: "TWh",                            // Unit after the numbers
   iconNote: "",                                // Extra legend line, e.g. Each icon = {per} TWh (empty = none)
   tip1: "€100 billion of imported fossil gas, burned once for electricity, produces {value} of electricity.", // Tooltip text for the first group; {value}, {count} (icons) and {per} (TWh per icon) are filled in
   tip2: "€100 billion of imported solar panels produces {value} of electricity over their 25-year lifetime.", // Tooltip text for the second group (same placeholders)
-  tipIcons: "Each icon = {per} TWh ({count} icons)", // Last tooltip line (empty = none)
+  tipTime: "Over their {life}-year lifetime the panels produce about {perYear} a year, so they match the gas's {gas} in about {years} years.", // Tooltip line comparing time; {life}, {perYear} (second group ÷ lifetime), {gas} (first group) and {years} (first ÷ per year) are filled in. Empty = none
+  tipIcons: "Each icon = {per} TWh ({count} icons)", // Last tooltip line in the icon version (empty = none)
   footer: "Sources: [Eurostat](https://ec.europa.eu/eurostat/web/main/data/database), [SolarPower Europe](https://www.solarpowereurope.org/insights/outlooks/eu-market-outlook-for-solar-power-2024-2028/detail), [Bruegel](https://www.bruegel.org/dataset/eu-renewables-value-tracker)", // Footer; links as [text](https://…). Leave empty to hide
   notes: "Methodology and underlying data available [here](https://docs.google.com/spreadsheets/d/1gBCz32Kq0v4UEcsvCQzWvQb4B9mfSwxYpf9wVwPwF6s/edit?usp=sharing).", // Notes under the footer, one paragraph per line; links as [text](https://…)
-
-  // ---- Text sizes ----
-  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  // Text sizes:
+  titleSize: 32,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
   footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
-  axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
+  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
+  valueSize: 26,                               // Size of the totals above the icons in px
+  nameSize: 24,                                // Size of the group names (titles above the icons) in px
 
   // ---- Spacing ----
   padTop: 16,                                  // Space above the graphic in px
   padSides: 16,                                // Space left and right of the graphic in px
   padBottom: 12,                               // Space below the graphic in px
+  blockGap: 14,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
 
   // ---- Background ----
-  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+  bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
+
+  // ---- Layout of the two groups ----
+  layout: "side by side",                      // Two columns in one row, or two rows in one column (each row then reads like a horizontal bar of icons). The address can also choose: ?type=columns or ?type=rows
+  perRowStacked: 36,                           // Icons per row when one above the other (fewer if there isn't room)
+  lifetime: 25,                                // Solar panel lifetime in years (for the time comparison in the tooltip)
 
   // ---- Icons ----
   icon1: "gas",                                // Icon for the first row of the sheet
@@ -75,8 +82,6 @@ var SETTINGS = {
   perRow: 18,                                  // Icons per row
   iconSize: 30,                                // Largest icon size in px (smaller if there isn't room)
   iconGap: 0.4,                                // Space between icons, as a share of the icon size
-  valueSize: 26,                               // Size of the totals above the icons in px
-  nameSize: 24,                                // Size of the group names (titles above the icons) in px
   nameWeight: 700,                             // Group name boldness
   fadeOthers: 0.3,                             // On hover, how visible the other group stays (1 = no fading)
   showLegend: false,                           // Show the legend (the group names above the icons usually make it unnecessary)
@@ -84,6 +89,9 @@ var SETTINGS = {
 
   // ---- Layout ----
   groupGap: 60,                                // Space between the groups in px
+
+  // ---- Brand overrides (this graphic only) ----
+  titleAlign: "left",                          // Main title alignment
 };
 // ==== SETTINGS END ====
 </script>
@@ -114,6 +122,7 @@ var SETTINGS = {
   function colorOf(S, i) { return S[ICON_COLOR[S["icon" + (i + 1)]]]; }
 
   DV.create({
+    axes: false,   // no axes: design mode leaves out the axis label size
     sheetId: SHEET_ID,
     sheetTab: "R2",
     fallback: FALLBACK,
@@ -130,9 +139,15 @@ var SETTINGS = {
           { key: "iconNote",  type: "text", def: "", help: "Extra legend line, e.g. Each icon = {per} TWh (empty = none)" },
           { key: "tip1", type: "textarea", rows: 3, def: "€100 billion of imported fossil gas, burned once for electricity, produces {value} of electricity.", help: "Tooltip text for the first group; {value}, {count} (icons) and {per} (TWh per icon) are filled in" },
           { key: "tip2", type: "textarea", rows: 3, def: "€100 billion of imported solar panels produces {value} of electricity over their 25-year lifetime.", help: "Tooltip text for the second group (same placeholders)" },
-          { key: "tipIcons", type: "text", def: "Each icon = {per} TWh ({count} icons)", help: "Last tooltip line (empty = none)" }
+          { key: "tipTime", type: "textarea", rows: 3, def: "Over their {life}-year lifetime the panels produce about {perYear} a year, so they match the gas's {gas} in about {years} years.", help: "Tooltip line comparing time; {life}, {perYear} (second group ÷ lifetime), {gas} (first group) and {years} (first ÷ per year) are filled in. Empty = none" },
+          { key: "tipIcons", type: "text", def: "Each icon = {per} TWh ({count} icons)", help: "Last tooltip line in the icon version (empty = none)" }
         ]
       }),
+      { name: "Layout of the two groups", fields: [
+        { key: "layout",    type: "select", options: ["side by side", "one above the other"], def: "side by side", help: "Two columns in one row, or two rows in one column (each row then reads like a horizontal bar of icons). The address can also choose: ?type=columns or ?type=rows" },
+        { key: "perRowStacked", type: "range", min: 10, max: 80, step: 1, def: 36, help: "Icons per row when one above the other (fewer if there isn't room)" },
+        { key: "lifetime",  type: "range", min: 1, max: 50, step: 1, def: 25, help: "Solar panel lifetime in years (for the time comparison in the tooltip)" }
+      ]},
       { name: "Icons", fields: [
         { key: "icon1",      type: "select", options: ICON_NAMES, def: "gas", help: "Icon for the first row of the sheet" },
         { key: "icon2",      type: "select", options: ICON_NAMES, def: "solar", help: "Icon for the second row" },
@@ -175,12 +190,30 @@ var SETTINGS = {
       DV.chartSizes(ctx);
       var svg = document.getElementById("chart"), tip = document.getElementById("tip");
       var W = document.getElementById("panel").clientWidth;
-      var side = !ctx.stacked;
-      var groupW = side ? (W - S.groupGap) / 2 : W;
       var counts = rows.map(function (d) { var x = d.TWh / S.perIcon; return Math.max(0, S.rounding === "up" ? Math.ceil(x - 1e-9) : Math.round(x)); });
-      var pitch = Math.min(S.iconSize * (1 + S.iconGap), groupW / S.perRow), size = pitch / (1 + S.iconGap);
+      // tooltip text, the same in every chart type
+      var perYear = rows[1] ? rows[1].TWh / S.lifetime : 0, years = perYear ? rows[0].TWh / perYear : 0;
+      function tipHtml(i, icons) {
+        var d = rows[i];
+        var fill = function (t) {
+          return String(t || "").replace(/\{value\}/g, DV.fmt(d.TWh, S.unitLabel, 0)).replace(/\{count\}/g, DV.fmt(counts[i], "", 0))
+            .replace(/\{per\}/g, DV.fmt(S.perIcon, "", 0)).replace(/\{life\}/g, S.lifetime)
+            .replace(/\{perYear\}/g, DV.fmt(perYear, S.unitLabel, 0)).replace(/\{gas\}/g, DV.fmt(rows[0].TWh, S.unitLabel, 0))
+            .replace(/\{years\}/g, DV.fmt(years, "", 1));
+        };
+        return '<b style="color:' + colorOf(S, i) + '">' + d[P] + "</b><div>" + fill(S["tip" + (i + 1)]) + "</div>" +
+          (S.tipTime ? "<div>" + fill(S.tipTime) + "</div>" : "") +
+          (icons && S.tipIcons ? '<div class="r t"><span>' + fill(S.tipIcons) + "</span></div>" : "");
+      }
+      var type = (/[?&]type=(columns|rows)\b/.exec(location.search) || [])[1];
+      var stackedLayout = type === "rows" || (type !== "columns" && S.layout === "one above the other");
+      var side = !ctx.stacked && !stackedLayout;
+      var groupW = side ? (W - S.groupGap) / 2 : W;
+      // one above the other: rows of icons from the left, like horizontal bars
+      var perRow = stackedLayout ? S.perRowStacked : S.perRow;
+      var pitch = Math.min(S.iconSize * (1 + S.iconGap), groupW / perRow), size = pitch / (1 + S.iconGap);
       var vs = ctx.sz(S.valueSize, 15), ns = ctx.sz(S.nameSize, 14);
-      var rowsOf = counts.map(function (c) { return Math.ceil(c / S.perRow); });
+      var rowsOf = counts.map(function (c) { return Math.ceil(c / perRow); });
       var gridH = rowsOf.map(function (r) { return r * pitch; });
       var maxH = Math.max.apply(null, gridH);
       // each block: group name (title) on top, then the total, then the icons (bottoms aligned side by side)
@@ -191,37 +224,35 @@ var SETTINGS = {
       svg.setAttribute("width", W); svg.setAttribute("height", H); svg.setAttribute("viewBox", "0 0 " + W + " " + H);
       var groups = [];
       rows.forEach(function (d, i) {
-        var n = counts[i], cols = Math.min(n, S.perRow), nr = rowsOf[i];
+        var n = counts[i], cols = Math.min(n, perRow), nr = rowsOf[i];
         var gx = side ? i * (groupW + S.groupGap) : 0;
         var top = side ? 0 : (i ? blockH(0) + 24 : 0);
         var gridBottom = top + titleH + valueH + (side ? maxH : gridH[i]);
-        var x0 = gx + (groupW - cols * pitch) / 2;
+        var x0 = stackedLayout ? gx : gx + (groupW - cols * pitch) / 2;
         var g = DV.el("g", { "class": "dvc-hit dvc-hit-h", style: "transition: opacity .15s" }, svg);
         groups.push(g);
-        var full = Math.floor(n / S.perRow);
+        var full = Math.floor(n / perRow);
         for (var k = 0; k < n; k++) {
           // full rows from the bottom up; the incomplete row on top, from the left
           var r, c;
-          if (k < full * S.perRow) { r = Math.floor(k / S.perRow); c = k % S.perRow; } else { r = full; c = k - full * S.perRow; }
-          if (n < S.perRow) { r = 0; c = k; }
+          if (k < full * perRow) { r = Math.floor(k / perRow); c = k % perRow; } else { r = full; c = k - full * perRow; }
+          if (n < perRow) { r = 0; c = k; }
           var cx = x0 + c * pitch + (pitch - size) / 2, cy = gridBottom - (r + 1) * pitch + (pitch - size) / 2;
+          // one above the other: rows read like bars, filled from the top left
+          if (stackedLayout) cy = gridBottom - nr * pitch + Math.floor(k / perRow) * pitch + (pitch - size) / 2, cx = x0 + (k % perRow) * pitch + (pitch - size) / 2;
           DV.el("path", { d: ICONS[S["icon" + (i + 1)]], fill: colorOf(S, i),
             transform: "translate(" + cx.toFixed(1) + "," + cy.toFixed(1) + ") scale(" + (size / 600).toFixed(4) + ")" }, g);
         }
         var gridTop = gridBottom - nr * pitch;
-        var title = DV.el("text", { x: gx + groupW / 2, y: top + ns, "text-anchor": "middle", "font-size": ns, "font-weight": S.nameWeight, fill: S.headingColor }, g);
-        DV.multiline(title, d[P], gx + groupW / 2, top + ns, ns * 1.15, groupW, ns, S.nameWeight);
-        DV.el("text", { x: gx + groupW / 2, y: gridTop - vs * 0.5, "text-anchor": "middle", "font-size": vs, fill: S.headingColor }, g)
+        var tx = stackedLayout ? gx : gx + groupW / 2, anchor = stackedLayout ? "start" : "middle";
+        var title = DV.el("text", { x: tx, y: top + ns, "text-anchor": anchor, "font-size": ns, "font-weight": S.nameWeight, fill: S.headingColor }, g);
+        DV.multiline(title, d[P], tx, top + ns, ns * 1.15, groupW, ns, S.nameWeight);
+        DV.el("text", { x: tx, y: gridTop - vs * 0.5, "text-anchor": anchor, "font-size": vs, fill: S.headingColor }, g)
           .textContent = DV.fmt(d.TWh, S.unitLabel, 0);
         DV.el("rect", { x: gx, y: top, width: groupW, height: gridBottom - top, fill: "transparent" }, g);
-        var fill = function (t) {
-          return String(t || "").replace(/\{value\}/g, DV.fmt(d.TWh, S.unitLabel, 0)).replace(/\{count\}/g, DV.fmt(n, "", 0))
-            .replace(/\{per\}/g, DV.fmt(S.perIcon, "", 0));
-        };
         var show = function (e) {
           groups.forEach(function (o, j) { o.style.opacity = j === i ? 1 : S.fadeOthers; });
-          var html = '<b style="color:' + colorOf(S, i) + '">' + d[P] + "</b><div>" + fill(S["tip" + (i + 1)]) + "</div>" +
-            (S.tipIcons ? '<div class="r t"><span>' + fill(S.tipIcons) + "</span></div>" : "");
+          var html = tipHtml(i, true);
           // next to the pointer, so it never covers the group title
           var rc = svg.getBoundingClientRect(), k = W / rc.width;
           DV.placeTip(tip, svg, (e.clientX - rc.left) * k, (e.clientY - rc.top) * k + 40, html);

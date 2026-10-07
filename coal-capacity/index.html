@@ -45,7 +45,6 @@ var SETTINGS = {
   // ---- Text ----
   title: "Coal power capacity: development since 2016 and projections up to 2030", // Main title
   subtitle: "The rapid decline in capacity shows that coal is on the way out. However, to reach the goal of a complete 2030 coal phase-out in Europe, the positive trend needs to accelerate.", // Subtitle under the title, one paragraph per line (empty = none)
-  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
   hint: "Move the slider or click play to see how historic and projected capacity has been decreasing between {first} and {last}.", // Line above the slider; {first} and {last} are the first and last projection years
   mainTitle: "",                               // Heading above the main chart (empty = none)
   countryTitle: "",                            // Heading above the country charts (empty = none)
@@ -56,33 +55,33 @@ var SETTINGS = {
   lHist: "Historic",                           // Legend of the country charts: historic
   lProj: "Projected",                          // Legend of the country charts: projected
   unitLabel: "GW",                             // Unit after the numbers
-  footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | National coal phase-out commitments are only included if legally binding. | Last update: May 2026", // Footer; links as [text](https://…). Leave empty to hide
-  notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
-
-  // ---- Text sizes ----
-  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: May 2026", // Footer; links as [text](https://…). Leave empty to hide
+  notes: "Note: National coal phase-out commitments are only included if legally binding.", // Notes under the footer, one paragraph per line; links as [text](https://…)
+  // Text sizes:
+  titleSize: 32,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
   footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
   axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
+  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
+  smallHeadingSize: 17,                        // Country name size in px
 
   // ---- Spacing ----
   padTop: 16,                                  // Space above the graphic in px
   padSides: 16,                                // Space left and right of the graphic in px
   padBottom: 12,                               // Space below the graphic in px
+  blockGap: 14,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
 
   // ---- Background ----
-  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+  bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
 
   // ---- Charts ----
   lastYear: 2030,                              // Last year shown
   barGap: 0.15,                                // Space between bars, as a share of each bar's slot
   fixedScale: true,                            // Keep each chart's scale the same for every projection year (so changes are easy to see)
   countryCols: 3,                              // Country charts per row (2 on phones)
-  smallHeadingSize: 17,                        // Country name size in px
   smallHeight: 100,                            // Height of each country chart in px
-  smallAxisSize: 12,                           // Axis label size on the country charts in px
 
   // ---- Layout ----
   chartHeight: 0.95,                           // Main chart height as a share of its width
@@ -102,6 +101,9 @@ var SETTINGS = {
   sliderColor: "#000000",                      // Button, handle and the track up to the date shown
   sliderRestColor: "#c8c8c8",                  // Track after the date shown
   playSpeed: 900,                              // Play: time per date, in milliseconds
+
+  // ---- Brand overrides (this graphic only) ----
+  titleAlign: "left",                          // Main title alignment
 };
 // ==== SETTINGS END ====
 </script>
@@ -298,7 +300,8 @@ var SETTINGS = {
       DV.chartTextGroup({
         title: "Coal power capacity: development since 2016 and projections up to 2030",
         subtitle: "The rapid decline in capacity shows that coal is on the way out. However, to reach the goal of a complete 2030 coal phase-out in Europe, the positive trend needs to accelerate.",
-        footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | National coal phase-out commitments are only included if legally binding. | Last update: May 2026",
+        footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: May 2026",
+        notes: "Note: National coal phase-out commitments are only included if legally binding.",
         extra: [
           { key: "hint",        type: "text", def: "Move the slider or click play to see how historic and projected capacity has been decreasing between {first} and {last}.", help: "Line above the slider; {first} and {last} are the first and last projection years" },
           { key: "mainTitle",   type: "text", def: "", help: "Heading above the main chart (empty = none)" },
@@ -318,8 +321,7 @@ var SETTINGS = {
         { key: "fixedScale",    type: "check", def: true, help: "Keep each chart's scale the same for every projection year (so changes are easy to see)" },
         { key: "countryCols",   type: "range", min: 1, max: 4, step: 1, def: 3, help: "Country charts per row (2 on phones)" },
         { key: "smallHeadingSize", type: "range", min: 10, max: 28, step: 0.5, def: 17, help: "Country name size in px" },
-        { key: "smallHeight",   type: "range", min: 60, max: 240, step: 5, def: 100, help: "Height of each country chart in px" },
-        { key: "smallAxisSize", type: "range", min: 8, max: 18, step: 0.5, def: 12, help: "Axis label size on the country charts in px" }
+        { key: "smallHeight",   type: "range", min: 60, max: 240, step: 5, def: 100, help: "Height of each country chart in px" }
       ]},
       { name: "Layout", fields: [
         { key: "chartHeight", type: "range", min: 0.4, max: 1.6, step: 0.02, def: 0.95, help: "Main chart height as a share of its width" },
@@ -372,6 +374,10 @@ var SETTINGS = {
       DV.chartSizes(ctx);
       var grid = document.getElementById("grid");
       grid.style.setProperty("--dvc-gap-x", S.chartGap + "px");
+      // side by side, both halves start their charts at the same height (legends padded to the taller one)
+      var lgs = [document.getElementById("legend-main"), document.getElementById("legend-countries")];
+      lgs.forEach(function (l) { l.style.minHeight = ""; });
+      if (!ctx.stacked) { var lh = Math.max(lgs[0].offsetHeight, lgs[1].offsetHeight); lgs.forEach(function (l) { l.style.minHeight = lh + "px"; }); }
       var v = vintages[current];
       var all = ctx.data.filter(function (d) { return +d.Year <= S.lastYear; });
       var rows = all.filter(function (d) { return d[VY] === v; }).map(function (d) {
@@ -398,7 +404,7 @@ var SETTINGS = {
         yMax: ax.max, tickStep: ax.step, fmtY: function (x) { return DV.fmt(x, un, 0); }, tooltip: tipMain });
 
       var cbox = document.getElementById("countries");
-      cbox.style.setProperty("--cc-cols", cbox.clientWidth < 420 ? Math.min(2, S.countryCols) : S.countryCols);
+      cbox.style.setProperty("--cc-cols", cbox.clientWidth < 360 ? Math.min(2, S.countryCols) : S.countryCols);
       var tip = document.getElementById("t-countries");
       countries.forEach(function (c) {
         var cw = c.svg.parentNode.clientWidth, n = c.name;
@@ -406,7 +412,7 @@ var SETTINGS = {
         var src = S.fixedScale ? all : rows.map(function (r) { return r.src; });
         var a = DV.niceAxis(Math.max.apply(null, src.map(function (d) { return d[n]; })) || 1, 2);
         var last = cr.length - 1, mid = Math.round(last / 2);
-        DV.bars({ S: S, svg: c.svg, tip: tip, width: cw, height: S.smallHeight, rows: cr, fs: S.smallAxisSize, top: 4,
+        DV.bars({ S: S, svg: c.svg, tip: tip, width: cw, height: S.smallHeight, rows: cr, top: 4,
           label: function (d) { return d.Year; }, xLabelAt: function (i) { return i === 0 || i === last || (i === mid && cw > 150); },
           gap: 0.18, series: [{ key: "h", color: S.capacityHistoric }, { key: "p", color: S.capacityProjected }],
           yMax: a.max, tickStep: a.step, fmtY: function (x) { return DV.fmt(x, un, 0); },

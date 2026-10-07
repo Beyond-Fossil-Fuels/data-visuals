@@ -25,7 +25,8 @@
     return t;
   }
   DV.ticks = ticks;
-  DV.axisFs = function (S, width) { return S.axisSize * DV.clamp(width / 520, 0.8, 1); };
+  // Axis text size: set by the whole graphic's width (DV.chartSizes), so every panel of a graphic uses the same size
+  DV.axisFs = function (S, width) { return S.axisSize * DV.clamp((DV.graphicWidth || width) / 700, 0.8, 1); };
   // Axis for a data maximum: about n ticks; fixedStep > 0 forces the step; roundUp ends on a tick
   DV.niceAxis = function (dataMax, n, roundUp, fixedStep) {
     var step = fixedStep > 0 ? fixedStep : DV.niceStep((dataMax || 1) / (n || 4));
@@ -42,7 +43,9 @@
   // Call at the start of render: sizes that shrink on small screens
   DV.chartSizes = function (ctx) {
     var S = ctx.S, st = ctx.root.style;
+    DV.graphicWidth = ctx.W;
     st.setProperty("--dvc-sub-size", ctx.sz(S.subtitleSize || 18, 14) + "px");
+    if (S.buttonsAlign) st.setProperty("--dvc-buttons-align", { left: "flex-start", right: "flex-end" }[S.buttonsAlign] || "center");
     if (S.smallHeadingSize) st.setProperty("--dvc-small-heading", ctx.sz(S.smallHeadingSize, 12) + "px");
   };
   // Heading text where {words in braces} are coloured (e.g. to match a series)
@@ -359,8 +362,9 @@
         if (o.inside) {
           var txt = o.inside(v, total ? v / total * 100 : 0, s), isz = o.insideSize || fs * 0.9;
           if (txt && DV.textWidth(txt, isz) + 8 <= x1 - x0) {
-            el("text", { x: x0 + 4, y: yy + bh / 2, "dominant-baseline": "middle", "font-size": isz,
-              fill: DV.textColorOn(s.color) }, bars).textContent = txt;
+            var mid = o.insideAlign === "center";   // insideAlign: "left" (default) or "center" of the segment
+            el("text", { x: mid ? (x0 + x1) / 2 : x0 + 4, y: yy + bh / 2, "text-anchor": mid ? "middle" : "start",
+              "dominant-baseline": "middle", "font-size": isz, fill: DV.textColorOn(s.color) }, bars).textContent = txt;
           }
         }
       });

@@ -37,32 +37,32 @@ var SETTINGS = {
   // ---- Text ----
   title: "EU+UK: Relevance of CO2 from coal power relative to all GHG emissions", // Main title
   subtitle: "CO2 emissions from coal power are in rapid decline, both in whole terms and as part of total greenhouse gas emissions.", // Subtitle under the title, one paragraph per line (empty = none)
-  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
-  leftTitle: "Coal power CO2 emissions in relation to {all other GHG emissions} (gigatonnes)", // Heading above the bars; words in {braces} take the colour of all other GHG emissions
+  leftTitle: "Coal power CO2 emissions in relation to {all other GHG emissions}", // Heading above the bars; words in {braces} take the colour of all other GHG emissions
   rightTitle: "Coal power as share of all GHG emissions", // Heading above the area chart
   coalLabel: "Coal power CO2",                 // Tooltip: coal power
   otherLabel: "All other GHG emissions",       // Tooltip: all other emissions
   totalLabel: "Total",                         // Tooltip: total
   shareLabel: "Coal power share",              // Tooltip: share
-  unitLabel: "Gt",                             // Unit after numbers in the tooltip
+  unitLabel: "Gt",                             // Unit after the numbers (axis and tooltip)
   footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/data-and-maps/data/national-emissions-reported-to-the-unfccc-and-to-the-eu-greenhouse-gas-monitoring-mechanism-18), [UK Government](https://www.gov.uk/government/statistics/electricity-chapter-5-digest-of-united-kingdom-energy-statistics-dukes), [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: September 2026", // Footer; links as [text](https://…). Leave empty to hide
   notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
-
-  // ---- Text sizes ----
-  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  // Text sizes:
+  titleSize: 32,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
   footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
   axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
+  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
 
   // ---- Spacing ----
   padTop: 16,                                  // Space above the graphic in px
   padSides: 16,                                // Space left and right of the graphic in px
   padBottom: 12,                               // Space below the graphic in px
+  blockGap: 14,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
 
   // ---- Background ----
-  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+  bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
 
   // ---- Chart style (this graphic) ----
   barGap: 0.18,                                // Space between bars, as a share of each bar's slot
@@ -75,6 +75,9 @@ var SETTINGS = {
   // ---- Layout ----
   chartHeight: 0.9,                            // Chart height as a share of its width
   chartGap: 40,                                // Space between the two charts in px
+
+  // ---- Brand overrides (this graphic only) ----
+  titleAlign: "left",                          // Main title alignment
 };
 // ==== SETTINGS END ====
 </script>
@@ -126,13 +129,13 @@ var SETTINGS = {
         subtitle: "CO2 emissions from coal power are in rapid decline, both in whole terms and as part of total greenhouse gas emissions.",
         footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/data-and-maps/data/national-emissions-reported-to-the-unfccc-and-to-the-eu-greenhouse-gas-monitoring-mechanism-18), [UK Government](https://www.gov.uk/government/statistics/electricity-chapter-5-digest-of-united-kingdom-energy-statistics-dukes), [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: September 2026",
         extra: [
-          { key: "leftTitle",  type: "text", def: "Coal power CO2 emissions in relation to {all other GHG emissions} (gigatonnes)", help: "Heading above the bars; words in {braces} take the colour of all other GHG emissions" },
+          { key: "leftTitle",  type: "text", def: "Coal power CO2 emissions in relation to {all other GHG emissions}", help: "Heading above the bars; words in {braces} take the colour of all other GHG emissions" },
           { key: "rightTitle", type: "text", def: "Coal power as share of all GHG emissions", help: "Heading above the area chart" },
           { key: "coalLabel",  type: "text", def: "Coal power CO2", help: "Tooltip: coal power" },
           { key: "otherLabel", type: "text", def: "All other GHG emissions", help: "Tooltip: all other emissions" },
           { key: "totalLabel", type: "text", def: "Total", help: "Tooltip: total" },
           { key: "shareLabel", type: "text", def: "Coal power share", help: "Tooltip: share" },
-          { key: "unitLabel",  type: "text", def: "Gt", help: "Unit after numbers in the tooltip" }
+          { key: "unitLabel",  type: "text", def: "Gt", help: "Unit after the numbers (axis and tooltip)" }
         ]
       }),
       { name: "Chart style (this graphic)", fields: [
@@ -178,7 +181,7 @@ var SETTINGS = {
       DV.bars({ S: S, svg: document.getElementById("s-left"), tip: document.getElementById("t-left"), width: w, height: h,
         rows: rows, label: function (d) { return d[P]; }, gap: S.barGap, sep: S.pageBg === "transparent" ? "#fff" : S.pageBg,
         series: [{ key: OTHER, color: S.otherGhg }, { key: COAL, color: S.coalPowerCo2 }],
-        yMax: ax.max, tickStep: ax.step, fmtY: function (v) { return DV.fmt(v, "", 1); }, tooltip: tip });
+        yMax: ax.max, tickStep: ax.step, fmtY: function (v) { return DV.fmt(v, u, 1); }, tooltip: tip });
 
       var w2 = document.getElementById("p-right").clientWidth;
       var ax2 = DV.niceAxis(Math.max.apply(null, share), 4, false);

@@ -34,38 +34,38 @@ var SETTINGS = {
   // ---- Text ----
   title: "Outlook for European clean flexibility growth", // Main title
   subtitle: "Installed capacity in GW, with 2030 figures from the TYNDP Baseline (National Trends) Scenario, a snapshot of aggregated European national system plans, while 2035 to 2050 come from its Global Ambition Scenario", // Subtitle under the title, one paragraph per line (empty = none)
-  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
   unitLabel: "GW",                             // Unit after the numbers
   totalLabel: "Total clean flexibility",       // Tooltip: label of the total (the only figure shown; the split by technology is read off the report's figure)
   footer: "Source: [Report “Clean Flexibility: Opportunities in Europe” prepared by The Brattle Group and Acousmatics for BFF](https://beyondfossilfuels.org/2026/02/23/clean-flexibility-supports-a-reliable-grid-without-fossil-fuels/)", // Footer; links as [text](https://…). Leave empty to hide
   notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
-
-  // ---- Text sizes ----
-  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  // Text sizes:
+  titleSize: 32,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
   footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
   axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
+  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
+  refSize: 16,                                 // Reference label size in px
+  endLabelSize: 16,                            // End label size in px
 
   // ---- Spacing ----
   padTop: 16,                                  // Space above the graphic in px
   padSides: 16,                                // Space left and right of the graphic in px
   padBottom: 12,                               // Space below the graphic in px
+  blockGap: 14,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
 
   // ---- Background ----
-  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+  bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
 
   // ---- Reference line ----
   refShow: true,                               // Show the dashed reference line
   refValue: 253,                               // Reference line value (GW)
   refLabel: "Current level of gas capacity",   // Reference line label
-  refSize: 16,                                 // Reference label size in px
 
   // ---- Chart style (this graphic) ----
   showLegend: false,                           // Show a legend above the chart (the labels at the end of the areas already name them)
   endLabels: true,                             // Labels at the end of each area
-  endLabelSize: 16,                            // End label size in px
   endLabelWidth: 190,                          // Widest an end label gets before wrapping, in px
   fillOpacity: 0.7,                            // How solid the areas are
   lineWidthF2: 4,                              // Line thickness on top of each area in px
@@ -75,6 +75,9 @@ var SETTINGS = {
   // ---- Layout ----
   chartHeight: 0.6,                            // Chart height as a share of its width
   minHeight: 360,                              // Smallest chart height in px (phones)
+
+  // ---- Brand overrides (this graphic only) ----
+  titleAlign: "left",                          // Main title alignment
 };
 // ==== SETTINGS END ====
 </script>

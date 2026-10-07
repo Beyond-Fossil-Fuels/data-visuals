@@ -66,7 +66,7 @@
    * ------------------------------------------------------------------ */
   var GRAPHIC_BASE_GROUPS = [
     { name: "Text sizes", fields: [
-      { key: "titleSize",   type: "range", min: 16, max: 72, step: 1, def: 46, help: "Main title size in px (shrinks on small screens)" },
+      { key: "titleSize",   type: "range", min: 16, max: 72, step: 1, def: 32, help: "Main title size in px (shrinks on small screens)" },
       { key: "headingSize", type: "range", min: 11, max: 32, step: 0.5, def: 21, help: "Chart heading (subtitle) size in px" },
       { key: "footerSize",  type: "range", min: 10, max: 32, step: 0.5, def: 14, help: "Footer (sources and notes) text size in px (never larger than the legend)" },
       { key: "legendSize",  type: "range", min: 10, max: 22, step: 0.5, def: 14, help: "Legend text size in px" },
@@ -76,23 +76,40 @@
     { name: "Spacing", fields: [
       { key: "padTop",    type: "range", min: 0, max: 80, step: 1, def: 16, help: "Space above the graphic in px" },
       { key: "padSides",  type: "range", min: 0, max: 80, step: 1, def: 16, help: "Space left and right of the graphic in px" },
-      { key: "padBottom", type: "range", min: 0, max: 80, step: 1, def: 12, help: "Space below the graphic in px" }
+      { key: "padBottom", type: "range", min: 0, max: 80, step: 1, def: 12, help: "Space below the graphic in px" },
+      { key: "blockGap",  type: "range", min: 0, max: 60, step: 1, def: 14, help: "Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)" }
     ]},
     { name: "Background", fields: [
-      { key: "bgMode", type: "select", options: ["brand colour", "white", "transparent"], def: "brand colour",
+      { key: "bgMode", type: "select", options: ["white", "brand colour", "transparent"], def: "white",
         help: "Page background, brand colour: the brand Page background; transparent: the website shows through" }
     ]}
   ];
-  function withBaseGroups(groups) {
-    var names = {};
-    GRAPHIC_BASE_GROUPS.forEach(function (g) { g.fields.forEach(function (f) { names[f.key] = true; }); });
+  // A text size: a range setting whose name ends in "Size", other than sizes of dots, icons and other shapes.
+  // In design mode these are all listed together, under the Text section, as plain number boxes.
+  var NOT_TEXT = /^(dot|icon|play|flag|bubble|thumb|symbol|pie|circle|marker(?!Size$)|slider)/i;
+  function isTextSize(f) { return f.type === "range" && /Size$/.test(f.key) && !NOT_TEXT.test(f.key); }
+  DV.isTextSize = isTextSize;
+  function withBaseGroups(groups, cfg) {
     // a graphic that defines one of these fields itself keeps its own version
     var own = {};
     groups.forEach(function (g) { g.fields.forEach(function (f) { own[f.key] = true; }); });
+    // graphics without axes (maps, pictograms: cfg.axes === false) leave out the axis label size
+    if (cfg && cfg.axes === false) own.axisSize = true;
     var base = GRAPHIC_BASE_GROUPS.map(function (g) {
       return { name: g.name, fields: g.fields.filter(function (f) { return !own[f.key]; }) };
+    });
+    // gather every text size (standard ones first, then the graphic's own) into one list
+    var sizes = base[0].fields.slice();
+    var rest = groups.map(function (g) {
+      return { name: g.name, fields: g.fields.filter(function (f) { if (isTextSize(f)) { sizes.push(f); return false; } return true; }) };
     }).filter(function (g) { return g.fields.length; });
-    return groups.slice(0, 1).concat(base, groups.slice(1));
+    var others = base.slice(1).filter(function (g) { return g.fields.length; });
+    if (rest.length && /^text$/i.test(rest[0].name)) {
+      // under the Text section, after a small "Text sizes" heading
+      var text = { name: rest[0].name, fields: rest[0].fields.concat([{ type: "heading", help: "Text sizes" }], sizes) };
+      return [text].concat(others, rest.slice(1));
+    }
+    return rest.slice(0, 1).concat([{ name: "Text sizes", fields: sizes }], others, rest.slice(1));
   }
 
   var SETTINGS_HEADER = [
@@ -569,7 +586,7 @@
    * ------------------------------------------------------------------ */
   DV.create = function (cfg) {
     var root = document.getElementById(cfg.root || "dv");
-    var groups = withBaseGroups(cfg.groups);
+    var groups = withBaseGroups(cfg.groups, cfg);
     var brandFields = fieldMap(BRAND_GROUPS), graphicFields = fieldMap(groups);
     var FILE_BRAND = window.BRAND || {}, FILE_SETTINGS = window.SETTINGS || {};
     var design = /[?&]design\b/i.test(location.search);
@@ -657,7 +674,10 @@
         ctx.sz = function (size, min) { return Math.max(Math.min(min, size), size * ctx.k); };
         var st = root.style;
         st.setProperty("--dv-title-size", ctx.sz(S.titleSize, 22) + "px");
-        st.setProperty("--dv-title-gap", ctx.sz(36, 16) + "px");
+        // one gap between all the blocks (title, subtitle, buttons, charts, footer)
+        var gap = S.blockGap != null ? S.blockGap : 14;
+        st.setProperty("--dv-title-gap", gap + "px");
+        st.setProperty("--dv-gap", gap + "px");
         st.setProperty("--dv-heading-size", ctx.sz(S.headingSize, 15) + "px");
         st.setProperty("--dv-legend-size", ctx.sz(S.legendSize, 12) + "px");
         st.setProperty("--dv-footer-size", Math.min(ctx.sz(S.footerSize, 12), ctx.sz(S.legendSize, 12)) + "px");   // never larger than the legend
@@ -844,6 +864,8 @@
 
         function control(f, get, set, warn) {
           var row = document.createElement("div"); row.className = "gd-row";
+          if (f.type === "heading") { row.className = "gd-sub"; row.textContent = f.help; return row; }
+          row.setAttribute("data-key", f.key);   // the setting's name in the files (for whoever edits the code)
           var id = "gd-" + f.key;
           var labelText = f.help.split(/[,(;]/)[0].trim();
           var rest = f.help.slice(labelText.length).replace(/^[\s,;]+/, "");
@@ -851,7 +873,13 @@
           row.appendChild(lab);
           var ctl = document.createElement("div"); ctl.className = "gd-ctl"; row.appendChild(ctl);
           var input, val = get(f.key);
-          if (f.type === "range") {
+          if (f.type === "range" && isTextSize(f)) {
+            // text sizes: just a number box (keeps the list short)
+            input = document.createElement("input"); input.type = "number"; input.className = "gd-num";
+            input.min = f.min; input.max = f.max; input.step = f.step; input.value = val;
+            input.addEventListener("input", function () { if (input.value !== "") set(f.key, +input.value); });
+            ctl.appendChild(input);
+          } else if (f.type === "range") {
             input = document.createElement("input"); input.type = "range";
             input.min = f.min; input.max = f.max; input.step = f.step; input.value = val;
             var num = document.createElement("input"); num.type = "number";
@@ -926,9 +954,11 @@
             ctl.appendChild(input);
           }
           input.id = id;
-          var help = document.createElement("small");
-          help.textContent = (rest ? rest + "  ·  " : "") + "setting: " + f.key;
-          row.appendChild(help);
+          if (rest) {
+            var help = document.createElement("small");
+            help.textContent = rest;
+            row.appendChild(help);
+          }
           if (warn) { var w = document.createElement("small"); w.className = "gd-warn"; w.textContent = warn; row.appendChild(w); }
           return row;
         }
@@ -1093,7 +1123,10 @@
       groups.forEach(function (g, gi) {
         if (gi) lines.push("");
         lines.push("  // ---- " + g.name + " ----");
-        g.fields.forEach(function (f) { lines.push(line("  ", f.key, G[f.key], f.help)); });
+        g.fields.forEach(function (f) {
+          if (f.type === "heading") lines.push("  // " + f.help + ":");
+          else lines.push(line("  ", f.key, G[f.key], f.help));
+        });
       });
       if (overrides.length) {
         lines.push("", "  // ---- Brand overrides (this graphic only) ----");
@@ -1124,7 +1157,7 @@
 
   function fieldMap(groups) {
     var m = {};
-    groups.forEach(function (g) { g.fields.forEach(function (f) { m[f.key] = f; }); });
+    groups.forEach(function (g) { g.fields.forEach(function (f) { if (f.key) m[f.key] = f; }); });
     return m;
   }
   function humanize(k) {

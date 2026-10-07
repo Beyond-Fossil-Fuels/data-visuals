@@ -34,35 +34,35 @@ var SETTINGS = {
   // ---- Text ----
   title: "Value of \"realistic buildable\" capacity in the queue", // Main title
   subtitle: "",                                // Subtitle under the title, one paragraph per line (empty = none)
-  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
   totalName: "Total",                          // Name of the total bar (empty = no total bar)
   prefix: "€",                                 // Before each number
   suffix: "bn",                                // After each number
   tipLabel: "Value of realistic buildable capacity", // Tooltip: label of the total (the only figure shown; the split by technology is read off the report's figure)
   footer: "Source: [AFRY and BFF report \"Grid expectations: The distribution backlog stalling Europe's energy transition\"](https://beyondfossilfuels.org/2026/06/02/grid-expectations-the-distribution-backlog-stalling-europes-energy-transition/)", // Footer; links as [text](https://…). Leave empty to hide
   notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
-
-  // ---- Text sizes ----
-  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  // Text sizes:
+  titleSize: 32,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
   footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
   axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
+  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
+  topLabelSize: 20,                            // Size of the labels above the bars in px
 
   // ---- Spacing ----
   padTop: 16,                                  // Space above the graphic in px
   padSides: 16,                                // Space left and right of the graphic in px
   padBottom: 12,                               // Space below the graphic in px
+  blockGap: 14,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
 
   // ---- Background ----
-  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+  bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
 
   // ---- Bars ----
   legendPos: "center",                         // Legend alignment
   barGap: 0.2,                                 // Space between bars, as a share of each bar's slot
   sigFigs: 2,                                  // Labels above the bars: significant figures (2: 45, 7, 0.03, 100)
-  topLabelSize: 20,                            // Size of the labels above the bars in px
   decimals: 2,                                 // Decimals in the tooltip
 
   // ---- Layout ----

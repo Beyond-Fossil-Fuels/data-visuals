@@ -104,14 +104,14 @@ var BRAND = {
       solarIcon: "#e5b23a",
     },
     "Coal data tool": {
-      coalPowerCo2: "#577986",
-      otherGhg: "#ABBCC2",
+      coalPowerCo2: "#260C07",
+      otherGhg: "#928683",
       hardCoalHistoric: "#260C07",
       hardCoalProjected: "#BEB6B5",
       ligniteHistoric: "#6D330C",
       ligniteProjected: "#D3C2B6",
-      capacityHistoric: "#577986",
-      capacityProjected: "#CDD7DB",
+      capacityHistoric: "#260C07",
+      capacityProjected: "#BEB6B5",
     },
     "Coal utilities": {
       utility1: "#577986",

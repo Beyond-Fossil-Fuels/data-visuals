@@ -49,7 +49,6 @@ var SETTINGS = {
   // ---- Text ----
   title: "CO2 emissions by utility from coal power stations in the EU+UK", // Main title
   subtitle: "Just seven utilities caused two-thirds of coal-based CO₂ emissions in 2025.", // Subtitle under the title, one paragraph per line (empty = none)
-  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
   hint: "Click utility names below to toggle them off and on:", // Line above the legend (empty = none)
   mainCaption: "Utilities ranked by cumulative CO₂ emissions from coal power stations since {first}.", // Caption under the stacked bars; {first} = first year in the data
   smallCaption: "Utilities with the largest cumulative CO₂ emissions from coal power stations since {first}.", // Caption under the small charts; {first} = first year in the data
@@ -58,42 +57,45 @@ var SETTINGS = {
   totalLabel: "Total",                         // Tooltip: total
   footer: "Source: [EU ETS](https://union-registry-data.ec.europa.eu/report/welcome), [UK ETS](https://reports.view-emissions-trading-registry.service.gov.uk/ets-reports.html), [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: September 2026", // Footer; links as [text](https://…). Leave empty to hide
   notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
-
-  // ---- Text sizes ----
-  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  // Text sizes:
+  titleSize: 32,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
   footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
   axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
+  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
+  noteSize: 15,                                // Note size in px
+  smallHeadingSize: 19,                        // Small chart heading size in px
 
   // ---- Spacing ----
   padTop: 16,                                  // Space above the graphic in px
   padSides: 16,                                // Space left and right of the graphic in px
   padBottom: 12,                               // Space below the graphic in px
+  blockGap: 14,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
 
   // ---- Background ----
-  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+  bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
 
   // ---- Stacked bars ----
   legendToggle: true,                          // Clicking a legend item hides or shows that utility
   barGap: 0.3,                                 // Space between bars, as a share of each bar's slot
   highlightLast: true,                         // Grey band behind the latest year
   highlightColor: "#efefef",                   // Colour of the band
-  noteSize: 15,                                // Note size in px
   noteWidth: 180,                              // Widest a note line gets in px
   noteColor: "#555555",                        // Note colour
 
   // ---- Small charts ----
   showSmall: true,                             // Show the small charts for each utility
-  smallHeadingSize: 19,                        // Small chart heading size in px
   smallHeight: 110,                            // Height of each small chart in px
-  smallAxisSize: 12,                           // Axis label size on the small charts in px
 
   // ---- Layout ----
   chartHeight: 0.95,                           // Stacked bar chart height as a share of its width
   mainShare: 0.5,                              // Stacked bars' share of the width (side by side)
   chartGap: 40,                                // Space between the two halves in px
+
+  // ---- Brand overrides (this graphic only) ----
+  titleAlign: "left",                          // Main title alignment
 };
 // ==== SETTINGS END ====
 </script>
@@ -188,8 +190,7 @@ var SETTINGS = {
       { name: "Small charts", fields: [
         { key: "showSmall",        type: "check", def: true, help: "Show the small charts for each utility" },
         { key: "smallHeadingSize", type: "range", min: 10, max: 30, step: 0.5, def: 19, help: "Small chart heading size in px" },
-        { key: "smallHeight",      type: "range", min: 60, max: 260, step: 5, def: 110, help: "Height of each small chart in px" },
-        { key: "smallAxisSize",    type: "range", min: 8, max: 18, step: 0.5, def: 12, help: "Axis label size on the small charts in px" }
+        { key: "smallHeight",      type: "range", min: 60, max: 260, step: 5, def: 110, help: "Height of each small chart in px" }
       ]},
       { name: "Layout", fields: [
         { key: "chartHeight", type: "range", min: 0.4, max: 1.4, step: 0.02, def: 0.95, help: "Stacked bar chart height as a share of its width" },
@@ -255,7 +256,7 @@ var SETTINGS = {
         var sw = sm.svg.parentNode.clientWidth, k = sm.u.key;
         var a = DV.niceAxis(Math.max.apply(null, rows.map(function (d) { return d[k]; })), 2);
         var every = sw < 260 ? 10 : 5;
-        DV.bars({ S: S, svg: sm.svg, tip: tip, width: sw, height: S.smallHeight, rows: rows, fs: S.smallAxisSize,
+        DV.bars({ S: S, svg: sm.svg, tip: tip, width: sw, height: S.smallHeight, rows: rows,
           label: function (d) { return d[P]; }, xLabelAt: function (i) { return +rows[i][P] % every === 0; },
           gap: 0.2, series: [{ key: k, color: sm.u.color }], yMax: a.max, tickStep: a.step, top: 4,
           fmtY: function (v) { return DV.fmt(v, un, 0); },

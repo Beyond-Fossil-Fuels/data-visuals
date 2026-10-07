@@ -2,7 +2,7 @@
  * BFF data visuals: chart styles, version 1 (loaded only by bar, line and
  * pictogram graphics, after core.css)
  * ================================================================== */
-.dvc-sub { font-size: var(--dvc-sub-size, 18px); margin: calc(var(--dv-title-gap) * -0.6) 0 var(--dv-title-gap); line-height: 1.35;
+.dvc-sub { font-size: var(--dvc-sub-size, 18px); margin: 0 0 var(--dv-gap, 14px); line-height: 1.35;
   text-align: var(--dv-title-align); color: var(--dv-text); }
 .dvc-sub:empty { display: none; }
 .dvc-sub p { margin: 0 0 .5em; }
@@ -40,7 +40,7 @@
 .dvc-square i { border-radius: 2px; }
 
 /* view buttons */
-.dvc-views { display: flex; justify-content: var(--dv-title-align); margin: 0 0 18px; }
+.dvc-views { display: flex; justify-content: var(--dvc-buttons-align, center); margin: 0 0 var(--dv-gap, 14px); }
 .dvc-views-pill .dvc-seg { display: inline-flex; gap: 3px; padding: 3px; border: 1.5px solid #000; border-radius: 999px; background: #fff; }
 .dvc-views-pill button { font: inherit; font-size: var(--dv-legend-size); font-weight: 600; color: #000; border: 0; border-radius: 999px;
   padding: .5em 1.2em; background: transparent; cursor: pointer; transition: background-color .15s; }

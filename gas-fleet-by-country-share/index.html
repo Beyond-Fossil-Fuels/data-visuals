@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Europe's existing fleet and new plant projects capacity (%)</title>
+<title>Share of capacity by status in Europe's existing fleet and new plant projects</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="../shared/v1/core.css">
@@ -36,45 +36,49 @@
  * ================================================================ */
 var SETTINGS = {
   // ---- Text ----
-  title: "Europe’s existing fleet and new plant projects capacity (%)", // Main title
+  title: "Share of capacity by status in Europe’s existing fleet and new plant projects", // Main title
   subtitle: "Toggle individual statuses on/off by clicking the legend, and hover over bars to see capacity values.", // Subtitle under the title, one paragraph per line (empty = none)
-  subtitleSize: 17,                            // Subtitle size in px (shrinks on small screens)
   pExisting: "Existing fleet",                 // Left panel heading
   pNew: "New plant projects",                  // Right panel heading
   unitLabel: "MW",                             // Unit in the tooltip
   totalLabel: "Total",                         // Tooltip: total
-  footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Plant retirements tracked since Jan 2023 | Last update: July 2026", // Footer; links as [text](https://…). Leave empty to hide
+  footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Power plants tracked since 2023 | Last update: July 2026", // Footer; links as [text](https://…). Leave empty to hide
   notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.", // Notes under the footer, one paragraph per line; links as [text](https://…)
-
-  // ---- Text sizes ----
-  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  // Text sizes:
+  titleSize: 32,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
   footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
   axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
+  subtitleSize: 17,                            // Subtitle size in px (shrinks on small screens)
+  labelSize: 14,                               // Country name size in px
+  insideSize: 12.5,                            // Size of the shares inside segments in px
 
   // ---- Spacing ----
   padTop: 16,                                  // Space above the graphic in px
   padSides: 16,                                // Space left and right of the graphic in px
   padBottom: 12,                               // Space below the graphic in px
+  blockGap: 14,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
 
   // ---- Background ----
-  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+  bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
 
   // ---- Bars ----
   legendToggle: true,                          // Clicking a legend item hides or shows that status (shares are recalculated)
   legendPos: "center",                         // Legend alignment
-  rowHeight: 27,                               // Height of each country's row in px
-  barGap: 0.12,                                // Space between bars, as a share of the row
-  labelSize: 15,                               // Country name size in px
+  rowHeight: 25,                               // Height of each country's row in px (G5 uses the same)
+  barGap: 0.15,                                // Space between bars, as a share of the row
   labelWeight: 700,                            // Country name boldness
-  insideLabels: true,                          // Write the share inside segments wide enough for it
-  insideSize: 12.5,                            // Size of the shares inside segments in px
+  insideLabels: true,                          // Show the share inside segments wide enough for it (off = in the tooltip only)
+  insideAlign: "center",                       // Where the share sits in its segment
   panelBg: "#f8f8f8",                          // Panel background
 
   // ---- Layout ----
   panelGap: 32,                                // Space between the two panels in px
+
+  // ---- Brand overrides (this graphic only) ----
+  titleAlign: "left",                          // Main title alignment
 };
 // ==== SETTINGS END ====
 </script>
@@ -149,9 +153,9 @@ var SETTINGS = {
 
     groups: [
       DV.chartTextGroup({
-        title: "Europe’s existing fleet and new plant projects capacity (%)",
+        title: "Share of capacity by status in Europe’s existing fleet and new plant projects",
         subtitle: "Toggle individual statuses on/off by clicking the legend, and hover over bars to see capacity values.",
-        footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Plant retirements tracked since Jan 2023 | Last update: July 2026",
+        footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Power plants tracked since 2023 | Last update: July 2026",
         notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.",
         subtitleSize: 17,
         extra: [
@@ -164,11 +168,12 @@ var SETTINGS = {
       { name: "Bars", fields: [
         { key: "legendToggle", type: "check", def: true, help: "Clicking a legend item hides or shows that status (shares are recalculated)" },
         { key: "legendPos",    type: "select", options: ["left", "center", "right"], def: "center", help: "Legend alignment" },
-        { key: "rowHeight",    type: "range", min: 14, max: 40, step: 1, def: 27, help: "Height of each country's row in px" },
-        { key: "barGap",       type: "range", min: 0, max: 0.6, step: 0.02, def: 0.12, help: "Space between bars, as a share of the row" },
-        { key: "labelSize",    type: "range", min: 9, max: 22, step: 0.5, def: 15, help: "Country name size in px" },
+        { key: "rowHeight",    type: "range", min: 14, max: 40, step: 1, def: 25, help: "Height of each country's row in px (G5 uses the same)" },
+        { key: "barGap",       type: "range", min: 0, max: 0.6, step: 0.02, def: 0.15, help: "Space between bars, as a share of the row" },
+        { key: "labelSize",    type: "range", min: 9, max: 22, step: 0.5, def: 14, help: "Country name size in px" },
         { key: "labelWeight",  type: "select", options: [300, 400, 500, 600, 700, 800, 900], def: 700, help: "Country name boldness" },
-        { key: "insideLabels", type: "check", def: true, help: "Write the share inside segments wide enough for it" },
+        { key: "insideLabels", type: "check", def: true, help: "Show the share inside segments wide enough for it (off = in the tooltip only)" },
+        { key: "insideAlign",  type: "select", options: ["center", "left"], def: "center", help: "Where the share sits in its segment" },
         { key: "insideSize",   type: "range", min: 8, max: 18, step: 0.5, def: 12.5, help: "Size of the shares inside segments in px" },
         { key: "panelBg",      type: "color", def: "#f8f8f8", help: "Panel background" }
       ]},
@@ -215,7 +220,7 @@ var SETTINGS = {
           label: function (r) { return r[P]; }, labelW: lw, labelSize: lsz, labelWeight: S.labelWeight, percent: true,
           series: series, xMax: 100, tickStep: 50, grid: true, bg: S.panelBg, rowH: S.rowHeight, gap: S.barGap,
           sep: S.panelBg, sepWidth: 0.75, fmtX: function (v) { return v + "%"; },
-          inside: S.insideLabels ? function (v, pct) { return DV.fmt(pct, "", 0) + "%"; } : null, insideSize: S.insideSize,
+          inside: S.insideLabels ? function (v, pct) { return DV.fmt(pct, "", 0) + "%"; } : null, insideSize: S.insideSize, insideAlign: S.insideAlign,
           tooltip: function (i) {
             var r = rows[i], t = tot(r), html = "<b>" + r[P] + "</b>";
             series.forEach(function (s) {

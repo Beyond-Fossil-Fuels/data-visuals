@@ -36,28 +36,28 @@ var SETTINGS = {
   // ---- Text ----
   title: "New coal power plant projects: almost there, but there’s still work to do", // Main title
   subtitle: "While the EU has not only cancelled coal plants already under construction but also prevented others from ever starting operations, the Western Balkans are slower to stop new coal projects.", // Subtitle under the title, one paragraph per line (empty = none)
-  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
   hint: "Click each status below to toggle them off and on", // Line above the legend (empty = none)
   heading: "{region} (~{total} GW)",           // Panel headings; {region} and {total} (largest total, GW) are filled in
   unitLabel: "GW",                             // Unit in the tooltip
   footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Coal power plant projects tracked since Jan 2016 | Last update: July 2026", // Footer; links as [text](https://…). Leave empty to hide
   notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
-
-  // ---- Text sizes ----
-  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  // Text sizes:
+  titleSize: 32,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
   footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
   axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
+  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
 
   // ---- Spacing ----
   padTop: 16,                                  // Space above the graphic in px
   padSides: 16,                                // Space left and right of the graphic in px
   padBottom: 12,                               // Space below the graphic in px
+  blockGap: 14,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
 
   // ---- Background ----
-  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+  bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
 
   // ---- Bars ----
   legendToggle: true,                          // Clicking a legend item hides or shows that status
@@ -69,6 +69,9 @@ var SETTINGS = {
   // ---- Layout ----
   chartHeight: 0.95,                           // Chart height as a share of its width
   chartGap: 24,                                // Space between panels in px
+
+  // ---- Brand overrides (this graphic only) ----
+  titleAlign: "left",                          // Main title alignment
 };
 // ==== SETTINGS END ====
 </script>

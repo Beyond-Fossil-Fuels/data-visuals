@@ -47,7 +47,6 @@ var SETTINGS = {
   // ---- Text ----
   title: "CO2 emissions from coal power plants in Europe", // Main title
   subtitle: "Coal is a disaster for climate change. While Europe is clearly heading towards a 2030 end to coal power, its many remaining plants still pump vast quantities of carbon dioxide into the air, heating our atmosphere. This map shows which countries emit the most, and how this has changed over time (2005-2025).", // Text under the title (empty = none)
-  subtitleSize: 17,                            // Text under the title: size in px
   footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/en/datahub/datahubitem-view/98f04097-26de-4fca-86c4-63834818c0c0), [Beyond Fossil Fuels](https://beyondfossilfuels.org/coal/)", // Footer; [text](https://…) makes a link; {last} is the newest year. Leave empty to hide
   legendTitle: "CO2 emissions from coal power (Mt)", // Colour legend title (empty = none)
   valueText: "{value} Mt CO2 in {year}",       // Popup value line; {value} and {year} are filled in
@@ -55,22 +54,24 @@ var SETTINGS = {
   statusText: "Phase-out status: {status}",    // Popup status line; {status} is the Status detail column
   searchPlaceholder: "Select country",         // Search box placeholder
   latestText: "{date}",                        // Slider label at the newest year; {date} is that year
-
-  // ---- Text sizes ----
-  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  // Text sizes:
+  titleSize: 32,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
   footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
-  axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
+  subtitleSize: 17,                            // Text under the title: size in px
+  panelTextSize: 16,                           // Panel text size in px
+  smallSize: 5,                                // Size of the zoomed box (or circle), in % of the map width
 
   // ---- Spacing ----
   padTop: 16,                                  // Space above the graphic in px
   padSides: 16,                                // Space left and right of the graphic in px
   padBottom: 12,                               // Space below the graphic in px
+  blockGap: 14,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
 
   // ---- Background ----
-  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+  bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
 
   // ---- Colour scale ----
   colorStops: "0 :: #20da4b\n40 :: #c9c24a\n80 :: #e8b13e\n120 :: #b98431\n180 :: #7a5521\n250 :: #3a2a12\n300 :: #000000", // Colour stops, one per line: value (Mt) :: colour. Colours blend between stops; the last value is the top of the scale
@@ -90,7 +91,6 @@ var SETTINGS = {
   panelPos: "hidden",                          // Panel opened by clicking a country or searching (on phones it goes below the map; hidden = no panel)
   panelWidth: 340,                             // Panel width in px
   panelBg: "#f4f4f4",                          // Side panel background
-  panelTextSize: 16,                           // Panel text size in px
 
   // ---- Time slider ----
   sliderPos: "above map",                      // Position (on phones, corners and sides move below the map)
@@ -115,7 +115,6 @@ var SETTINGS = {
   noDataShow: "hidden",                        // Countries without data, hidden: only countries with data; BFF countries only: also BFF countries with no data; all countries: neighbours too
   smallMode: "zoomed box",                     // Very small countries (list below), as they are: their real size; circle: a dot you can hover; zoomed box: an enlarged copy in a box
   smallList: "MT",                             // Very small countries, ISO codes separated by commas (e.g. MT, LU)
-  smallSize: 5,                                // Size of the zoomed box (or circle), in % of the map width
   smallDX: 5,                                  // Zoomed box position sideways from the country, in % of the map width: + right
   smallDY: -1.5,                               // Zoomed box position up or down from the country, in % of the map width: + down
 
@@ -140,7 +139,8 @@ var SETTINGS = {
   mapZoom: 1,                                  // Zoom (1 = the view box fits the map area)
   mapShiftX: 0,                                // Move the map sideways, in % of its width: + right, - left
   mapShiftY: 0,                                // Move the map up or down, in % of its height: + down, - up
-  mapHeight: 0.72,                             // Map height as a share of its width
+  graphicHeight: 860,                          // Height of the whole graphic on wide screens, in px: the map gets whatever the title, legends and footer leave (the same for every map; 0 = use the share below)
+  mapHeight: 0.72,                             // Map height as a share of its width (when the graphic height is 0)
   mapHeightPhone: 0.85,                        // Map height on phones, as a share of its width (phones = narrower than the brand stackBelow width)
   mapZoomPhone: 1,                             // Extra zoom on phones (1 = same as wide screens)
 
@@ -158,6 +158,9 @@ var SETTINGS = {
   fadeOpacity: 0.4,                            // How visible the other countries stay when faded (0 = invisible, 1 = no fade)
   selectColor: "#000000",                      // Outline of the selected (clicked or searched) country
   selectWidth: 2.5,                            // Selected outline width in px
+
+  // ---- Brand overrides (this graphic only) ----
+  titleAlign: "left",                          // Main title alignment
 };
 // ==== SETTINGS END ====
 </script>
@@ -334,6 +337,7 @@ var SETTINGS = {
   }
 
   DV.create({
+    axes: false,   // no axes: design mode leaves out the axis label size
     sheetId: SHEET_ID,
     sheetTab: SHEET_TAB,
     fallback: FALLBACK,
@@ -435,7 +439,7 @@ var SETTINGS = {
       ], narrow);
       if (!state.topo) return;
       var w = ui.layout.stage.clientWidth;
-      var h = Math.round(w * (narrow ? S.mapHeightPhone : S.mapHeight));
+      var h = DV.mapHeightFor(ctx, S, w, narrow, ui.layout.stage);   // same total height for every map (setting "Graphic height")
       var view = Object.create(S);
       if (narrow) view.mapZoom = S.mapZoom * S.mapZoomPhone;
       ui.view.draw({

@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="../shared/v1/core.css">
 <style>
   /* Units / capacity switch under the title */
-  .view-switch { display: flex; justify-content: var(--dv-title-align); margin: -6px 0 22px; }
+  .view-switch { display: flex; justify-content: var(--switch-align, center); margin: 0 0 var(--dv-gap, 14px); }
   .seg { display: inline-flex; gap: 3px; padding: 3px; border: 1.5px solid #000; border-radius: 999px; background: #fff; }
   .seg button {
     font: inherit; font-size: var(--dv-legend-size); font-weight: 600; color: #000;
@@ -61,20 +61,21 @@ var SETTINGS = {
   capacityLabel: "Capacity (GW)",              // Switch button: capacity view
   leftTitle: "In development",                 // Heading above the left chart
   rightTitle: "Already left development since start of tracking", // Heading above the right chart
-  footer: "Power plants tracked since {first} | Last update: {last}", // Footer; {first} and {last} are filled in from the data. Leave empty to hide
-
-  // ---- Text sizes ----
-  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Power plants tracked since {first} | Last update: {last}", // Footer; {first} and {last} are filled in from the data. Leave empty to hide
+  // Text sizes:
+  titleSize: 32,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
   footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
   axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
+  areaLabelSize: 19,                           // Largest label size in px (it shrinks to fit inside the dark area, and on small screens)
 
   // ---- Spacing ----
   padTop: 16,                                  // Space above the graphic in px
   padSides: 16,                                // Space left and right of the graphic in px
   padBottom: 12,                               // Space below the graphic in px
+  blockGap: 14,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
 
   // ---- Background ----
   bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
@@ -82,10 +83,12 @@ var SETTINGS = {
   // ---- Label on the dark area ----
   areaLabelShow: true,                         // Show the label inside the dark area
   areaLabelText: "Already left development|since start of tracking", // Label text; use | for a line break
-  areaLabelSize: 19,                           // Largest label size in px (it shrinks to fit inside the dark area, and on small screens)
   areaLabelWeight: 700,                        // Label boldness
   areaLabelColor: "#ffffff",                   // Label colour
   areaLabelWidth: 0.8,                         // Widest a label line gets, as a share of the chart width
+
+  // ---- Switch ----
+  buttonsAlign: "center",                      // Units / capacity switch alignment
 
   // ---- Colours ----
   switchColor: "#fef751",                      // Background of the selected switch button
@@ -188,7 +191,7 @@ var SETTINGS = {
         { key: "capacityLabel", type: "text", def: "Capacity (GW)", help: "Switch button: capacity view" },
         { key: "leftTitle",     type: "text", def: "In development", help: "Heading above the left chart" },
         { key: "rightTitle",    type: "text", def: "Already left development since start of tracking", help: "Heading above the right chart" },
-        { key: "footer",        type: "text", def: "Power plants tracked since {first} | Last update: {last}", help: "Footer; {first} and {last} are filled in from the data. Leave empty to hide" }
+        { key: "footer",        type: "text", def: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Power plants tracked since {first} | Last update: {last}", help: "Footer; {first} and {last} are filled in from the data. Leave empty to hide" }
       ]},
       { name: "Label on the dark area", fields: [
         { key: "areaLabelShow",   type: "check", def: true, help: "Show the label inside the dark area" },
@@ -197,6 +200,9 @@ var SETTINGS = {
         { key: "areaLabelWeight", type: "select", options: [300, 400, 500, 600, 700, 800, 900], def: 700, help: "Label boldness" },
         { key: "areaLabelColor",  type: "color", def: "#ffffff", help: "Label colour" },
         { key: "areaLabelWidth",  type: "range", min: 0.3, max: 1, step: 0.05, def: 0.8, help: "Widest a label line gets, as a share of the chart width" }
+      ]},
+      { name: "Switch", fields: [
+        { key: "buttonsAlign", type: "select", options: ["left", "center", "right"], def: "center", help: "Units / capacity switch alignment" }
       ]},
       { name: "Colours", fields: [
         { key: "switchColor",          type: "color", def: "#fef751", help: "Background of the selected switch button" },
@@ -225,6 +231,7 @@ var SETTINGS = {
       }
       var S = ctx.S;
       document.documentElement.style.setProperty("--switch-on", S.switchColor);
+      document.documentElement.style.setProperty("--switch-align", { left: "flex-start", right: "flex-end" }[S.buttonsAlign] || "center");
       charts.left = DV.chartBox(document.getElementById("chart-left"), S.leftTitle, legend(S, ctx.headers, LEFT_KEYS));
       charts.right = DV.chartBox(document.getElementById("chart-right"), S.rightTitle, legend(S, ctx.headers, RIGHT_KEYS));
 

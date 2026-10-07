@@ -666,6 +666,18 @@
    * Returns months since year 0 (or null if it isn't a date).
    * ------------------------------------------------------------------ */
   var MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+  /* ------------------------------------------------------------------
+   * MAP HEIGHT: on wide screens, the map fills what's left of S.graphicHeight
+   * after the title, legends and footer (so every map graphic is the same height);
+   * on phones, or with graphicHeight 0, it's a share of the width.
+   * ------------------------------------------------------------------ */
+  DV.mapHeightFor = function (ctx, S, w, narrow, stage) {
+    var h = Math.round(w * (narrow ? S.mapHeightPhone : S.mapHeight));
+    if (narrow || !(S.graphicHeight > 0)) return h;
+    var rest = ctx.root.getBoundingClientRect().height - stage.offsetHeight;
+    return Math.max(Math.round(w * 0.35), Math.round(S.graphicHeight - rest));
+  };
+
   DV.parseDate = function (s) {
     s = String(s || "").trim().toLowerCase();
     var m = /^([a-z]{3})[a-z]*\.?\s+(\d{4})$/.exec(s);
@@ -722,7 +734,8 @@
         { key: "mapZoom",      type: "range", min: 0.5, max: 3, step: 0.01, def: 1, help: "Zoom (1 = the view box fits the map area)" },
         { key: "mapShiftX",    type: "range", min: -50, max: 50, step: 0.5, def: 0, help: "Move the map sideways, in % of its width: + right, - left" },
         { key: "mapShiftY",    type: "range", min: -50, max: 50, step: 0.5, def: 0, help: "Move the map up or down, in % of its height: + down, - up" },
-        { key: "mapHeight",    type: "range", min: 0.4, max: 1.4, step: 0.01, def: 0.72, help: "Map height as a share of its width" },
+        { key: "graphicHeight", type: "range", min: 0, max: 1600, step: 10, def: 860, help: "Height of the whole graphic on wide screens, in px: the map gets whatever the title, legends and footer leave (the same for every map; 0 = use the share below)" },
+        { key: "mapHeight",    type: "range", min: 0.4, max: 1.4, step: 0.01, def: 0.72, help: "Map height as a share of its width (when the graphic height is 0)" },
         { key: "mapHeightPhone", type: "range", min: 0.4, max: 1.6, step: 0.01, def: 0.85, help: "Map height on phones, as a share of its width (phones = narrower than the brand stackBelow width)" },
         { key: "mapZoomPhone", type: "range", min: 0.5, max: 3, step: 0.01, def: 1, help: "Extra zoom on phones (1 = same as wide screens)" }
       ]},

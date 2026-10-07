@@ -36,7 +36,6 @@ var SETTINGS = {
   // ---- Text ----
   title: "Overall gas tracking progress",      // Main title
   subtitle: "",                                // Subtitle under the title, one paragraph per line (empty = none)
-  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
   capacityLabel: "Capacity",                   // Switch button: capacity view
   unitsLabel: "Number of units",               // Switch button: units view
   pInstalled: "Installed",                     // Panel heading: installed
@@ -44,34 +43,37 @@ var SETTINGS = {
   pDev: "In development",                      // Panel heading: in development
   pCancelled: "Cancelled",                     // Panel heading: cancelled
   unitsWord: "units",                          // Word after unit counts in the tooltip
-  footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: July 2026", // Footer; links as [text](https://…). Leave empty to hide
+  footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Power plants tracked since 2023 | Last update: July 2026", // Footer; links as [text](https://…). Leave empty to hide
   notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.", // Notes under the footer, one paragraph per line; links as [text](https://…)
-
-  // ---- Text sizes ----
-  titleSize: 46,                               // Main title size in px (shrinks on small screens)
+  // Text sizes:
+  titleSize: 32,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
   footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 14,                              // Legend text size in px
-  axisSize: 14,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
+  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
+  labelSize: 19,                               // Size of 2023 / Currently in px
+  totalSize: 19,                               // Size of the totals after the bars in px
 
   // ---- Spacing ----
   padTop: 16,                                  // Space above the graphic in px
   padSides: 16,                                // Space left and right of the graphic in px
   padBottom: 12,                               // Space below the graphic in px
+  blockGap: 14,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
 
   // ---- Background ----
-  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+  bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
 
-  // ---- Bars ----
+  // ---- Buttons and legend ----
   showSwitch: true,                            // Show the capacity / units switch
+  buttonsAlign: "center",                      // Switch alignment
   switchColor: "#fef751",                      // Background of the selected switch button
   legendToggle: true,                          // Clicking a legend item hides or shows that status
   legendPos: "center",                         // Legend alignment
+
+  // ---- Bars ----
   rowHeight: 64,                               // Height of each bar in px
   barGap: 0,                                   // Space between the two bars of a panel, as a share of the bar
-  labelSize: 19,                               // Size of 2023 / Currently in px
-  totalSize: 19,                               // Size of the totals after the bars in px
 
   // ---- Layout ----
   colGap: 40,                                  // Space between the two columns of panels in px
@@ -118,6 +120,7 @@ var SETTINGS = {
   var hidden = {};
 
   DV.create({
+    axes: false,   // no axes: design mode leaves out the axis label size
     sheetId: SHEET_ID,
     sheetTab: "G4",
     fallback: FALLBACK,
@@ -127,7 +130,7 @@ var SETTINGS = {
     groups: [
       DV.chartTextGroup({
         title: "Overall gas tracking progress",
-        footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: July 2026",
+        footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Power plants tracked since 2023 | Last update: July 2026",
         notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.",
         extra: [
           { key: "capacityLabel", type: "text", def: "Capacity", help: "Switch button: capacity view" },
@@ -139,11 +142,14 @@ var SETTINGS = {
           { key: "unitsWord",     type: "text", def: "units", help: "Word after unit counts in the tooltip" }
         ]
       }),
-      { name: "Bars", fields: [
+      { name: "Buttons and legend", fields: [
         { key: "showSwitch",   type: "check", def: true, help: "Show the capacity / units switch" },
+        { key: "buttonsAlign", type: "select", options: ["left", "center", "right"], def: "center", help: "Switch alignment" },
         { key: "switchColor",  type: "color", def: "#fef751", help: "Background of the selected switch button" },
         { key: "legendToggle", type: "check", def: true, help: "Clicking a legend item hides or shows that status" },
-        { key: "legendPos",    type: "select", options: ["left", "center", "right"], def: "center", help: "Legend alignment" },
+        { key: "legendPos",    type: "select", options: ["left", "center", "right"], def: "center", help: "Legend alignment" }
+      ]},
+      { name: "Bars", fields: [
         { key: "rowHeight",    type: "range", min: 20, max: 120, step: 2, def: 64, help: "Height of each bar in px" },
         { key: "barGap",       type: "range", min: 0, max: 0.6, step: 0.02, def: 0, help: "Space between the two bars of a panel, as a share of the bar" },
         { key: "labelSize",    type: "range", min: 10, max: 30, step: 0.5, def: 19, help: "Size of 2023 / Currently in px" },
@@ -173,7 +179,9 @@ var SETTINGS = {
           var fb = DV.parseTable(FALLBACK); ctx.raw = fb.data; ctx.headers = fb.headers;
         }
         var periods = ctx.headers.map(function (h) { var m = /^(.+) \(GW\)$/.exec(h); return m && m[1]; }).filter(Boolean);
-        STATUSES = ctx.raw.map(function (d) { return d.Status; }).filter(function (k) { return PALETTE_KEY[k]; });
+        // always the standard gas status order (Operating … Cancelled), whatever the row order in the sheet
+        var present = ctx.raw.map(function (d) { return d.Status; });
+        STATUSES = STATUSES.filter(function (k) { return present.indexOf(k) > -1; });
         ctx.data = periods.map(function (p) {
           var o = { Period: p };
           ctx.raw.forEach(function (d) { o[d.Status + " (GW)"] = +d[p + " (GW)"] || 0; o[d.Status + " (units)"] = +d[p + " (units)"] || 0; });

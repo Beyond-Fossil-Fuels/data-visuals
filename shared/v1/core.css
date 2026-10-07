@@ -18,7 +18,9 @@ body { font-family: var(--dv-font); color: var(--dv-text); }
   margin: 0 0 var(--dv-title-gap);
   letter-spacing: -0.01em;
 }
-.dv-footer { font-size: var(--dv-footer-size); margin: 14px 0 0; color: var(--dv-text); }
+.dv-footer { font-size: var(--dv-footer-size); margin: var(--dv-gap, 14px) 0 0; color: var(--dv-text); }
+/* the footer's second line (notes, methodology) follows it directly */
+.dv-footer + .dv-footer, .dv-footer + .dvc-notes { margin-top: 2px; }
 .dv-footer:empty { display: none; }
 
 /* Two columns side by side; one column when the graphic is narrow */
@@ -108,6 +110,12 @@ body.gd-on { padding-right: 360px; }
 .gd-row label { display: block; font-weight: 500; margin-bottom: 3px; }
 .gd-row small { display: block; color: #6e7781; font-size: 11px; margin-top: 2px; }
 .gd-row small.gd-warn { color: #9a6700; }
+/* "Text sizes" heading inside the Text section, and the text-size rows: label and number box on one line */
+.gd-sub { padding: 10px 14px 2px; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #59636e; border-top: 1px solid #eceef1; margin-top: 6px; }
+.gd-row:has(.gd-num) { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 3px; padding-bottom: 3px; }
+.gd-row:has(.gd-num) label { margin: 0; }
+.gd-row:has(.gd-num) small { display: none; }
+.gd-ctl input.gd-num { width: 72px; }
 .gd-panel { padding-bottom: 40vh; }
 .gd-panel .gd-img { background: #fbfbfc; }
 .gd-area { flex: 1; min-width: 0; font: 12px/1.45 ui-monospace, Menlo, monospace; padding: 5px 6px; border: 1px solid #c9ced4; border-radius: 5px; resize: vertical; }
