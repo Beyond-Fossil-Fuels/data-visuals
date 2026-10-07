@@ -36,7 +36,7 @@ var SETTINGS = {
   subtitle: "",                                // Subtitle under the title, one paragraph per line (empty = none)
   unitLabel: "GW",                             // Unit after the numbers (axis and tooltip)
   totalLabel: "Total",                         // Tooltip: total
-  footer: "Source: [European Energy Storage Inventory, Joint Research Centre](https://ses.jrc.ec.europa.eu/storage-inventory) | Last update: October 2026", // Footer; links as [text](https://…). Leave empty to hide
+  footer: "Source: [European Energy Storage Inventory, Joint Research Centre](https://ses.jrc.ec.europa.eu/storage-inventory) | Last update: {updated}", // Footer; links as [text](https://…); {updated} = cell A1 of the sheet tab (e.g. the date of the data). Leave empty to hide
   notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
   // Text sizes:
   titleSize: 32,                               // Main title size in px (shrinks on small screens)
@@ -83,14 +83,15 @@ var SETTINGS = {
 (function () {
   /* ------------------------------------------------------------------
    * F3: installed and planned grid-scale battery capacity (GW) by country.
-   * Sheet tab "F3": Country, then one column per status, left to right (= legend order),
+   * Sheet tab "F3": cell A1 = the date of the data (e.g. "October 2026", shown in the footer as {updated}),
+   * the countries below it in column A, then one column per status, left to right (= legend order),
    * one row per country (all countries; the chart shows the largest ones, setting
    * "Countries shown"). Status colours are set in this graphic ("Status colours"),
    * starting from the brand's gas status colours.
    * ------------------------------------------------------------------ */
   var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
   var FALLBACK = [
-    "Country\tOperational\tAnnounced\tPermitted\tUnder construction\tInactive",
+    "October 2026\tOperational\tAnnounced\tPermitted\tUnder construction\tInactive",
     "United Kingdom\t10.87663\t25.7396\t42.57869\t5.9705\t7.89403",
     "Germany\t10.21129\t16.15497\t0.58\t2.4115\t0.77287",
     "Spain\t7.69\t13.38556\t2.86328\t1.1808\t0.49056",
@@ -152,7 +153,7 @@ var SETTINGS = {
     groups: [
       DV.chartTextGroup({
         title: "Top 5 European countries for installed and planned grid-scale battery capacity",
-        footer: "Source: [European Energy Storage Inventory, Joint Research Centre](https://ses.jrc.ec.europa.eu/storage-inventory) | Last update: October 2026",
+        footer: "Source: [European Energy Storage Inventory, Joint Research Centre](https://ses.jrc.ec.europa.eu/storage-inventory) | Last update: {updated}",
         extra: [
           { key: "unitLabel",  type: "text", def: "GW", help: "Unit after the numbers (axis and tooltip)" },
           { key: "totalLabel", type: "text", def: "Total", help: "Tooltip: total" }

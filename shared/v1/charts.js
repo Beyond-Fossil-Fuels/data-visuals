@@ -555,7 +555,7 @@
       { key: "subtitle", type: "textarea", rows: 3, def: defs.subtitle || "", help: "Subtitle under the title, one paragraph per line (empty = none)" },
       { key: "subtitleSize", type: "range", min: 11, max: 32, step: 0.5, def: defs.subtitleSize || 18, help: "Subtitle size in px (shrinks on small screens)" }
     ].concat(defs.extra || []).concat([
-      { key: "footer",   type: "text", def: defs.footer || "", help: "Footer; links as [text](https://…). Leave empty to hide" },
+      { key: "footer",   type: "text", def: defs.footer || "", help: "Footer; links as [text](https://…); {updated} = cell A1 of the sheet tab (e.g. the date of the data). Leave empty to hide" },
       { key: "notes",    type: "textarea", rows: 3, def: defs.notes || "", help: "Notes under the footer, one paragraph per line; links as [text](https://…)" }
     ]) };
   };

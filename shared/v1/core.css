@@ -134,3 +134,7 @@ body.gd-on { padding-right: 360px; }
 /* ---------- print to PDF (design mode's PDF download: ?design&print) ---------- */
 html.dv-print, html.dv-print body { margin: 0; padding: 0; overflow: hidden; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 html.dv-print-nocontrols .dv-control, html.dv-print .dv-tooltip, html.dv-print .sr-only { display: none !important; }
+
+/* ---------- vector export (design mode's PDF / SVG download): lay titles out in the embedded font ---------- */
+html.dv-exporting { --dv-title-font: "Inter", Helvetica, Arial, sans-serif !important; }
+html.dv-exporting .dv-title { font-family: "Inter", Helvetica, Arial, sans-serif; }

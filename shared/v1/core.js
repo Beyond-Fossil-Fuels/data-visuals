@@ -16,6 +16,8 @@
   "use strict";
   var NS = "http://www.w3.org/2000/svg";
   var DV = window.DV = { version: 1 };
+  var CORE_SRC = document.currentScript && document.currentScript.src;
+  DV.sharedUrl = CORE_SRC ? CORE_SRC.replace(/v1\/core\.js(\?.*)?$/, "") : "../shared/";
 
   /* ------------------------------------------------------------------
    * BRAND FIELDS: defaults, help text and design-mode controls.
@@ -712,7 +714,10 @@
         var title = document.getElementById("dv-title");
         if (title) title.textContent = S.title || "";
         var footer = document.getElementById("dv-footer");
+        // {first} / {last}: first and last period in the data; {updated}: cell A1 of the sheet tab
+        // (e.g. "October 2026"), so a new date needs only the sheet, not a new file
         if (footer) footer.innerHTML = DV.linkify((S.footer || "")
+          .replace(/\{updated\}/g, ctx.headers[0] || "")
           .replace(/\{first\}/g, ctx.data[0][ctx.P])
           .replace(/\{last\}/g, DV.footerPeriod(ctx.data[ctx.data.length - 1][ctx.P])));
 
@@ -813,17 +818,13 @@
         // Download the graphic: PNG (picture, any dpi) or PDF (vector, editable in Illustrator)
         var imgBox = document.createElement("details");
         imgBox.className = "gd-img";
-        imgBox.innerHTML = "<summary>Download image (PNG / PDF)</summary>" +
+        imgBox.innerHTML = "<summary>Download image (PDF / SVG / PNG)</summary>" +
           '<div class="gd-row"><label for="gd-if">Format</label><div class="gd-ctl"><select id="gd-if">' +
-            '<option value="PDF">PDF (vector, editable)</option><option value="PNG">PNG (picture)</option></select></div>' +
-            "<small>PDF: real text and shapes with the fonts embedded, like R's cairo_pdf, for Illustrator. " +
-            "It opens the print window: choose Save as PDF as the destination.</small></div>" +
-          '<div class="gd-row"><label for="gd-ifn">PDF fonts</label><div class="gd-ctl"><select id="gd-ifn">' +
-            '<option value="local">editable text (for Illustrator)</option>' +
-            '<option value="web">exactly as online</option></select></div>' +
-            "<small>Editable: Inter is embedded under its real name, so Illustrator can edit the text. Titles use Alfabet only if " +
-            "it is installed on this computer (it can't be embedded from the web), otherwise Inter Bold. " +
-            "Exactly as online: Alfabet titles as on the website, but Illustrator can't edit the text's font.</small></div>" +
+            '<option value="PDF">PDF (vector, editable, direct download)</option><option value="SVG">SVG (vector)</option>' +
+            '<option value="PNG">PNG (picture)</option><option value="PRINT">PDF through the print window (fonts exactly as online)</option></select></div>' +
+            "<small>PDF and SVG: real text and shapes for Illustrator, downloaded straight away. Inter is embedded under its own name, " +
+            "so the text stays editable; titles are in Inter Bold (Alfabet's licence doesn't allow embedding it). " +
+            "Print window: Alfabet titles exactly as online, but Illustrator can't edit that text (choose Save as PDF).</small></div>" +
           '<div class="gd-row"><label for="gd-iu">Size unit</label><div class="gd-ctl"><select id="gd-iu">' +
             '<option value="px">px (as on screen)</option><option value="cm">cm</option><option value="in">inches</option></select></div>' +
             "<small>1 inch = 96 px: the graphic is laid out at this size (text sizes stay as set, in px).</small></div>" +
@@ -1050,13 +1051,42 @@
         sizeNote();
         var slug = location.pathname.replace(/\/(index\.html)?$/, "").split("/").pop() || "graphic";
 
+        // PDF / SVG straight from the page: laid out at the chosen size, titles in Inter (the font embedded)
+        function vectorDownload(btn, fmt, W, H, controls) {
+          var keep = { w: frame.style.width, mw: frame.style.maxWidth }, html = document.documentElement;
+          btn.disabled = true; say("Preparing the " + fmt + "…");
+          frame.style.maxWidth = "none"; frame.style.width = W + "px";
+          html.classList.add("dv-exporting");
+          Array.prototype.forEach.call(root.querySelectorAll(".dv-tooltip"), function (t) { t.classList.remove("on"); });
+          var name = slug + "-" + Math.round(W) + "px";
+          wait(300).then(function () { rerender(); return document.fonts && document.fonts.ready; })
+            .then(function () { return wait(250); })
+            .then(function () { return window.DV.exportSVG ? null : loadScript(DV.sharedUrl + "v1/export.js"); })
+            .then(function () {
+              var opts = { controls: controls, bg: ctx.S.pageBg, width: W, height: H || null, title: document.title };
+              if (fmt === "SVG") {
+                var svg = DV.exportSVG(root, opts);
+                downloadBlob(name + ".svg", new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(svg)], { type: "image/svg+xml" }));
+                return;
+              }
+              return DV.exportPDF(root, opts).then(function (blob) { downloadBlob(name + ".pdf", blob); });
+            })
+            .then(function () { say("Downloaded the " + fmt + " (" + W + " px wide)."); },
+              function (e) { say("Couldn't make the " + fmt + ": " + (e && e.message || e), true); })
+            .then(function () {
+              html.classList.remove("dv-exporting");
+              frame.style.width = keep.w; frame.style.maxWidth = keep.mw; btn.disabled = false; rerender();
+            });
+        }
+
         panel.querySelector("#gd-img").addEventListener("click", function () {
           var btn = this, fmt = panel.querySelector("#gd-if").value, controls = panel.querySelector("#gd-ic").checked;
           var W = Math.round(DV.clamp(toPx(+iw.value || 0), 300, 6000)), H = Math.round(Math.max(0, toPx(+ih.value || 0)));
-          if (fmt === "PDF") {
+          if (fmt === "PDF" || fmt === "SVG") { vectorDownload(btn, fmt, W, H, controls); return; }
+          if (fmt === "PRINT") {
             // the graphic is printed on its own, at this size, in a new window (vector shapes, real fonts)
             var url = location.pathname + "?design&print&w=" + W + "&h=" + H + (controls ? "&controls=1" : "") +
-              (panel.querySelector("#gd-ifn").value === "local" ? "&fonts=local" : "");
+              "";
             if (!window.open(url, "_blank")) say("The browser blocked the print window: allow pop-ups for this site and try again.", true);
             else say("In the print window, choose Save as PDF as the destination (margins and scale are set already).");
             return;
