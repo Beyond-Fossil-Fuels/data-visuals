@@ -76,9 +76,9 @@
       { key: "tooltipSize", type: "range", min: 10, max: 18, step: 0.5, def: 14, help: "Tooltip (popup) text size in px" }
     ]},
     { name: "Spacing", fields: [
-      { key: "padTop",    type: "range", min: 0, max: 80, step: 1, def: 16, help: "Space above the graphic in px" },
-      { key: "padSides",  type: "range", min: 0, max: 80, step: 1, def: 16, help: "Space left and right of the graphic in px" },
-      { key: "padBottom", type: "range", min: 0, max: 80, step: 1, def: 12, help: "Space below the graphic in px" },
+      { key: "padTop",    type: "range", min: 0, max: 80, step: 1, def: 0, help: "Space above the graphic in px" },
+      { key: "padSides",  type: "range", min: 0, max: 80, step: 1, def: 0, help: "Space left and right of the graphic in px" },
+      { key: "padBottom", type: "range", min: 0, max: 80, step: 1, def: 0, help: "Space below the graphic in px" },
       { key: "blockGap",  type: "range", min: 0, max: 60, step: 1, def: 14, help: "Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)" }
     ]},
     { name: "Background", fields: [

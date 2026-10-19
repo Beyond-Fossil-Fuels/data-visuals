@@ -254,7 +254,10 @@
           return;
         }
         var anchor = o.xAlign === "start" ? "start" : "middle";
-        el("text", { x: anchor === "start" ? x(i) : cx, y: y(0) + fs + 4, "text-anchor": anchor, "font-size": fs, fill: S.axisColor }, g)
+        // a centred label slightly wider than the last bar's room is nudged left to stay inside the chart
+        // (graphics have no outer padding, so anything past the edge would be cut off in the embed)
+        var tx = Math.max(lw / 2, Math.min(cx, W - lw / 2));
+        el("text", { x: anchor === "start" ? x(i) : tx, y: y(0) + fs + 4, "text-anchor": anchor, "font-size": fs, fill: S.axisColor }, g)
           .textContent = o.label(d, i);
       });
     }
@@ -431,7 +434,8 @@
     }
     xTicks.forEach(function (v) {
       el("line", { x1: x(v), x2: x(v), y1: y(0), y2: y(0) + 5, stroke: S.axisColor, "stroke-opacity": 0.35 }, g);
-      el("text", { x: x(v), y: y(0) + fs + 6, "text-anchor": "middle", "font-size": fs, fill: S.axisColor }, g).textContent = xLabel(v);
+      var lw = DV.textWidth(xLabel(v), fs);   // kept inside the chart (no outer padding to spill into)
+      el("text", { x: Math.max(lw / 2, Math.min(x(v), W - lw / 2)), y: y(0) + fs + 6, "text-anchor": "middle", "font-size": fs, fill: S.axisColor }, g).textContent = xLabel(v);
     });
 
     // values (stacked or not)
