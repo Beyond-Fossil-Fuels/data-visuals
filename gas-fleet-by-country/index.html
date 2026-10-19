@@ -64,9 +64,9 @@ var SETTINGS = {
   totalSize: 12,                               // Size of the totals after the bars in px
 
   // ---- Spacing ----
-  padTop: 16,                                  // Space above the graphic in px
-  padSides: 16,                                // Space left and right of the graphic in px
-  padBottom: 12,                               // Space below the graphic in px
+  padTop: 0,                                   // Space above the graphic in px
+  padSides: 0,                                 // Space left and right of the graphic in px
+  padBottom: 0,                                // Space below the graphic in px
   blockGap: 14,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
 
   // ---- Background ----
@@ -86,7 +86,7 @@ var SETTINGS = {
   labelWeight: 700,                            // Country name boldness
   showTotals: true,                            // Show each bar's total after it (off = values in the tooltip only)
   totalDecimals: 1,                            // Decimals of the totals after the bars
-  panelBg: "#f8f8f8",                          // Panel background
+  panelBg: "#ffffff",                          // Panel background
 
   // ---- Layout ----
   panelGap: 24,                                // Space between panels in px
@@ -262,7 +262,9 @@ var SETTINGS = {
       var tsz = ctx.sz(S.totalSize, 10), fmtT = function (v) { return DV.fmt(v, au, S.totalDecimals); };
       var room = S.showTotals ? DV.textWidth(fmtT(xMax), tsz, 400) + 10 : 4;
       var pw = stacked ? W - lw : (W - lw - gap * (n - 1)) / n;
-      var ax = DV.niceAxis(xMax || 1, Math.max(2, Math.floor((pw - room) / 90)));
+      // the axis ends just past the longest bar (no empty stretch up to the next round number)
+      var ax = DV.niceAxis(xMax || 1, Math.max(2, Math.floor((pw - room) / 90)), false);
+      var lastTick = DV.ticks(ax.max, ax.step).pop();
       var grid = document.getElementById("grid"); DV.clear(grid);
       grid.style.setProperty("--dvc-gap-x", gap + "px");
       grid.style.gridTemplateColumns = stacked ? "1fr" : (lw + pw) + "px repeat(" + (n - 1) + ", " + pw + "px)";
@@ -277,7 +279,7 @@ var SETTINGS = {
         DV.hbars({ S: S, svg: svg, tip: tip, width: withLabels ? lw + pw : pw, rows: rowsK,
           label: withLabels ? function (r) { return r[P]; } : null, labelW: lw, labelSize: lsz, labelWeight: S.labelWeight,
           series: series, xMax: ax.max, tickStep: ax.step, grid: true, bg: S.panelBg, rowH: S.rowHeight, gap: S.barGap,
-          sep: S.panelBg, sepWidth: 0.75, fmtX: function (v) { return DV.fmt(v, au, 0); }, right: room,
+          sep: S.panelBg, sepWidth: 0.75, fmtX: function (v) { return DV.fmt(v, v === lastTick ? au : "", 0); }, right: room,
           total: S.showTotals ? function (d, i, t) { return fmtT(t); } : null, totalSize: tsz, totalWeight: 400,
           tooltip: function (i) {
             var r = rowsK[i].src, html = "<b>" + r[P] + "</b>", t = 0;
