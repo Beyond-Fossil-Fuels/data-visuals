@@ -680,6 +680,10 @@
     // ?design&print: the graphic alone at a set size, printed to PDF (design mode's PDF download)
     var printMode = design && /[?&]print\b/i.test(location.search);
     var storeB = "dv-brand", storeG = "dv-graphic:" + location.pathname;
+    /* ?frame=card: the graphic sits in the website's Data Card (core pages), which gives the iframe no
+     * padding, so the graphic adds CARD_PAD px on every side. Without it (the Panel module on data tool
+     * pages, which frames the graphic itself) the graphic's own padding settings apply as before. */
+    var CARD_PAD = 30, card = /[?&]frame=card\b/i.test(location.search);
 
     // B = brand values, PAL = palette sections, G = this graphic's values (+ brand overrides)
     var B, PAL, G, overrides;
@@ -729,6 +733,7 @@
       Object.keys(B).forEach(function (k) { S[k] = B[k]; });
       Object.keys(PAL).forEach(function (sec) { Object.keys(PAL[sec]).forEach(function (k) { S[k] = PAL[sec][k]; }); });
       Object.keys(G).forEach(function (k) { S[k] = G[k]; });
+      if (card) S.padTop = S.padSides = S.padBottom = CARD_PAD;
       return S;
     }
 
@@ -867,6 +872,7 @@
             "<p>Changes show live and are kept in this browser only. When you're done, download the result.</p>" +
             '<div class="gd-width"><span>Preview width</span><input type="range" min="320" max="1600" step="10" id="gd-w"><span id="gd-wv">Fit</span></div>' +
             '<div class="gd-btns"><button data-w="375">Phone</button><button data-w="768">Tablet</button><button data-w="0">Fit window</button></div>' +
+            '<div class="gd-btns"><b>Website module</b><button data-frame="panel">Panel (data tool pages)</button><button data-frame="card">Data Card (core pages)</button></div>' +
             '<div class="gd-btns"><b>This graphic</b><button class="gd-primary" id="gd-dl">Download index.html</button><button id="gd-copy">Copy settings</button></div>' +
             '<div class="gd-btns"><b>Brand</b><button class="gd-primary" id="gd-dlb">Download brand.js</button><button id="gd-copyb">Copy</button></div>' +
             '<div class="gd-btns"><button id="gd-reset">Reset all changes</button><button id="gd-fold">Open all sections</button></div>' +
@@ -1059,6 +1065,16 @@
           b.addEventListener("click", function () { setWidth(+b.getAttribute("data-w")); });
         });
         setWidth(0);
+
+        // Preview as embedded in the Panel module (the graphic's own padding) or the Data Card (?frame=card, 30px)
+        var frameBtns = panel.querySelectorAll("[data-frame]");
+        function markFrame() {
+          Array.prototype.forEach.call(frameBtns, function (b) { b.classList.toggle("gd-primary", (b.getAttribute("data-frame") === "card") === card); });
+        }
+        Array.prototype.forEach.call(frameBtns, function (b) {
+          b.addEventListener("click", function () { card = b.getAttribute("data-frame") === "card"; markFrame(); apply(); });
+        });
+        markFrame();
 
         // Output
         var msg = panel.querySelector("#gd-msg"), out = panel.querySelector("#gd-out");

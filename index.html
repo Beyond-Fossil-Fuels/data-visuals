@@ -200,14 +200,20 @@
   var base = location.href.replace(/[?#].*$/, "").replace(/index\.html$/, "");
   var nav = document.getElementById("nav"), main = document.getElementById("main");
   var picker = document.getElementById("picker"), search = document.getElementById("search");
-  var width = "100%";
+  var width = "100%", module = "panel";
 
+  // The address for a version in a website module: the Data Card (core pages) adds ?frame=card (30px padding),
+  // the Panel module (data tool pages) frames the graphic itself, so it gets the plain address.
+  function srcFor(g, mod) {
+    if (mod !== "card") return g.src;
+    return g.src + (g.query ? "&" : "?") + "frame=card";
+  }
   // Embed: the iframe (data-track-height lets the website's shared listener resize it) plus a small script
   // that resizes only this iframe, so it also works on pages without that listener. Both use the same height.
-  function embedCode(g) {
-    var id = "dv-" + g.key.replace(/[^a-z0-9-]/gi, "-");
+  function embedCode(g, mod) {
+    var id = "dv-" + g.key.replace(/[^a-z0-9-]/gi, "-") + (mod === "card" ? "-card" : "");
     return [
-      '<iframe id="' + id + '" src="' + base + g.src + '" title="' + g.title + '"',
+      '<iframe id="' + id + '" src="' + base + srcFor(g, mod) + '" title="' + g.title + '"',
       '        data-track-height style="width:100%;border:0;height:' + g.height + 'px" scrolling="no" loading="lazy"></iframe>',
       "<script>",
       "  (function () {",
@@ -340,19 +346,35 @@
         }).join("") + "</div>" : "") +
         "</div>" +
         '<div class="actions">' +
-          '<button class="primary" id="copy-embed">Copy embed code</button>' +
+          '<button class="primary" id="copy-card">Copy embed code: Data Card</button>' +
+          '<button class="primary" id="copy-panel">Copy embed code: Panel</button>' +
           '<a class="btn" href="' + esc(g.src) + '" target="_blank" rel="noopener">Open</a>' +
           '<a class="btn" href="' + esc(g.slug) + "/" + (g.query ? esc(g.query) + "&amp;design" : "?design") + '" target="_blank" rel="noopener">Design mode</a>' +
         "</div></div>" +
       '<div class="toolbar"><span>Preview width</span><div class="widths">' +
         '<button data-w="100%">Full</button><button data-w="768px">Tablet</button><button data-w="375px">Phone</button>' +
+      '</div><span>Website module</span><div class="widths">' +
+        '<button data-m="card">Data Card</button><button data-m="panel">Panel</button>' +
       "</div></div>" +
-      '<div class="stage"><div class="frame" id="frame"><iframe src="' + esc(g.src) + '" scrolling="no" title="' + esc(g.title) + '"></iframe></div></div>' +
-      "<h3>Embed code</h3>" +
-      '<pre id="embed"></pre>' +
-      '<p class="note">Paste this into a <b>Custom HTML</b> block in WordPress. It includes a small script that resizes the graphic to fit, so nothing else is needed on the site.</p>';
-    document.getElementById("embed").textContent = embedCode(g);
-    document.getElementById("copy-embed").addEventListener("click", function (ev) { copy(embedCode(g), ev.target); });
+      '<div class="stage"><div class="frame" id="frame"><iframe id="preview" src="' + esc(srcFor(g, module)) + '" scrolling="no" title="' + esc(g.title) + '"></iframe></div></div>' +
+      "<h3>Embed code: Data Card (core pages)</h3>" +
+      '<pre id="embed-card"></pre>' +
+      "<h3>Embed code: Panel (data tool pages)</h3>" +
+      '<pre id="embed-panel"></pre>' +
+      '<p class="note">Paste the code for the module the graphic sits in into a <b>Custom HTML</b> block in WordPress. ' +
+        "The Data Card version adds 30px of space around the graphic (the card has none); the Panel module frames the graphic itself. " +
+        "Each code includes a small script that resizes the graphic to fit, so nothing else is needed on the site.</p>";
+    ["card", "panel"].forEach(function (mod) {
+      document.getElementById("embed-" + mod).textContent = embedCode(g, mod);
+      document.getElementById("copy-" + mod).addEventListener("click", function (ev) { copy(embedCode(g, mod), ev.target); });
+    });
+    Array.prototype.forEach.call(main.querySelectorAll("[data-m]"), function (b) {
+      b.addEventListener("click", function () {
+        module = b.getAttribute("data-m");
+        document.getElementById("preview").src = srcFor(g, module);
+        applyWidth();
+      });
+    });
     Array.prototype.forEach.call(main.querySelectorAll("[data-w]"), function (b) {
       b.addEventListener("click", function () { width = b.getAttribute("data-w"); applyWidth(); });
     });
@@ -364,6 +386,9 @@
     if (f) f.style.maxWidth = width;
     Array.prototype.forEach.call(main.querySelectorAll("[data-w]"), function (b) {
       b.classList.toggle("on", b.getAttribute("data-w") === width);
+    });
+    Array.prototype.forEach.call(main.querySelectorAll("[data-m]"), function (b) {
+      b.classList.toggle("on", b.getAttribute("data-m") === module);
     });
   }
   function copy(text, btn) {
