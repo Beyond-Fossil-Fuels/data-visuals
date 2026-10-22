@@ -18,8 +18,9 @@
 .dvm-reset { position: absolute; right: 8px; bottom: 8px; z-index: 4; font: inherit; font-size: 13px; padding: 5px 12px;
   border: 1px solid #000; border-radius: 999px; background: #fff; color: #000; cursor: pointer; }
 .dvm-reset[hidden] { display: none; }
-/* zoomed in, the map runs under the corner widgets: give them a light backdrop so they stay readable */
-.dvm-stage:has(.dvm-zoomed) .dvm-corner > * { background: rgba(255, 255, 255, 0.88); border-radius: 6px; box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.88); }
+/* zoomed in, the map runs under the corner widgets: give them a light backdrop so they stay readable
+   (not the search box: it has its own white background and pill shape) */
+.dvm-stage:has(.dvm-zoomed) .dvm-corner > *:not(.dvm-search) { background: rgba(255, 255, 255, 0.88); border-radius: 6px; box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.88); }
 /* instruction line above the legend (e.g. how to zoom) */
 .dvm-hint { margin: 0; font-size: var(--dv-legend-size); color: var(--dv-heading); max-width: 40em; }
 .dvm-hint:empty { display: none; }
