@@ -2,180 +2,20 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Value of realistic buildable capacity in the queue</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="../shared/v1/core.css">
-<link rel="stylesheet" href="../shared/v1/charts.css">
+<meta name="robots" content="noindex">
+<title>Moved to grid-bottlenecks</title>
+<link rel="canonical" href="../grid-bottlenecks/">
+<script>
+  /* This graphic has a new address: ../grid-bottlenecks/ (renamed 22 Oct 2026). Old embeds keep working:
+   * the address options (?frame=card, ?type=rows, ?design…) come along, and dvfrom tells
+   * the graphic its old address, so the website's auto-height listener still finds this iframe. */
+  (function () {
+    var q = location.search.replace(/^\?/, "").split("&").filter(function (p) { return p && !/^dvfrom=/.test(p); });
+    q.push("dvfrom=" + encodeURIComponent(location.href));
+    window.location.replace("../grid-bottlenecks/?" + q.join("&") + location.hash);
+  })();
+</script>
+<meta http-equiv="refresh" content="1; url=../grid-bottlenecks/">
 </head>
-<body>
-<div class="dv" id="dv">
-  <h1 class="dv-title" id="dv-title"></h1>
-  <div class="dvc-sub" id="sub"></div>
-  <div class="dvc-panel" id="panel"><div id="legend"></div><svg id="chart"></svg><div class="dv-tooltip" id="tip"></div></div>
-  <p class="dv-footer" id="dv-footer"></p>
-  <div class="dvc-notes" id="notes"></div>
-</div>
-
-<script src="../shared/brand.js"></script>
-<script>
-// ==== SETTINGS START ====
-/* ================================================================
- * DESIGN SETTINGS FOR THIS GRAPHIC
- * Change any value below to restyle this graphic. Colours are hex
- * codes, sizes are in pixels. Keep the quotes and the comma on each line.
- * Fonts, text colours and palette colours are shared by all graphics:
- * they live in shared/brand.js.
- * Easier: open this page with ?design at the end of its address to
- * adjust everything with sliders, then download the result.
- * ================================================================ */
-var SETTINGS = {
-  // ---- Text ----
-  title: "Value of clean energy projects currently stuck in grid connection queues in 8 countries", // Main title
-  subtitle: "",                                // Subtitle under the title, one paragraph per line (empty = none)
-  totalName: "Total",                          // Name of the total bar (empty = no total bar)
-  prefix: "€",                                 // Before each number
-  suffix: "bn",                                // After each number
-  tipLabel: "Value of realistic buildable capacity", // Tooltip: label of the total (the only figure shown; the split by technology is read off the report's figure)
-  footer: "Source: Report [\"Grid expectations: The distribution backlog stalling Europe's energy transition\"](https://beyondfossilfuels.org/2026/06/02/grid-expectations-the-distribution-backlog-stalling-europes-energy-transition/) prepared by AFRY for BFF, June 2026", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
-  notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
-  // Text sizes:
-  titleSize: 23,                               // Main title size in px (shrinks on small screens)
-  headingSize: 21,                             // Chart heading (subtitle) size in px
-  footerSize: 10,                              // Footer (sources and notes) text size in px (never larger than the legend)
-  legendSize: 18,                              // Legend text size in px
-  axisSize: 14,                                // Axis label size in px
-  tooltipSize: 14,                             // Tooltip (popup) text size in px
-  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
-  topLabelSize: 20,                            // Size of the labels above the bars in px
-
-  // ---- Spacing ----
-  padTop: 0,                                   // Space above the graphic in px
-  padSides: 0,                                 // Space left and right of the graphic in px
-  padBottom: 0,                                // Space below the graphic in px
-  blockGap: 30,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
-  spaceTitle: -1,                              // Space under the title in px (-1 = the block gap)
-  spaceSubtitle: -1,                           // Space under the subtitle and instruction lines in px (-1 = standard)
-  spaceControls: -1,                           // Space between the legend, search box, time slider and buttons in px (-1 = standard)
-  spaceChart: -1,                              // Space between the legend or controls and the chart or map in px (-1 = standard)
-  spaceFooter: -1,                             // Space above the footer in px (-1 = the block gap)
-  notesPhone: "collapsed",                     // Notes under the footer on phones: collapsed behind a Show notes button, or shown in full (the source line always shows)
-
-  // ---- Axis labels ----
-  axisLabelGap: -1,                            // Space between the axis labels and the chart in px (-1 = standard; bar and line charts)
-  xEdgeLabels: "centred",                      // First and last x-axis labels: centred under their bar or year, or kept inside the chart so they never touch the y-axis numbers
-
-  // ---- Background ----
-  bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
-
-  // ---- Bars ----
-  legendPos: "center",                         // Legend alignment
-  barGap: 0.2,                                 // Space between bars, as a share of each bar's slot
-  sigFigs: 2,                                  // Labels above the bars: significant figures (2: 45, 7, 0.03, 100)
-  decimals: 2,                                 // Decimals in the tooltip
-
-  // ---- Layout ----
-  chartHeight: 0.62,                           // Chart height as a share of its width
-  minHeight: 340,                              // Smallest chart height in px (phones)
-};
-// ==== SETTINGS END ====
-</script>
-<script src="../shared/v1/core.js"></script>
-<script src="../shared/v1/charts.js"></script>
-<script>
-(function () {
-  /* ------------------------------------------------------------------
-   * F1: value of "realistic buildable" capacity in the grid queue (€bn), waterfall.
-   * Sheet tab "F1": Country, then one column per technology, TOP of the stack first.
-   * Each country's bar starts where the previous one ended; the Total bar is
-   * added here (a row called "Total" in the sheet is ignored).
-   * ------------------------------------------------------------------ */
-  var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
-  var FALLBACK = [
-    "Country\tWind\tSolar PV\tBESS",
-    "Germany\t17.1\t18\t9.9",
-    "UK\t4.86\t5.22\t7.92",
-    "Poland\t1.92\t4.32\t5.76",
-    "Italy\t0.72\t9.6\t1.68",
-    "Spain\t1.96\t3.29\t1.75",
-    "Czechia\t2.46\t2.1\t1.44",
-    "Greece\t0.06\t0.49\t0.45",
-    "Bulgaria\t0.003\t0.027\t0"
-  ].join("\n");
-  var PALETTE_KEY = { "Wind": "wind", "Solar PV": "solar", "BESS": "bess" };
-
-  DV.create({
-    sheetId: SHEET_ID,
-    sheetTab: "F1",
-    graphicId: "F1",
-    fallback: FALLBACK,
-    columns: Object.keys(PALETTE_KEY),
-
-    groups: [
-      DV.chartTextGroup({
-        title: "Value of clean energy projects currently stuck in grid connection queues in 8 countries",
-        footer: "Source: Report [\"Grid expectations: The distribution backlog stalling Europe's energy transition\"](https://beyondfossilfuels.org/2026/06/02/grid-expectations-the-distribution-backlog-stalling-europes-energy-transition/) prepared by AFRY for BFF, June 2026",
-        extra: [
-          { key: "totalName",  type: "text", def: "Total", help: "Name of the total bar (empty = no total bar)" },
-          { key: "prefix",     type: "text", def: "€", help: "Before each number" },
-          { key: "suffix",     type: "text", def: "bn", help: "After each number" },
-          { key: "tipLabel",   type: "text", def: "Value of realistic buildable capacity", help: "Tooltip: label of the total (the only figure shown; the split by technology is read off the report's figure)" }
-        ]
-      }),
-      { name: "Bars", fields: [
-        { key: "legendPos",   type: "select", options: ["left", "center", "right"], def: "center", help: "Legend alignment" },
-        { key: "barGap",      type: "range", min: 0, max: 0.7, step: 0.02, def: 0.2, help: "Space between bars, as a share of each bar's slot" },
-        { key: "sigFigs",     type: "range", min: 1, max: 4, step: 1, def: 2, help: "Labels above the bars: significant figures (2: 45, 7, 0.03, 100)" },
-        { key: "topLabelSize", type: "range", min: 9, max: 32, step: 0.5, def: 20, help: "Size of the labels above the bars in px" },
-        { key: "decimals",    type: "range", min: 0, max: 3, step: 1, def: 2, help: "Decimals in the tooltip" }
-      ]},
-      { name: "Layout", fields: [
-        { key: "chartHeight", type: "range", min: 0.3, max: 1.2, step: 0.02, def: 0.62, help: "Chart height as a share of its width" },
-        { key: "minHeight",   type: "range", min: 200, max: 700, step: 10, def: 340, help: "Smallest chart height in px (phones)" }
-      ]}
-    ],
-
-    build: function (ctx) {
-      var S = ctx.S;
-      DV.chartText(S);
-      var keys = DV.byColumns(ctx.headers, Object.keys(PALETTE_KEY));
-      var lg = DV.chartLegend({ items: keys.map(function (k) { return { key: k, label: k, color: S[PALETTE_KEY[k]] }; }) });
-      lg.classList.add("dvc-" + S.legendPos);
-      var host = document.getElementById("legend"); DV.clear(host); host.appendChild(lg);
-    },
-
-    render: function (ctx) {
-      var S = ctx.S, P = ctx.P;
-      DV.chartSizes(ctx);
-      var keys = DV.byColumns(ctx.headers, Object.keys(PALETTE_KEY));
-      var sum = function (d) { return keys.reduce(function (a, k) { return a + d[k]; }, 0); };
-      var rows = ctx.data.filter(function (d) { return String(d[P]).trim().toLowerCase() !== "total"; });
-      var bases = [], acc = 0;
-      rows.forEach(function (d) { bases.push(acc); acc += sum(d); });
-      if (S.totalName) {
-        var t = {}; t[P] = S.totalName;
-        keys.forEach(function (k) { t[k] = rows.reduce(function (a, d) { return a + d[k]; }, 0); });
-        rows = rows.concat([t]); bases.push(0);
-      }
-      var money = function (v, sig) { return S.prefix + DV.fmt(sig ? DV.sigFig(v, sig) : v, "", sig ? 4 : S.decimals) + S.suffix; };
-      var w = document.getElementById("panel").clientWidth, narrow = w < 560;
-      var h = Math.max(S.minHeight, w * S.chartHeight);
-      var ax = DV.niceAxis(acc, 5);
-      DV.bars({ S: S, svg: document.getElementById("chart"), tip: document.getElementById("tip"), width: w, height: h,
-        rows: rows, label: function (d) { return d[P]; }, gap: S.barGap, xEvery: 1, sep: S.pageBg === "transparent" ? "#fff" : S.pageBg,
-        series: keys.slice().reverse().map(function (k) { return { key: k, color: S[PALETTE_KEY[k]] }; }),
-        base: function (d, i) { return bases[i]; }, topLabel: function (d) { return money(sum(d), S.sigFigs); },
-        topLabelSize: ctx.sz(S.topLabelSize, narrow ? 9 : 12), fs: narrow ? Math.max(9, S.axisSize * 0.75) : null,
-        yMax: ax.max, tickStep: ax.step, fmtY: function (v) { return money(v); },
-        tooltip: function (i) {
-          // only the total: the split by technology was read off the report's figure, so it isn't exact
-          var d = rows[i];
-          return "<b>" + d[P] + "</b>" + DV.tipRow("", S.tipLabel, money(sum(d), S.sigFigs));
-        } });
-    }
-  });
-})();
-</script>
-</body>
+<body><p><a href="../grid-bottlenecks/">This graphic has moved to a new address.</a></p></body>
 </html>

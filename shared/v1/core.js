@@ -1360,9 +1360,11 @@
    *   { href, height }                the website's shared listener for iframes with data-track-height
    *                                   (matches the iframe by its src, which equals our location.href) */
   var heightEl = null;
+  // reached through a renamed graphic's old address (?dvfrom=…): the iframe's src is still that address
+  var FROM = /[?&]dvfrom=([^&#]*)/.exec(location.search), OWN_HREF = FROM ? decodeURIComponent(FROM[1]) : location.href;
   function postHeight() {
     if (window.parent === window || !heightEl) return;
     var h = Math.ceil(heightEl.getBoundingClientRect().height);
-    window.parent.postMessage({ type: "dv-height", href: location.href, height: h }, "*");
+    window.parent.postMessage({ type: "dv-height", href: OWN_HREF, height: h }, "*");
   }
 })();

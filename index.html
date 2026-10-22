@@ -129,7 +129,7 @@
    *   { id: "C1", name: "…", section: "Coal core page", slug: "folder-name", tab: "Sheet tab", title: "…", height: 650 }
    * A graphic with several versions (shown as a pop-out menu in the side panel):
    *   { id: "G1", name: "…", section: "…", versions: [ { id: "G1.1", label: "…", slug, tab, title, height }, … ] }
-   *   slug   = folder name (never rename once embedded)
+   *   slug   = folder name = the WordPress section tag (renamed 22 Oct 2026; the old folders forward to the new ones)
    *   tab    = the Google Sheet tab(s) it reads
    *   height = starting iframe height in px (the embed code adjusts it)
    * ------------------------------------------------------------------ */
@@ -138,39 +138,39 @@
       title: "Overview of country coal phase-out announcements and plans in Europe", height: 860 },
     { id: "C2", name: "Coal Power plant tracker map", section: "Coal core page", slug: "coal-plant-map", tab: "C2",
       title: "Coal power plants in Europe", height: 860 },
-    { id: "C3", name: "Coal CO₂ map", section: "Coal data tool page", slug: "coal-co2-map", tab: "C3",
+    { id: "C3", name: "Coal CO₂ map", section: "Coal data tool page", slug: "coal-emissions-by-country", tab: "C3",
       title: "CO₂ emissions from coal power plants by country", height: 860 },
-    { id: "C4", name: "CO₂ coal share of GHG", section: "Coal data tool page", slug: "coal-co2-share", tab: "C4",
+    { id: "C4", name: "CO₂ coal share of GHG", section: "Coal data tool page", slug: "coal-share-of-ghg-emissions", tab: "C4",
       title: "CO₂ from coal power and all other greenhouse gas emissions, EU+UK", height: 780 },
     { id: "C5", name: "Coal capacity", section: "Coal data tool page", slug: "coal-capacity", tab: "C5",
       title: "Coal power capacity in Europe since 2016, and projections to 2030", height: 920 },
-    { id: "C6", name: "CO₂ utilities", section: "Coal data tool page", slug: "coal-co2-utilities", tab: "C6",
+    { id: "C6", name: "CO₂ utilities", section: "Coal data tool page", slug: "coal-emissions-by-utility", tab: "C6",
       title: "CO₂ emissions from coal power stations by utility, EU+UK", height: 880 },
-    { id: "C7", name: "New coal by region", section: "Coal data tool page", slug: "coal-new-projects", tab: "C7",
+    { id: "C7", name: "New coal by region", section: "Coal data tool page", slug: "new-coal-by-region", tab: "C7",
       title: "New coal power plant projects by region and status since 2016", height: 680 },
-    // G1.1 (gas-tracker-capacity) and G1.2 (gas-tracker) are retired from the gallery; their pages still work
-    { id: "G1", name: "New gas projects", section: "Gas core page", slug: "gas-tracker-switch", tab: "G1",
+    // G1.1 (gas-tracker-capacity/) and G1.2 (gas-tracker/) are retired: their old addresses forward here
+    { id: "G1", name: "New gas projects", section: "Gas core page", slug: "new-gas-projects", tab: "G1",
       title: "Tracking new gas projects", height: 720 },
-    { id: "G2", name: "The import trap comparison", section: "Gas core page", slug: "gas-import-map", tab: "G2",
+    { id: "G2", name: "The import trap comparison", section: "Gas core page", slug: "gas-import-trap", tab: "G2",
       title: "The double-edged sword of gas dependency: Current gas import reliance vs. planned capacity", height: 860 },
     { id: "G3", name: "Power plant map", section: "Gas data tool page", slug: "gas-plant-map", tab: "G3",
       title: "Europe’s existing and planned gas power plants", height: 860 },
-    { id: "G4", name: "Overall gas tracking progress", section: "Gas data tool page", slug: "gas-tracking-progress", tab: "G4",
+    { id: "G4", name: "Overall gas tracking progress", section: "Gas data tool page", slug: "europes-gas-capacity", tab: "G4",
       title: "Europe's gas power plants by status: 2023 and today", height: 660 },
     { id: "G5", name: "Europe's existing fleet and new plant projects capacity (MW)", section: "Gas data tool page", slug: "gas-fleet-by-country", tab: "G5+G6",
       title: "Gas power capacity by country: existing fleet and new plant projects", height: 1300 },
-    { id: "G6", name: "Europe's existing fleet and new plant projects capacity (%)", section: "Gas data tool page", slug: "gas-fleet-by-country-share", tab: "G5+G6",
+    { id: "G6", name: "Europe's existing fleet and new plant projects capacity (%)", section: "Gas data tool page", slug: "gas-share-of-capacity-by-status", tab: "G5+G6",
       title: "Share of gas power capacity by status and country", height: 1300 },
-    { id: "R1", name: "Europe power mix", section: "Renewables", slug: "power-mix", tab: "R1",
+    { id: "R1", name: "Europe power mix", section: "Renewables", slug: "europe-power-mix", tab: "R1",
       title: "Share of total electricity generation in Europe by source, 2015 to 2025", height: 800 },
     // one above the other is now the default layout (?type=rows still works; the side-by-side R2.1 is retired)
-    { id: "R2", name: "Gas vs solar investment", section: "Renewables", slug: "gas-vs-solar-imports", tab: "R2",
+    { id: "R2", name: "Gas vs solar investment", section: "Renewables", slug: "cheaper-by-design", tab: "R2",
       title: "Spending €100 billion on solar panel imports instead of gas imports could produce 9x more electricity", height: 640 },
-    { id: "F1", name: "The grid bottleneck", section: "Clean flex", slug: "grid-queue-value", tab: "F1",
+    { id: "F1", name: "The grid bottleneck", section: "Clean flex", slug: "grid-bottlenecks", tab: "F1",
       title: "Value of clean energy projects currently stuck in grid connection queues in 8 countries", height: 860 },
-    { id: "F2", name: "Growth outlook", section: "Clean flex", slug: "clean-flex-outlook", tab: "F2",
+    { id: "F2", name: "Growth outlook", section: "Clean flex", slug: "clean-flex-growth-outlook", tab: "F2",
       title: "Outlook for European clean flexibility growth", height: 840 },
-    { id: "F3", name: "Batteries and storage", section: "Clean flex", slug: "battery-storage", tab: "F3",
+    { id: "F3", name: "Batteries and storage", section: "Clean flex", slug: "batteries-and-storage", tab: "F3",
       title: "Top 5 European countries for grid-scale battery capacity (installed and planned)", height: 600 }
   ];
 
@@ -188,6 +188,26 @@
     });
   });
   function bySlug(key) { return VERSIONS.filter(function (v) { return v.key === key; })[0]; }
+  // old addresses (#slug) from before the 22 Oct 2026 renames still open the right graphic
+  var OLD_SLUGS = {
+    "coal-co2-map": "coal-emissions-by-country",
+    "coal-co2-share": "coal-share-of-ghg-emissions",
+    "coal-co2-utilities": "coal-emissions-by-utility",
+    "coal-new-projects": "new-coal-by-region",
+    "gas-tracker-switch": "new-gas-projects",
+    "gas-tracker-capacity": "new-gas-projects",
+    "gas-tracker": "new-gas-projects",
+    "gas-import-map": "gas-import-trap",
+    "gas-tracking-progress": "europes-gas-capacity",
+    "gas-fleet-by-country-share": "gas-share-of-capacity-by-status",
+    "power-mix": "europe-power-mix",
+    "gas-vs-solar-imports": "cheaper-by-design",
+    "grid-queue-value": "grid-bottlenecks",
+    "clean-flex-outlook": "clean-flex-growth-outlook",
+    "battery-storage": "batteries-and-storage",
+    "gas-vs-solar-imports~type=rows": "cheaper-by-design",
+    "gas-tracker-switch~view=capacity": "new-gas-projects"
+  };
 
   var base = location.href.replace(/[?#].*$/, "").replace(/index\.html$/, "");
   var nav = document.getElementById("nav"), main = document.getElementById("main");
@@ -321,6 +341,7 @@
   }
   function current() {
     var h = decodeURIComponent(location.hash.slice(1));
+    if (!bySlug(h) && OLD_SLUGS[h]) h = OLD_SLUGS[h];
     return bySlug(h) ? h : VERSIONS[0].key;
   }
 
