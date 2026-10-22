@@ -96,14 +96,14 @@ var SETTINGS = {
   legendGap: 5,                                // Space between legend items in px (between rows when vertical, between items when horizontal)
   legendFilter: true,                          // Click a legend item to show only that status
   searchPos: "top-right corner",               // Plant search position
-  searchWidth: 180,                            // Search box width in px
+  searchWidth: 230,                            // Search box width in px
 
   // ---- Popup ----
   tooltipShow: true,                           // Show a popup when hovering over a plant (mouse only)
   tooltipWidth: 380,                           // Popup maximum width in px
   popupHeader: "coloured block",               // Popup header: coloured block (as in Flourish) or the name with a colour dot
   popupHeaderText: "automatic",                // Text colour on the coloured block (automatic: black or white, whichever reads better)
-  popupStatus: false,                          // Show the status (legend wording) in the popup (Flourish didn't)
+  popupStatus: true,                           // Show the status (legend wording) in the popup (Flourish didn't)
   popupLines: "#e6e6e6",                       // Lines between the popup rows
 
   // ---- Bubbles ----
@@ -113,14 +113,14 @@ var SETTINGS = {
   bubbleScale: "area grows from the smallest size", // Size scale, grows from the smallest size: every value gets its own size; proportional: areas strictly match the values, small ones all get the smallest size
   bubbleOpacity: 1,                            // Bubble fill opacity
   bubbleStroke: "#ffffff",                     // Bubble outline colour
-  bubbleStrokeWidth: 0.75,                     // Bubble outline width in px
+  bubbleStrokeWidth: 0.4,                      // Bubble outline width in px
   bubbleHit: 8,                                // How close the pointer must be to a bubble to pick it, in px
-  highlightInner: "#000000",                   // Highlighted bubble: inner ring
+  highlightInner: "#ffffff",                   // Highlighted bubble: inner ring
   highlightOuter: "#ffffff",                   // Highlighted bubble: outer ring
   highlightWidth: 3,                           // Highlighted bubble: ring width in px
   sizeLegendPos: "top-left corner",            // Size legend position (hidden = none)
   sizeLegendTitle: "Capacity (MW)",            // Size legend title
-  sizeLegendValues: "500, 2000",               // Size legend values, separated by commas
+  sizeLegendValues: "100, 1000",               // Size legend values, separated by commas
 
   // ---- Map shapes ----
   geometry: "Medium (Natural Earth 50m)",      // Country shapes, Simple: few islands and smooth coasts; Detailed: what Flourish used
@@ -153,7 +153,7 @@ var SETTINGS = {
   mapZoom: 1,                                  // Zoom (1 = the view box fits the map area)
   mapShiftX: 0,                                // Move the map sideways, in % of its width: + right, - left
   mapShiftY: 0,                                // Move the map up or down, in % of its height: + down, - up
-  graphicHeight: 860,                          // Height of the whole graphic on wide screens, in px: the map gets whatever the title, legends and footer leave (the same for every map; 0 = use the share below)
+  graphicHeight: 700,                          // Height of the whole graphic on wide screens, in px: the map gets whatever the title, legends and footer leave (the same for every map; 0 = use the share below)
   mapHeight: 0.72,                             // Map height as a share of its width (when the graphic height is 0)
   mapHeightPhone: 0.85,                        // Map height on phones, as a share of its width (phones = narrower than the brand stackBelow width)
   mapZoomPhone: 1,                             // Extra zoom on phones (1 = same as wide screens)

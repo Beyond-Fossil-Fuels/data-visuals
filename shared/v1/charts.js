@@ -497,8 +497,12 @@
     });
     if (o.refs) o.refs.forEach(function (r) {
       el("line", { x1: m.left, x2: m.left + iw, y1: y(r.y), y2: y(r.y), stroke: r.color || "#000", "stroke-width": 1, "stroke-dasharray": "4 3" }, svg);
-      if (r.label) el("text", { x: m.left + iw - 4, y: y(r.y) + (r.size || fs) * 1.25, "text-anchor": "end", "font-size": r.size || fs,
-        "font-weight": r.weight || 700, fill: r.color || S.headingColor }, svg).textContent = r.label;
+      if (!r.label) return;
+      var rsz = r.size || fs, rt = el("text", { x: m.left + iw - 4, y: y(r.y) + rsz * 1.25, "text-anchor": "end", "font-size": rsz,
+        "font-weight": r.weight || 700, fill: r.color || S.headingColor }, svg);
+      // a label wider than the chart (phones) wraps onto more lines instead of running into the axis numbers
+      if (DV.textWidth(r.label, rsz, r.weight || 700) > iw - 8) multiline(rt, r.label, m.left + iw - 4, y(r.y) + rsz * 1.25, rsz * 1.15, iw - 8, rsz, r.weight || 700);
+      else rt.textContent = r.label;
     });
     var dotR = o.dotSize || 0, dotEls = [];
     var dots = el("g", {}, svg);

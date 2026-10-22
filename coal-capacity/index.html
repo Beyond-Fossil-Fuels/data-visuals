@@ -62,7 +62,7 @@ var SETTINGS = {
   headingSize: 21,                             // Chart heading (subtitle) size in px
   footerSize: 10,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 18,                              // Legend text size in px
-  axisSize: 14,                                // Axis label size in px
+  axisSize: 16,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
   subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
   smallHeadingSize: 17,                        // Country name size in px
@@ -82,7 +82,7 @@ var SETTINGS = {
 
   // ---- Axis labels ----
   axisLabelGap: -1,                            // Space between the axis labels and the chart in px (-1 = standard; bar and line charts)
-  xEdgeLabels: "centred",                      // First and last x-axis labels: centred under their bar or year, or kept inside the chart so they never touch the y-axis numbers
+  xEdgeLabels: "inside the chart",             // First and last x-axis labels: centred under their bar or year, or kept inside the chart so they never touch the y-axis numbers
 
   // ---- Background ----
   bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
@@ -100,15 +100,15 @@ var SETTINGS = {
 
   // ---- Time slider ----
   sliderStart: "latest",                       // Date shown when the map opens
-  sliderWidth: 460,                            // Width of the whole slider (button, track and date) in px
-  sliderLabelPos: "right",                     // Date label: right of the track or above it
-  sliderTicks: true,                           // Show a tick for each date with data
+  sliderWidth: 300,                            // Width of the whole slider (button, track and date) in px
+  sliderLabelPos: "above",                     // Date label: right of the track or above it
+  sliderTicks: false,                          // Show a tick for each date with data
   sliderYears: true,                           // Show the first and last year under the track
-  playStyle: "filled circle",                  // Play button style
+  playStyle: "outline circle",                 // Play button style
   playSize: 30,                                // Play button size in px
-  sliderThickness: 3,                          // Track thickness in px
+  sliderThickness: 2,                          // Track thickness in px
   sliderThumbStyle: "circle",                  // Handle style
-  sliderThumb: 16,                             // Handle size in px
+  sliderThumb: 12,                             // Handle size in px
   sliderColor: "#000000",                      // Button, handle and the track up to the date shown
   sliderRestColor: "#c8c8c8",                  // Track after the date shown
   playSpeed: 900,                              // Play: time per date, in milliseconds

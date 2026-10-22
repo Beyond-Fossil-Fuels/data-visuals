@@ -46,7 +46,7 @@ var SETTINGS = {
   headingSize: 21,                             // Chart heading (subtitle) size in px
   footerSize: 10,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 18,                              // Legend text size in px
-  axisSize: 14,                                // Axis label size in px
+  axisSize: 16,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
   subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
 
@@ -64,7 +64,7 @@ var SETTINGS = {
 
   // ---- Axis labels ----
   axisLabelGap: -1,                            // Space between the axis labels and the chart in px (-1 = standard; bar and line charts)
-  xEdgeLabels: "centred",                      // First and last x-axis labels: centred under their bar or year, or kept inside the chart so they never touch the y-axis numbers
+  xEdgeLabels: "inside the chart",             // First and last x-axis labels: centred under their bar or year, or kept inside the chart so they never touch the y-axis numbers
 
   // ---- Background ----
   bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
@@ -327,6 +327,7 @@ var SETTINGS = {
         var h = DV.clamp(hw * S.chartHeight * (ctx.stacked ? 0.7 : 1), 200, 620);
         // label every n quarters, or every 2n, 3n… where the panels are too narrow for the labels to fit
         var every = Math.max(1, S.labelEvery), lw = DV.axisFs(S, w) * 0.62 * String(p.rows[0].Period).length + 10;
+        if (S.xEdgeLabels === "inside the chart") lw *= 1.5;   // the first label starts at the edge, so it reaches further right
         while (every < p.rows.length && every * (w - 40) / p.rows.length < lw) every += Math.max(1, S.labelEvery);
         DV.bars({ S: S, svg: p.svg, tip: p.tip, width: w, height: h, rows: p.rows, percent: true,
           label: function (d) { return d.Period; }, xLabelAt: function (i) { return i % every === 0; },
