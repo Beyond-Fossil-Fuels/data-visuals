@@ -308,18 +308,23 @@ var SETTINGS = {
       grid.style.setProperty("--dvc-gap-x", S.chartGap + "px");
       // side by side, only the first panel carries the y-axis numbers: its column is wider by their width,
       // so the three plot areas are the same width (as in DV.bars: label width + the space beside it)
+      var axisW = 0;
       if (ctx.stacked || panels.length < 2) grid.style.gridTemplateColumns = "";
       else {
-        var axisW = DV.textWidth("100%", DV.axisFs(S, ctx.W)) + (S.axisLabelGap >= 0 ? S.axisLabelGap : 6);
+        axisW = DV.textWidth("100%", DV.axisFs(S, ctx.W)) + (S.axisLabelGap >= 0 ? S.axisLabelGap : 6);
         var plotW = (grid.clientWidth - S.chartGap * (panels.length - 1) - axisW) / panels.length;
         grid.style.gridTemplateColumns = panels.map(function (p, i) { return "minmax(0, " + (i ? plotW : plotW + axisW) + "fr)"; }).join(" ");
       }
+      // the first heading sits over the bars, not over the axis numbers
+      panels.forEach(function (p, i) { p.head.style.paddingLeft = i === 0 && axisW ? axisW + "px" : ""; });
       DV.alignHeads(panels.map(function (p) { return p.head; }), !ctx.stacked);
       var series = STACK.filter(function (k) { return !hidden[k]; }).map(function (k) { return { key: k, label: k, color: S[PALETTE_KEY[k]] }; });
       var legendOrder = DV.byColumns(ctx.headers, Object.keys(PALETTE_KEY));
       panels.forEach(function (p, pi) {
         var w = p.svg.parentNode.clientWidth;
-        var h = DV.clamp(w * S.chartHeight * (ctx.stacked ? 0.7 : 1), 200, 620);
+        // side by side, every panel takes its height from a panel without the y-axis numbers, so all are the same height
+        var hw = ctx.stacked ? w : panels[panels.length - 1].svg.parentNode.clientWidth;
+        var h = DV.clamp(hw * S.chartHeight * (ctx.stacked ? 0.7 : 1), 200, 620);
         // label every n quarters, or every 2n, 3n… where the panels are too narrow for the labels to fit
         var every = Math.max(1, S.labelEvery), lw = DV.axisFs(S, w) * 0.62 * String(p.rows[0].Period).length + 10;
         while (every < p.rows.length && every * (w - 40) / p.rows.length < lw) every += Math.max(1, S.labelEvery);
