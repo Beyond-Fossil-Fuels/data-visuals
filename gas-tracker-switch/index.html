@@ -171,7 +171,8 @@ var SETTINGS = {
     units:    { unit: "",   decimals: 0 },
     capacity: { unit: "GW", decimals: 1 }
   };
-  var view = /[?&]view=capacity\b/.test(location.search) ? "capacity" : "units";
+  // capacity first (Pending doc, 22 Oct); ?view=units opens the number of units
+  var view = /[?&]view=units\b/.test(location.search) ? "units" : "capacity";
 
   function series(S, headers, keys) {
     return DV.byColumns(headers, keys).reverse().map(function (k) {
