@@ -263,7 +263,9 @@ var SETTINGS = {
       smalls.forEach(function (sm) {
         var sw = sm.svg.parentNode.clientWidth, k = sm.u.key;
         var a = DV.niceAxis(Math.max.apply(null, rows.map(function (d) { return d[k]; })), 2);
-        var every = sw < 260 ? 10 : 5;
+        // a label every 5 years where they fit side by side, otherwise every 10, or 20 on the narrowest charts
+        var fs = DV.axisFs(S, sw), plot = sw - DV.textWidth(DV.fmt(a.max, "Mt", 0), fs) - 8 - 2 * DV.axisEdge(sw);
+        var every = [5, 10, 20].filter(function (e) { return e * plot / rows.length >= DV.textWidth("2020", fs) + 10; })[0] || 20;
         DV.bars({ S: S, svg: sm.svg, tip: tip, width: sw, height: S.smallHeight, rows: rows,
           label: function (d) { return d[P]; }, xLabelAt: function (i) { return +rows[i][P] % every === 0; },
           gap: 0.2, series: [{ key: k, color: sm.u.color }], yMax: a.max, tickStep: a.step, top: 4,

@@ -488,9 +488,12 @@
     for (var t = 0; t * o.tickStep <= o.yMax + 1e-9; t++) ticks.push(t * o.tickStep);
     var tickText = ticks.map(fmt);
     var longest = Math.max.apply(null, tickText.map(function (s) { return s.length; }));
-    var m = { top: 8, right: 14, bottom: fs + 14, left: fs * 0.58 * longest + 14 };
+    var lgap = Math.ceil(fs * 0.5) + 3;   // axis to labels: as DV.axisLabelGap in charts.js
+    var m = { top: 8, right: 14, bottom: fs + 8 + lgap, left: fs * 0.58 * longest + 14 };
     var iw = Math.max(1, width - m.left - m.right), ih = Math.max(1, height - m.top - m.bottom);
-    var pad = Math.min(24, iw * 0.04);            // inset so first/last dots aren't on the edge
+    // inset at both ends: the axis line reaches a little past the areas (as DV.axisEdge in charts.js), dots included
+    var gw = (svg.closest && svg.closest(".dv") || svg).clientWidth || width;
+    var pad = DV.clamp(gw * 0.01, 6, 14) + (S.showDots ? S.dotSize : 0);
     var step = (iw - pad * 2) / Math.max(1, n - 1);
     var x = function (i) { return m.left + pad + i * step; };
     var y = function (v) { return m.top + ih - (v / o.yMax) * ih; };
@@ -502,7 +505,7 @@
       el("text", { x: m.left - 8, y: y(v), "text-anchor": "end", "dominant-baseline": "middle", "font-size": fs, fill: S.axisColor }, g)
         .textContent = tickText[i];
     });
-    el("line", { x1: m.left, x2: width - m.right, y1: y(0), y2: y(0), stroke: S.axisColor, "stroke-opacity": 0.3 }, g);
+    el("line", { x1: m.left, x2: width - m.right, y1: y(0), y2: y(0), stroke: S.axisColor, "stroke-opacity": 0.35 }, g);   // as charts.js DV.AXIS_*
 
     // x labels: always the first period, then every 4th counting back from the latest, avoiding collisions
     var minGap = fs * 3, picks = [0], placed = [];
@@ -511,8 +514,8 @@
       var px = x(i);
       if (placed.some(function (q) { return Math.abs(q - px) < minGap; })) return;
       placed.push(px);
-      el("line", { x1: px, x2: px, y1: y(0), y2: y(0) + 5, stroke: S.axisColor, "stroke-opacity": 0.3 }, g);
-      el("text", { x: px, y: y(0) + fs + 6, "text-anchor": "middle", "font-size": fs, fill: S.axisColor }, g)
+      el("line", { x1: px, x2: px, y1: y(0), y2: y(0) + 5, stroke: S.axisColor, "stroke-opacity": 0.35 }, g);
+      el("text", { x: px, y: y(0) + fs + lgap, "text-anchor": "middle", "font-size": fs, fill: S.axisColor }, g)
         .textContent = data[i][o.period];
     });
 
