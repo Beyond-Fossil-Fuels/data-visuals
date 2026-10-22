@@ -98,6 +98,12 @@
     if (left + tw > bw) left = x - tw - 14;
     if (left < 0) left = DV.clamp(x - tw / 2, 0, Math.max(0, bw - tw));
     var top = Math.max(0, y - th / 2);
+    // keep the whole popup inside the graphic (= the iframe on the website): near the bottom it moves up
+    var g = svg.closest && svg.closest(".dv");
+    if (g) {
+      var gr = g.getBoundingClientRect(), gTop = gr.top - pr.top, gBottom = gr.bottom - pr.top;
+      top = Math.max(gTop, Math.min(top, gBottom - th - 4));
+    }
     tip.style.left = left + "px";
     tip.style.top = top + "px";
   };
