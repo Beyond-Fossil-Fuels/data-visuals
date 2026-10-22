@@ -286,7 +286,7 @@
    * FOOTER DATE {timestamp}: column "timestamp" of the sheet's first tab
    * "List of graphics", in the row whose ID is the graphic's (cfg.graphicId):
    *   a date        -> "Month YYYY" (e.g. "July 2026")
-   *   [from data]   -> the latest period in the graphic's own data (as {last})
+   *   [from data]   -> the latest period in the graphic's own data (as {last}; a quarter as the month after it ends)
    *   empty         -> nothing, and the "| Last update: …" part is left out
    * If the tab can't be read: the latest period for graphics with cfg.fromData, nothing for the others.
    * ------------------------------------------------------------------ */
@@ -335,6 +335,16 @@
     }
     return mo >= 1 && mo <= 12 ? MONTH_NAMES[mo - 1] + " " + y : s;
   };
+  /* A quarter as the month after it ends, for "Last update" dates: "2026 Q2", "26Q2" or "Q2 2026" -> "July 2026"
+   * (Q1 -> April, Q2 -> July, Q3 -> October, Q4 -> January of the next year). Anything else comes back as it is. */
+  DV.quarterMonth = function (p) {
+    var s = String(p == null ? "" : p).trim(), m, y, q;
+    if ((m = /^(\d{4})\s*Q([1-4])$/i.exec(s))) { y = +m[1]; q = +m[2]; }
+    else if ((m = /^(\d{2})Q([1-4])$/i.exec(s))) { y = 2000 + +m[1]; q = +m[2]; }
+    else if ((m = /^Q([1-4])\s*(\d{4})$/i.exec(s))) { y = +m[2]; q = +m[1]; }
+    else return s;
+    return q === 4 ? "January " + (y + 1) : MONTH_NAMES[q * 3] + " " + y;
+  };
   /* Fills the footer placeholders: {first} / {last} (first and last period in the data; vars.last
    * overrides the latest), {timestamp} (see above) and {updated} (cell A1 of the tab, kept for old footers). */
   DV.fillFooter = function (text, ctx, vars) {
@@ -343,8 +353,9 @@
     var last = vars.last != null ? vars.last : data.length ? DV.footerPeriod(data[data.length - 1][P]) : "";
     var first = vars.first != null ? vars.first : data.length ? data[0][P] : "";
     var t = ctx.timestamp, ts;
-    if (!t) ts = ctx.fromData ? last : "";
-    else if (/^\[?\s*from data\s*\]?$/i.test(t.value)) ts = last;
+    // [from data]: the latest period, quarters shown as months ("2026 Q2" -> "July 2026")
+    if (!t) ts = ctx.fromData ? DV.quarterMonth(last) : "";
+    else if (/^\[?\s*from data\s*\]?$/i.test(t.value)) ts = DV.quarterMonth(last);
     else ts = t.value ? DV.monthYear(t.value) : "";
     text = String(text || "");
     if (ts === "" && text.indexOf("{timestamp}") > -1) {
