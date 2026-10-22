@@ -148,14 +148,9 @@
       title: "CO₂ emissions from coal power stations by utility, EU+UK", height: 880 },
     { id: "C7", name: "New coal by region", section: "Coal data tool page", slug: "coal-new-projects", tab: "C7",
       title: "New coal power plant projects by region and status since 2016", height: 680 },
-    { id: "G1", name: "Gas tracker", section: "Gas core page", versions: [
-      { id: "G1.1", label: "Capacity", slug: "gas-tracker-capacity", tab: "G1 (GW columns)",
-        title: "Tracking the capacity of new gas projects", height: 650 },
-      { id: "G1.2", label: "Units", slug: "gas-tracker", tab: "G1 (units columns)",
-        title: "Tracking number of new gas unit projects", height: 650 },
-      { id: "G1.3", label: "Both (units / capacity switch)", slug: "gas-tracker-switch", tab: "G1",
-        title: "Tracking new gas projects", height: 720 }
-    ]},
+    // G1.1 (gas-tracker-capacity) and G1.2 (gas-tracker) are retired from the gallery; their pages still work
+    { id: "G1", name: "New gas projects", section: "Gas core page", slug: "gas-tracker-switch", tab: "G1",
+      title: "Tracking new gas projects", height: 720 },
     { id: "G2", name: "The import trap comparison", section: "Gas core page", slug: "gas-import-map", tab: "G2",
       title: "The double-edged sword of gas dependency: Current gas import reliance vs. planned capacity", height: 860 },
     { id: "G3", name: "Power plant map", section: "Gas data tool page", slug: "gas-plant-map", tab: "G3",
@@ -168,12 +163,9 @@
       title: "Share of gas power capacity by status and country", height: 1300 },
     { id: "R1", name: "Europe power mix", section: "Renewables", slug: "power-mix", tab: "R1",
       title: "Share of total electricity generation in Europe by source, 2015 to 2025", height: 800 },
-    { id: "R2", name: "Gas vs solar investment", section: "Renewables", versions: [
-      { id: "R2.1", label: "Side by side (two columns)", slug: "gas-vs-solar-imports", tab: "R2",
-        title: "Spending €100 billion on solar panel imports instead of gas imports could produce 9x more electricity", height: 640 },
-      { id: "R2.2", label: "One above the other (two rows)", slug: "gas-vs-solar-imports", query: "?type=rows", tab: "R2",
-        title: "Spending €100 billion on solar panel imports instead of gas imports could produce 9x more electricity", height: 640 }
-    ]},
+    // one above the other is now the default layout (?type=rows still works; the side-by-side R2.1 is retired)
+    { id: "R2", name: "Gas vs solar investment", section: "Renewables", slug: "gas-vs-solar-imports", tab: "R2",
+      title: "Spending €100 billion on solar panel imports instead of gas imports could produce 9x more electricity", height: 640 },
     { id: "F1", name: "The grid bottleneck", section: "Clean flex", slug: "grid-queue-value", tab: "F1",
       title: "Value of clean energy projects currently stuck in grid connection queues in 8 countries", height: 860 },
     { id: "F2", name: "Growth outlook", section: "Clean flex", slug: "clean-flex-outlook", tab: "F2",

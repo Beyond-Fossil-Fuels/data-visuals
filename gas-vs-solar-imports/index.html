@@ -70,7 +70,7 @@ var SETTINGS = {
   bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
 
   // ---- Layout of the two groups ----
-  layout: "side by side",                      // Two columns in one row, or two rows in one column (each row then reads like a horizontal bar of icons). The address can also choose: ?type=columns or ?type=rows
+  layout: "one above the other",               // Two columns in one row, or two rows in one column (each row then reads like a horizontal bar of icons). The address can also choose: ?type=columns or ?type=rows
   stackedTop: "second row of the sheet",       // One above the other: which group goes on top (second row = solar panels)
   perRowStacked: 36,                           // Icons per row when one above the other (fewer if there isn't room)
   lifetime: 25,                                // Solar panel lifetime in years (for the time comparison in the tooltip)
@@ -143,7 +143,7 @@ var SETTINGS = {
         ]
       }),
       { name: "Layout of the two groups", fields: [
-        { key: "layout",    type: "select", options: ["side by side", "one above the other"], def: "side by side", help: "Two columns in one row, or two rows in one column (each row then reads like a horizontal bar of icons). The address can also choose: ?type=columns or ?type=rows" },
+        { key: "layout",    type: "select", options: ["side by side", "one above the other"], def: "one above the other", help: "Two columns in one row, or two rows in one column (each row then reads like a horizontal bar of icons). The address can also choose: ?type=columns or ?type=rows" },
         { key: "stackedTop",    type: "select", options: ["second row of the sheet", "first row of the sheet"], def: "second row of the sheet", help: "One above the other: which group goes on top (second row = solar panels)" },
         { key: "perRowStacked", type: "range", min: 10, max: 80, step: 1, def: 36, help: "Icons per row when one above the other (fewer if there isn't room)" },
         { key: "lifetime",  type: "range", min: 1, max: 50, step: 1, def: 25, help: "Solar panel lifetime in years (for the time comparison in the tooltip)" }
