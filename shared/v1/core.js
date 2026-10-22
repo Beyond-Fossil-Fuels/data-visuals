@@ -92,7 +92,7 @@
       { key: "spaceControls", type: "range", min: -1, max: 80, step: 1, def: -1, help: "Space between the legend, search box, time slider and buttons in px (-1 = standard)" },
       { key: "spaceChart",    type: "range", min: -1, max: 80, step: 1, def: -1, help: "Space between the legend or controls and the chart or map in px (-1 = standard)" },
       { key: "spaceFooter",   type: "range", min: -1, max: 80, step: 1, def: -1, help: "Space above the footer in px (-1 = the block gap)" },
-      { key: "notesPhone",    type: "select", options: ["collapsed", "shown"], def: "collapsed", help: "Notes under the footer on phones: collapsed behind a Show notes button, or shown in full (the source line always shows)" }
+      { key: "notesPhone",    type: "select", options: ["folded on phones", "folded at every width", "always shown"], def: "folded on phones", help: "Notes under the footer (folded behind a Show notes button on phones only, at every width, or never; the source line always shows)" }
     ]},
     { name: "Axis labels", fields: [
       { key: "axisLabelGap", type: "range", min: -1, max: 30, step: 1, def: -1, help: "Space between the axis labels and the chart in px (-1 = standard; bar and line charts)" },
@@ -811,13 +811,15 @@
         collapseNotes(S);
         postHeight();
       }
-      /* Phones: the notes under the footer fold away behind a "Show notes" button (S.notesPhone);
-       * the footer's source line stays. Images and PDFs always show the notes. */
+      /* The notes under the footer fold away behind a "Show notes" button (S.notesPhone): on phones only
+       * (default), at every width, or never; the footer's source line stays. Images and PDFs always show the notes. */
       var notesOpen = false, notesBtn = null;
       function collapseNotes(S) {
         var notes = document.getElementById("notes");
         if (!notes) return;
-        var fold = ctx.stacked && S.notesPhone !== "shown" && notes.textContent.trim() !== "";
+        // ("collapsed" and "shown" are the earlier names of the first and last choices)
+        var mode = S.notesPhone, every = mode === "folded at every width", never = mode === "always shown" || mode === "shown";
+        var fold = notes.textContent.trim() !== "" && (every || (ctx.stacked && !never));
         if (fold && !notesBtn) {
           notesBtn = document.createElement("button");
           notesBtn.type = "button"; notesBtn.className = "dv-notes-btn dv-control";
