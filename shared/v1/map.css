@@ -34,9 +34,9 @@
 /* corners on top of the map */
 .dvm-corner { position: absolute; z-index: 3; display: flex; flex-direction: column; gap: var(--dv-controls-gap, 10px); max-width: 46%; pointer-events: none; }
 .dvm-corner > * { pointer-events: auto; }
-.dvm-tl { top: 0; left: 0; }
+.dvm-tl { top: 0; left: 0; align-items: flex-start; }
 .dvm-tr { top: 0; right: 0; align-items: flex-end; }
-.dvm-bl { bottom: 0; left: 0; }
+.dvm-bl { bottom: 0; left: 0; align-items: flex-start; }
 .dvm-br { bottom: 0; right: 0; align-items: flex-end; }
 .dvm-corner.dvm-empty { display: none; }
 

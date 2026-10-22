@@ -60,7 +60,7 @@
 var SETTINGS = {
   // ---- Text ----
   title: "Coal power plants in Europe",        // Main title (empty = none)
-  hint: "Hold ⌘ (Mac) or Ctrl (Windows) and scroll to zoom, or pinch with two fingers on a phone. Click a status in the legend to show only that status.", // Instruction line above the legend (empty = none)
+  hint: "Hold ⌘ (Mac) or Ctrl (Windows) and scroll to zoom, or pinch with two fingers on a phone. Click a status in the legend to show only that status.", // Instruction line above the map (empty = none)
   footer: "Source: [Beyond Fossil Fuels coal tracker](https://beyondfossilfuels.org/coal/) | Plant retirements tracked since Jan 2016 | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
   notes: "Note: The map excludes all coal power plants that retired or were cancelled before 2016 and includes all those that were planned, under construction, or open at the beginning of 2016. Plants that are not announced to retire but under a non-legislated national phase-out commitment, appear under \"no retirement announcement\" (check out the map of [national coal phase-out commitments](https://beyondfossilfuels.org/europes-coal-exit/)).\nThe status of Ukraine's coal units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.", // Notes under the footer, one paragraph per line; [text](https://…) makes a link
   legendTitle: "",                             // Legend title (empty = none)
@@ -834,7 +834,7 @@ var SETTINGS = {
     groups: [
       { name: "Text", fields: [
         { key: "title",             type: "text", def: "Coal power plants in Europe", help: "Main title (empty = none)" },
-        { key: "hint",              type: "text", def: "Hold ⌘ (Mac) or Ctrl (Windows) and scroll to zoom, or pinch with two fingers on a phone. Click a status in the legend to show only that status.", help: "Instruction line above the legend (empty = none)" },
+        { key: "hint",              type: "text", def: "Hold ⌘ (Mac) or Ctrl (Windows) and scroll to zoom, or pinch with two fingers on a phone. Click a status in the legend to show only that status.", help: "Instruction line above the map (empty = none)" },
         { key: "footer",            type: "text", def: "Source: [Beyond Fossil Fuels coal tracker](https://beyondfossilfuels.org/coal/) | Plant retirements tracked since Jan 2016 | Last update: {timestamp}", help: "Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide" },
         { key: "notes",             type: "textarea", rows: 6, def: [
             "Note: The map excludes all coal power plants that retired or were cancelled before 2016 and includes all those that were planned, under construction, or open at the beginning of 2016. Plants that are not announced to retire but under a non-legislated national phase-out commitment, appear under \"no retirement announcement\" (check out the map of [national coal phase-out commitments](https://beyondfossilfuels.org/europes-coal-exit/)).",
@@ -934,8 +934,9 @@ var SETTINGS = {
         ui.sizeLegend = DV.bubbleLegend({ title: S.sizeLegendTitle, values: values, r: DV.bubbleRadius(S, maxCap, w0),
           fmt: function (v) { return DV.fmt(v, "", 0); } });
       }
-      // the instruction line sits just above the legend, wherever the legend goes
-      var list = [[ui.hint, S.hint ? S.legendPos : "hidden"], [ui.legend, S.legendPos]];
+      // the instruction line goes above the map (first, so it stays above a legend placed there too),
+      // so a legend in a corner keeps its own width
+      var list = [[ui.hint, S.hint ? "above map" : "hidden"], [ui.legend, S.legendPos]];
       if (ui.sizeLegend) list.push([ui.sizeLegend, S.sizeLegendPos]);
       list.push([ui.search, S.searchPos], [ui.panel, ui.panelOpen ? "below map" : "hidden", true]);
       ui.layout.place(list, narrow, S.widgetOrder);

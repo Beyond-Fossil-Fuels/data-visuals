@@ -60,7 +60,7 @@
 var SETTINGS = {
   // ---- Text ----
   title: "Europe’s existing and planned gas power plants", // Main title (empty = none)
-  hint: "Hold ⌘ (Mac) or Ctrl (Windows) and scroll to zoom, or pinch with two fingers on a phone. Click a status in the legend to show only that status.", // Instruction line above the legend (empty = none)
+  hint: "Hold ⌘ (Mac) or Ctrl (Windows) and scroll to zoom, or pinch with two fingers on a phone. Click a status in the legend to show only that status.", // Instruction line above the map (empty = none)
   footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/gas/) | Gas power plants tracked since 2023 | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
   notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.", // Notes under the footer, one paragraph per line; [text](https://…) makes a link
   legendTitle: "",                             // Legend title (empty = none)
@@ -1402,7 +1402,7 @@ var SETTINGS = {
     groups: [
       { name: "Text", fields: [
         { key: "title",             type: "text", def: "Europe’s existing and planned gas power plants", help: "Main title (empty = none)" },
-        { key: "hint",              type: "text", def: "Hold ⌘ (Mac) or Ctrl (Windows) and scroll to zoom, or pinch with two fingers on a phone. Click a status in the legend to show only that status.", help: "Instruction line above the legend (empty = none)" },
+        { key: "hint",              type: "text", def: "Hold ⌘ (Mac) or Ctrl (Windows) and scroll to zoom, or pinch with two fingers on a phone. Click a status in the legend to show only that status.", help: "Instruction line above the map (empty = none)" },
         { key: "footer",            type: "text", def: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/gas/) | Gas power plants tracked since 2023 | Last update: {timestamp}", help: "Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide" },
         { key: "notes",             type: "textarea", rows: 6, def: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.", help: "Notes under the footer, one paragraph per line; [text](https://…) makes a link" },
         { key: "legendTitle",       type: "text", def: "", help: "Legend title (empty = none)" },
@@ -1503,8 +1503,9 @@ var SETTINGS = {
         ui.sizeLegend = DV.bubbleLegend({ title: S.sizeLegendTitle, values: values, r: DV.bubbleRadius(S, maxCap, w0),
           fmt: function (v) { return DV.fmt(v, "", 0); } });
       }
-      // the instruction line sits just above the legend, wherever the legend goes
-      var list = [[ui.hint, S.hint ? S.legendPos : "hidden"], [ui.legend, S.legendPos]];
+      // the instruction line goes above the map (first, so it stays above a legend placed there too),
+      // so a legend in a corner keeps its own width
+      var list = [[ui.hint, S.hint ? "above map" : "hidden"], [ui.legend, S.legendPos]];
       if (ui.sizeLegend) list.push([ui.sizeLegend, S.sizeLegendPos]);
       list.push([ui.search, S.searchPos], [ui.panel, ui.panelOpen ? "below map" : "hidden", true]);
       ui.layout.place(list, narrow, S.widgetOrder);
