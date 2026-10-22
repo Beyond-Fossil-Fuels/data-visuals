@@ -110,7 +110,7 @@ var SETTINGS = {
   // ---- Bubbles ----
   bubbleMinR: 2.5,                             // Smallest bubble radius in px (on a 1000 px wide map)
   bubbleMaxR: 8,                               // Largest bubble radius in px (on a 1000 px wide map)
-  bubbleMaxValue: 0,                           // Value that gets the largest bubble (0 = the largest in the data; fix it so sizes don't change between updates)
+  bubbleMaxValue: 6000,                        // Value that gets the largest bubble (0 = the largest in the data; fix it so sizes don't change between updates)
   bubbleScale: "area grows from the smallest size", // Size scale, grows from the smallest size: every value gets its own size; proportional: areas strictly match the values, small ones all get the smallest size
   bubbleOpacity: 1,                            // Bubble fill opacity
   bubbleStroke: "#ffffff",                     // Bubble outline colour
@@ -119,7 +119,7 @@ var SETTINGS = {
   highlightInner: "#ffffff",                   // Highlighted bubble: inner ring
   highlightOuter: "#ffffff",                   // Highlighted bubble: outer ring
   highlightWidth: 3,                           // Highlighted bubble: ring width in px
-  sizeLegendPos: "hidden",                     // Size legend position (hidden = none)
+  sizeLegendPos: "top-left corner",            // Size legend position (hidden = none)
   sizeLegendTitle: "Capacity (MW)",            // Size legend title
   sizeLegendValues: "500, 2000",               // Size legend values, separated by commas
 
@@ -932,6 +932,7 @@ var SETTINGS = {
       var values = String(S.sizeLegendValues || "").split(/[,;\s]+/).map(Number).filter(function (v) { return v > 0; });
       if (S.sizeLegendPos !== "hidden" && values.length) {
         ui.sizeLegend = DV.bubbleLegend({ title: S.sizeLegendTitle, values: values, r: DV.bubbleRadius(S, maxCap, w0),
+          labelGap: ctx.sz(S.legendSize, 12) * 0.85 * 1.15,   // the circles are small: keep their labels a line apart
           fmt: function (v) { return DV.fmt(v, "", 0); } });
       }
       // the instruction line goes above the map (first, so it stays above a legend placed there too),

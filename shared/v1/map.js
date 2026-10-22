@@ -643,6 +643,8 @@
   };
   // Nested circles: { title, values: [small, large], r: fn, fmt, color }
   DV.bubbleLegend = function (o) {
+    // o.labelGap (px, optional): labels at least this far apart, for small circles whose tops are close together
+    if (o.labelGap > 0) return spacedBubbleLegend(o);
     var el = div("dvm-legend dvm-bubbles");
     if (o.title) div("dvm-legend-title", el).textContent = o.title;
     var rMax = o.r(Math.max.apply(null, o.values)), w = rMax * 2 + 70, h = rMax * 2 + 2;
@@ -656,6 +658,28 @@
     });
     return el;
   };
+  // The same legend with its labels kept o.labelGap apart: a label that can't sit level with its circle's top
+  // moves down, with an angled leader line to it.
+  function spacedBubbleLegend(o) {
+    var el = div("dvm-legend dvm-bubbles");
+    if (o.title) div("dvm-legend-title", el).textContent = o.title;
+    var vals = o.values.slice().sort(function (a, b) { return b - a; }), gap = o.labelGap;
+    var rMax = o.r(vals[0]), base = Math.max(rMax * 2, gap / 2) + 1, lx = rMax * 2 + 14;
+    var items = vals.map(function (v) { var r = o.r(v); return { v: v, r: r, top: base - r * 2 }; });
+    var y = -Infinity;
+    items.forEach(function (it) { it.ly = Math.max(it.top, y + gap); y = it.ly; });
+    var shift = Math.max(0, gap / 2 - items[0].ly), h = Math.max(base, y + gap / 2) + shift + 1, w = lx + 60;
+    var svg = DV.el("svg", { width: w, height: h, viewBox: "0 0 " + w + " " + h }, el);
+    items.forEach(function (it) {
+      var cy = base - it.r + shift, ty = it.top + shift, ly = it.ly + shift, c = o.color || "#000";
+      DV.el("circle", { cx: rMax + 1, cy: cy, r: it.r, fill: "none", stroke: c }, svg);
+      DV.el("polyline", { points: (rMax + 1) + "," + ty + " " + (rMax * 2 + 4) + "," + ty + " " + (lx - 3) + "," + ly,
+        fill: "none", stroke: c, "stroke-dasharray": "2 2" }, svg);
+      DV.el("text", { x: lx, y: ly, "dominant-baseline": "middle", "font-size": "0.85em", fill: "currentColor" }, svg)
+        .textContent = o.fmt ? o.fmt(it.v) : it.v;
+    });
+    return el;
+  }
 
   /* ------------------------------------------------------------------
    * COUNTRY SEARCH: { placeholder, items: [{ id, label }], onSelect(id or null) }
