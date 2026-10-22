@@ -33,7 +33,7 @@
 var SETTINGS = {
   // ---- Text ----
   title: "Outlook for European clean flexibility growth", // Main title
-  subtitle: "Installed capacity in GW, with 2030 figures from the TYNDP Baseline (National Trends) Scenario, a snapshot of aggregated European national system plans, while 2035 to 2050 come from its Global Ambition Scenario", // Subtitle under the title, one paragraph per line (empty = none)
+  subtitle: "Installed capacity in GW. 2030 figures are from the EU’s Ten-Year Network Development Plan (TYNDP) Baseline Scenario (which aggregates national system plans), while 2035 to 2050 figures come from its Global Ambition Scenario.", // Subtitle under the title, one paragraph per line (empty = none)
   unitLabel: "GW",                             // Unit after the numbers
   totalLabel: "Total clean flexibility",       // Tooltip: label of the total (the only figure shown; the split by technology is read off the report's figure)
   footer: "Source: Report [\"Clean Flexibility: Opportunities in Europe\"](https://beyondfossilfuels.org/2026/02/23/clean-flexibility-supports-a-reliable-grid-without-fossil-fuels/) prepared by The Brattle Group and Acousmatics for BFF, February 2026", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
@@ -60,8 +60,8 @@ var SETTINGS = {
 
   // ---- Reference line ----
   refShow: true,                               // Show the dashed reference line
-  refValue: 253,                               // Reference line value (GW)
-  refLabel: "Current level of gas capacity",   // Reference line label
+  refValue: 253.2,                             // Reference line value (GW)
+  refLabel: "Current level of installed gas capacity in Europe (as of 2026)", // Reference line label
 
   // ---- Chart style (this graphic) ----
   showLegend: false,                           // Show a legend above the chart (the labels at the end of the areas already name them)
@@ -109,7 +109,7 @@ var SETTINGS = {
     groups: [
       DV.chartTextGroup({
         title: "Outlook for European clean flexibility growth",
-        subtitle: "Installed capacity in GW, with 2030 figures from the TYNDP Baseline (National Trends) Scenario, a snapshot of aggregated European national system plans, while 2035 to 2050 come from its Global Ambition Scenario",
+        subtitle: "Installed capacity in GW. 2030 figures are from the EU’s Ten-Year Network Development Plan (TYNDP) Baseline Scenario (which aggregates national system plans), while 2035 to 2050 figures come from its Global Ambition Scenario.",
         footer: "Source: Report [\"Clean Flexibility: Opportunities in Europe\"](https://beyondfossilfuels.org/2026/02/23/clean-flexibility-supports-a-reliable-grid-without-fossil-fuels/) prepared by The Brattle Group and Acousmatics for BFF, February 2026",
         extra: [
           { key: "unitLabel", type: "text", def: "GW", help: "Unit after the numbers" },
@@ -118,8 +118,8 @@ var SETTINGS = {
       }),
       { name: "Reference line", fields: [
         { key: "refShow",  type: "check", def: true, help: "Show the dashed reference line" },
-        { key: "refValue", type: "range", min: 0, max: 800, step: 1, def: 253, help: "Reference line value (GW)" },
-        { key: "refLabel", type: "text", def: "Current level of gas capacity", help: "Reference line label" },
+        { key: "refValue", type: "range", min: 0, max: 800, step: 0.1, def: 253.2, help: "Reference line value (GW)" },
+        { key: "refLabel", type: "text", def: "Current level of installed gas capacity in Europe (as of 2026)", help: "Reference line label" },
         { key: "refSize",  type: "range", min: 9, max: 28, step: 0.5, def: 16, help: "Reference label size in px" }
       ]},
       { name: "Chart style (this graphic)", fields: [

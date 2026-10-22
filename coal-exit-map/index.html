@@ -49,9 +49,9 @@ var SETTINGS = {
   title: "Overview of country coal phase-out announcements and plans in Europe", // Main title
   footer: "Source: [Beyond Fossil Fuels coal tracker](https://beyondfossilfuels.org/coal/) | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
   legendTitle: "",                             // Legend title (empty = none)
-  statusLabels: "no-coal :: No coal in electricity mix\nby-2030 :: Coal phase-out commitment 2030 or earlier\nafter-2030 :: Coal phase-out commitment, but after 2030\ndiscussion :: Coal phase-out under official discussion\nno-discussion :: No official coal phase-out discussion", // Legend wording, one line per status: code :: wording. The line order is the legend order
+  statusLabels: "no-coal :: No coal in the electricity mix\nby-2030 :: Coal phase-out commitment by 2030 or earlier\nafter-2030 :: Coal phase-out commitment, but after 2030\ndiscussion :: Coal phase-out under official discussion\nno-discussion :: No official coal phase-out discussion", // Legend wording, one line per status: code :: wording. The line order is the legend order
   searchPlaceholder: "Select country",         // Search box placeholder
-  shareLabel: "Coal % of power mix (Ember, 2025):", // Label above the coal share bar
+  shareLabel: "Coal share in the power mix (Ember, 2025):", // Label above the coal share bar
   latestText: "Current ({date})",              // Slider label at the newest date; {date} is that date
   pastText: "Status in {date}: {status}",      // Popup status line for past dates; {date} and {status} are filled in
   nowText: "Current status: {status}",         // Popup line with today's status, under the past status; {status} is filled in
@@ -380,14 +380,14 @@ var SETTINGS = {
         { key: "footer",            type: "text", def: "Source: [Beyond Fossil Fuels coal tracker](https://beyondfossilfuels.org/coal/) | Last update: {timestamp}", help: "Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide" },
         { key: "legendTitle",       type: "text", def: "", help: "Legend title (empty = none)" },
         { key: "statusLabels",      type: "textarea", rows: 5, def: [
-            "no-coal :: No coal in electricity mix",
-            "by-2030 :: Coal phase-out commitment 2030 or earlier",
+            "no-coal :: No coal in the electricity mix",
+            "by-2030 :: Coal phase-out commitment by 2030 or earlier",
             "after-2030 :: Coal phase-out commitment, but after 2030",
             "discussion :: Coal phase-out under official discussion",
             "no-discussion :: No official coal phase-out discussion"
           ].join("\n"), help: "Legend wording, one line per status: code :: wording. The line order is the legend order" },
         { key: "searchPlaceholder", type: "text", def: "Select country", help: "Search box placeholder" },
-        { key: "shareLabel",        type: "text", def: "Coal % of power mix (Ember, 2025):", help: "Label above the coal share bar" },
+        { key: "shareLabel",        type: "text", def: "Coal share in the power mix (Ember, 2025):", help: "Label above the coal share bar" },
         { key: "latestText",        type: "text", def: "Current ({date})", help: "Slider label at the newest date; {date} is that date" },
         { key: "pastText",          type: "text", def: "Status in {date}: {status}", help: "Popup status line for past dates; {date} and {status} are filled in" },
         { key: "nowText",           type: "text", def: "Current status: {status}", help: "Popup line with today's status, under the past status; {status} is filled in" },

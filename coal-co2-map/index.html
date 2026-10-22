@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CO2 emissions from coal power plants in Europe</title>
+<title>CO₂ emissions from coal power plants by country</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="../shared/v1/core.css">
@@ -48,9 +48,9 @@ var SETTINGS = {
   title: "CO₂ emissions from coal power plants by country", // Main title
   subtitle: "",                                // Text under the title (empty = none)
   footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/en/datahub/datahubitem-view/98f04097-26de-4fca-86c4-63834818c0c0), [Beyond Fossil Fuels](https://beyondfossilfuels.org/coal/) | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
-  legendTitle: "CO2 emissions from coal power (Mt)", // Colour legend title (empty = none)
-  valueText: "{value} Mt CO2 in {year}",       // Popup value line; {value} and {year} are filled in
-  noDataText: "CO2 emissions from coal power in {year} were not available", // Popup line when there's no value; {year} is filled in
+  legendTitle: "CO₂ emissions from coal power (Mt)", // Colour legend title (empty = none)
+  valueText: "{value} Mt CO₂ in {year}",       // Popup value line; {value} and {year} are filled in
+  noDataText: "CO₂ emissions from coal power in {year} were not available", // Popup line when there's no value; {year} is filled in
   statusText: "Phase-out status: {status}",    // Popup status line; {status} is the Status detail column
   searchPlaceholder: "Select country",         // Search box placeholder
   latestText: "{date}",                        // Slider label at the newest year; {date} is that year
@@ -344,13 +344,13 @@ var SETTINGS = {
 
     groups: [
       { name: "Text", fields: [
-        { key: "title",        type: "text", def: "CO2 emissions from coal power plants in Europe", help: "Main title" },
+        { key: "title",        type: "text", def: "CO₂ emissions from coal power plants by country", help: "Main title" },
         { key: "subtitle",     type: "textarea", rows: 4, def: "", help: "Text under the title (empty = none)" },
         { key: "subtitleSize", type: "range", min: 11, max: 28, step: 0.5, def: 17, help: "Text under the title: size in px" },
         { key: "footer",       type: "text", def: "Sources: [European Environment Agency](https://www.eea.europa.eu/en/datahub/datahubitem-view/98f04097-26de-4fca-86c4-63834818c0c0), [Beyond Fossil Fuels](https://beyondfossilfuels.org/coal/) | Last update: {timestamp}", help: "Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide" },
-        { key: "legendTitle",  type: "text", def: "CO2 emissions from coal power (Mt)", help: "Colour legend title (empty = none)" },
-        { key: "valueText",    type: "text", def: "{value} Mt CO2 in {year}", help: "Popup value line; {value} and {year} are filled in" },
-        { key: "noDataText",   type: "text", def: "CO2 emissions from coal power in {year} were not available", help: "Popup line when there's no value; {year} is filled in" },
+        { key: "legendTitle",  type: "text", def: "CO₂ emissions from coal power (Mt)", help: "Colour legend title (empty = none)" },
+        { key: "valueText",    type: "text", def: "{value} Mt CO₂ in {year}", help: "Popup value line; {value} and {year} are filled in" },
+        { key: "noDataText",   type: "text", def: "CO₂ emissions from coal power in {year} were not available", help: "Popup line when there's no value; {year} is filled in" },
         { key: "statusText",   type: "text", def: "Phase-out status: {status}", help: "Popup status line; {status} is the Status detail column" },
         { key: "searchPlaceholder", type: "text", def: "Select country", help: "Search box placeholder" },
         { key: "latestText",   type: "text", def: "{date}", help: "Slider label at the newest year; {date} is that year" }
@@ -445,7 +445,7 @@ var SETTINGS = {
         projection: DV.mapProjection(view, w, h),
         features: DV.mapShapes(state.topo, S),
         style: style(S),
-        label: S.title + ": map of Europe coloured by CO2 emissions from coal power"
+        label: S.title + ": map of Europe coloured by CO₂ emissions from coal power"
       });
     }
   });

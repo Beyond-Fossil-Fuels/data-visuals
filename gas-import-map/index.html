@@ -24,12 +24,15 @@
   .g2-notes { margin: 6px 0 0; font-size: var(--dv-footer-size); }
   .g2-notes p { margin: 0 0 4px; }
   .g2-notes:empty { display: none; }
+  .g2-sub { margin: 0 0 var(--dv-gap, 14px); font-size: var(--g2-sub-size); line-height: 1.4; }
+  .g2-sub:empty { display: none; }
   .g2-size-note { font-size: 0.85em; color: #555; margin-top: 4px; max-width: 170px; line-height: 1.25; }
 </style>
 </head>
 <body>
 <div class="dv" id="dv">
   <h1 class="dv-title" id="dv-title"></h1>
+  <p class="g2-sub" id="subtitle"></p>
   <div id="map"></div>
   <p class="dv-footer" id="dv-footer"></p>
   <div class="dv-footer g2-notes" id="notes"></div>
@@ -49,9 +52,10 @@
  * ================================================================ */
 var SETTINGS = {
   // ---- Text ----
-  title: "Doubling down: current gas import reliance vs. planned capacity", // Main title (empty = none)
+  title: "The double-edged sword of gas dependency: Current gas import reliance vs. planned capacity", // Main title (empty = none)
+  subtitle: "The countries with the most gas power capacity, operating and planned, are also among Europe's biggest gas importers, and the most exposed when global gas supply is shaken.", // Text under the title (empty = none)
   footer: "Sources: [BFF gas power plant database](https://beyondfossilfuels.org/gas/) ({timestamp}); import figures from [Eurostat](https://ec.europa.eu/eurostat/databrowser/view/nrg_bal_c/default/table?lang=en) and, for the UK, [DUKES](https://www.gov.uk/government/statistics/natural-gas-chapter-4-digest-of-united-kingdom-energy-statistics-dukes).", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
-  notes: "Note: plants in development include those at announced, pre-construction, construction and shelved statuses; gas imports are each country's total natural gas imports in 2024.", // Notes under the footer, one paragraph per line; [text](https://…) makes a link
+  notes: "Note: plants in development include those with announced, pre-construction, construction and shelved statuses; gas imports represent each country's total fossil gas imports in 2024.", // Notes under the footer, one paragraph per line; [text](https://…) makes a link
   importsTitle: "Gas imports (TWh)",           // Title of the gas imports colour legend
   statusTitle: "Gas power capacity",           // Title of the operating / in development legend (empty = none)
   statusLabels: "operating :: Operating\ndevelopment :: In development", // Legend wording, one line per status: code :: wording
@@ -65,6 +69,7 @@ var SETTINGS = {
   footerSize: 10,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 18,                              // Legend text size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
+  subtitleSize: 17,                            // Text under the title: size in px
   smallSize: 5,                                // Size of the zoomed box (or circle), in % of the map width
 
   // ---- Spacing ----
@@ -415,9 +420,11 @@ var SETTINGS = {
 
     groups: [
       { name: "Text", fields: [
-        { key: "title",        type: "text", def: "Doubling down: current gas import reliance vs. planned capacity", help: "Main title (empty = none)" },
+        { key: "title",        type: "text", def: "The double-edged sword of gas dependency: Current gas import reliance vs. planned capacity", help: "Main title (empty = none)" },
+        { key: "subtitle",     type: "textarea", rows: 3, def: "The countries with the most gas power capacity, operating and planned, are also among Europe's biggest gas importers, and the most exposed when global gas supply is shaken.", help: "Text under the title (empty = none)" },
+        { key: "subtitleSize", type: "range", min: 11, max: 28, step: 0.5, def: 17, help: "Text under the title: size in px" },
         { key: "footer",       type: "text", def: "Sources: [BFF gas power plant database](https://beyondfossilfuels.org/gas/) ({timestamp}); import figures from [Eurostat](https://ec.europa.eu/eurostat/databrowser/view/nrg_bal_c/default/table?lang=en) and, for the UK, [DUKES](https://www.gov.uk/government/statistics/natural-gas-chapter-4-digest-of-united-kingdom-energy-statistics-dukes).", help: "Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide" },
-        { key: "notes",        type: "textarea", rows: 4, def: "Note: plants in development include those at announced, pre-construction, construction and shelved statuses; gas imports are each country's total natural gas imports in 2024.", help: "Notes under the footer, one paragraph per line; [text](https://…) makes a link" },
+        { key: "notes",        type: "textarea", rows: 4, def: "Note: plants in development include those with announced, pre-construction, construction and shelved statuses; gas imports represent each country's total fossil gas imports in 2024.", help: "Notes under the footer, one paragraph per line; [text](https://…) makes a link" },
         { key: "importsTitle", type: "text", def: "Gas imports (TWh)", help: "Title of the gas imports colour legend" },
         { key: "statusTitle",  type: "text", def: "Gas power capacity", help: "Title of the operating / in development legend (empty = none)" },
         { key: "statusLabels", type: "textarea", rows: 2, def: "operating :: Operating\ndevelopment :: In development", help: "Legend wording, one line per status: code :: wording" },
@@ -472,6 +479,7 @@ var SETTINGS = {
       st.setProperty("--dvm-tip-width", S.tooltipWidth + "px");
       st.setProperty("--dvm-panel-size", S.tooltipSize + "px");
       document.getElementById("dv-title").style.display = S.title ? "" : "none";
+      document.getElementById("subtitle").innerHTML = DV.linkify(S.subtitle || "");
       document.getElementById("notes").innerHTML = String(S.notes || "").split(/\n/).filter(function (l) { return l.trim(); })
         .map(function (l) { return "<p>" + DV.linkify(l) + "</p>"; }).join("");
 
@@ -510,6 +518,7 @@ var SETTINGS = {
 
     render: function (ctx) {
       var S = ctx.S, narrow = ctx.stacked;
+      ctx.root.style.setProperty("--g2-sub-size", ctx.sz(S.subtitleSize, 14) + "px");
       var w0 = ui.layout.stage.clientWidth || ctx.W;
       if (ui.sizeLegend) { ui.sizeLegend.remove(); ui.sizeLegend = null; }
       var sym0 = symbols(S, w0);

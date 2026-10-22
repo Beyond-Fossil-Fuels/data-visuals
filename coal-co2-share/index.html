@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Relevance of CO2 from coal power relative to all GHG emissions</title>
+<title>CO₂ from coal power and all other greenhouse gas emissions, EU+UK</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="../shared/v1/core.css">
@@ -37,9 +37,9 @@ var SETTINGS = {
   // ---- Text ----
   title: "CO₂ from coal power and all other greenhouse gas emissions, EU+UK", // Main title
   subtitle: "",                                // Subtitle under the title, one paragraph per line (empty = none)
-  leftTitle: "Coal power CO2 emissions in relation to {all other GHG emissions}", // Heading above the bars; words in {braces} take the colour of all other GHG emissions
-  rightTitle: "Coal power as share of all GHG emissions", // Heading above the area chart
-  coalLabel: "Coal power CO2",                 // Tooltip: coal power
+  leftTitle: "Coal power CO₂ emissions in relation to {all other GHG emissions}", // Heading above the bars; words in {braces} take the colour of all other GHG emissions
+  rightTitle: "Coal power CO₂ emissions as a share of all GHG emissions", // Heading above the area chart
+  coalLabel: "Coal power CO₂",                 // Tooltip: coal power
   otherLabel: "All other GHG emissions",       // Tooltip: all other emissions
   totalLabel: "Total",                         // Tooltip: total
   shareLabel: "Coal power share",              // Tooltip: share
@@ -126,9 +126,9 @@ var SETTINGS = {
         title: "CO₂ from coal power and all other greenhouse gas emissions, EU+UK",
         footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/data-and-maps/data/national-emissions-reported-to-the-unfccc-and-to-the-eu-greenhouse-gas-monitoring-mechanism-18), [UK Government](https://www.gov.uk/government/statistics/electricity-chapter-5-digest-of-united-kingdom-energy-statistics-dukes), [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: {timestamp}",
         extra: [
-          { key: "leftTitle",  type: "text", def: "Coal power CO2 emissions in relation to {all other GHG emissions}", help: "Heading above the bars; words in {braces} take the colour of all other GHG emissions" },
-          { key: "rightTitle", type: "text", def: "Coal power as share of all GHG emissions", help: "Heading above the area chart" },
-          { key: "coalLabel",  type: "text", def: "Coal power CO2", help: "Tooltip: coal power" },
+          { key: "leftTitle",  type: "text", def: "Coal power CO₂ emissions in relation to {all other GHG emissions}", help: "Heading above the bars; words in {braces} take the colour of all other GHG emissions" },
+          { key: "rightTitle", type: "text", def: "Coal power CO₂ emissions as a share of all GHG emissions", help: "Heading above the area chart" },
+          { key: "coalLabel",  type: "text", def: "Coal power CO₂", help: "Tooltip: coal power" },
           { key: "otherLabel", type: "text", def: "All other GHG emissions", help: "Tooltip: all other emissions" },
           { key: "totalLabel", type: "text", def: "Total", help: "Tooltip: total" },
           { key: "shareLabel", type: "text", def: "Coal power share", help: "Tooltip: share" },

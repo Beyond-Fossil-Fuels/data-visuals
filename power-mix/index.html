@@ -32,12 +32,12 @@
  * ================================================================ */
 var SETTINGS = {
   // ---- Text ----
-  title: "Share of total electricity generation by source, 2015 to 2025", // Main title
+  title: "Share of total electricity generation in Europe by source, 2015 to 2025", // Main title
   subtitle: "",                                // Subtitle under the title, one paragraph per line (empty = none)
   markerRef: "Solar and wind",                 // Markers: the source that overtakes the others (a column name)
-  markers: "Hydro :: Solar + wind|outpaces hydro\nNuclear :: Solar + wind|outpaces nuclear\nFossil :: Solar + wind|outpaces fossil", // Markers, one per line: source (or a year such as 2018.5) :: label; | = line break. Empty = no markers
+  markers: "Hydro :: Solar and wind|overtake hydro\nNuclear :: Solar and wind|overtake nuclear\nFossil :: Solar and wind|overtake fossil", // Markers, one per line: source (or a year such as 2018.5) :: label; | = line break. Empty = no markers
   footer: "Source: [Ember yearly electricity data](https://ember-energy.org/data/yearly-electricity-data/) | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
-  notes: "BFF Europe as EU, UK, Norway, Switzerland, Western Balkans, Moldova and Türkiye. Albania and Ukraine not included due to data incompleteness. Other renewables also include biomass, while fossil includes coal, gas and other fossil.", // Notes under the footer, one paragraph per line; links as [text](https://…)
+  notes: "Europe includes the EU, the UK, Norway, Switzerland, the Western Balkans, Moldova and Türkiye. Albania and Ukraine not included due to incomplete data. Other renewables include biomass, while fossil includes coal, gas and other fossil fuels.", // Notes under the footer, one paragraph per line; links as [text](https://…)
   // Text sizes:
   titleSize: 23,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
@@ -120,12 +120,12 @@ var SETTINGS = {
 
     groups: [
       DV.chartTextGroup({
-        title: "Share of total electricity generation by source, 2015 to 2025",
+        title: "Share of total electricity generation in Europe by source, 2015 to 2025",
         footer: "Source: [Ember yearly electricity data](https://ember-energy.org/data/yearly-electricity-data/) | Last update: {timestamp}",
-        notes: "BFF Europe as EU, UK, Norway, Switzerland, Western Balkans, Moldova and Türkiye. Albania and Ukraine not included due to data incompleteness. Other renewables also include biomass, while fossil includes coal, gas and other fossil.",
+        notes: "Europe includes the EU, the UK, Norway, Switzerland, the Western Balkans, Moldova and Türkiye. Albania and Ukraine not included due to incomplete data. Other renewables include biomass, while fossil includes coal, gas and other fossil fuels.",
         extra: [
           { key: "markerRef", type: "text", def: "Solar and wind", help: "Markers: the source that overtakes the others (a column name)" },
-          { key: "markers", type: "textarea", rows: 4, def: "Hydro :: Solar + wind|outpaces hydro\nNuclear :: Solar + wind|outpaces nuclear\nFossil :: Solar + wind|outpaces fossil",
+          { key: "markers", type: "textarea", rows: 4, def: "Hydro :: Solar and wind|overtake hydro\nNuclear :: Solar and wind|overtake nuclear\nFossil :: Solar and wind|overtake fossil",
             help: "Markers, one per line: source (or a year such as 2018.5) :: label; | = line break. Empty = no markers" }
         ]
       }),

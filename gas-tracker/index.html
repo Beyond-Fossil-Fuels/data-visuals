@@ -58,7 +58,7 @@ var SETTINGS = {
 
   // ---- Label on the dark area ----
   areaLabelShow: true,                         // Show the label inside the dark area
-  areaLabelText: "Already left development|since start of tracking", // Label text; use | for a line break
+  areaLabelText: "Already left development",   // Label text; use | for a line break
   areaLabelWeight: 700,                        // Label boldness
   areaLabelColor: "#ffffff",                   // Label colour
   areaLabelWidth: 0.8,                         // Widest a label line gets, as a share of the chart width
@@ -165,7 +165,7 @@ var SETTINGS = {
       ]},
       { name: "Label on the dark area", fields: [
         { key: "areaLabelShow",   type: "check", def: true, help: "Show the label inside the dark area" },
-        { key: "areaLabelText",   type: "text", def: "Already left development|since start of tracking", help: "Label text; use | for a line break" },
+        { key: "areaLabelText",   type: "text", def: "Already left development", help: "Label text; use | for a line break" },
         { key: "areaLabelSize",   type: "range", min: 10, max: 40, step: 0.5, def: 19, help: "Largest label size in px (it shrinks to fit inside the dark area, and on small screens)" },
         { key: "areaLabelWeight", type: "select", options: [300, 400, 500, 600, 700, 800, 900], def: 700, help: "Label boldness" },
         { key: "areaLabelColor",  type: "color", def: "#ffffff", help: "Label colour" },
