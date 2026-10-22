@@ -33,6 +33,12 @@ var BRAND = {
   dotSize: 5,                                  // Dot radius in px
   showGrid: true,                              // Show horizontal grid lines
 
+  // ---- Popups ----
+  popupBg: "#ffffff",                          // Popup (tooltip) background
+  popupBorder: "#d0d0d0",                      // Popup outline colour
+  popupShadow: true,                           // Soft shadow under popups
+  popupKey: "circle",                          // Colour key next to the values in popups
+
   // ---- Arrow style ----
   arrowColor: "#000000",                       // Arrow colour
   arrowThickness: 7,                           // Line thickness in px

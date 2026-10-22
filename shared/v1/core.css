@@ -18,7 +18,12 @@ body { font-family: var(--dv-font); color: var(--dv-text); }
   margin: 0 0 var(--dv-title-gap);
   letter-spacing: -0.01em;
 }
-.dv-footer { font-size: var(--dv-footer-size); margin: var(--dv-gap, 14px) 0 0; color: var(--dv-text); }
+.dv-footer { font-size: var(--dv-footer-size); margin: var(--dv-footer-gap, var(--dv-gap, 14px)) 0 0; color: var(--dv-text); }
+/* notes folded away on phones (S.notesPhone), always shown in images and PDFs */
+.dv-notes-folded { display: none !important; }
+html.dv-exporting .dv-notes-folded, html.dv-print .dv-notes-folded { display: block !important; }
+.dv-notes-btn { display: block; font: inherit; font-size: var(--dv-footer-size); color: var(--dv-text); background: none; border: 0;
+  padding: 2px 0; margin: 2px 0 0; text-decoration: underline; cursor: pointer; }
 /* the footer's second line (notes, methodology) follows it directly */
 .dv-footer + .dv-footer, .dv-footer + .dvc-notes { margin-top: 2px; }
 .dv-footer:empty { display: none; }
@@ -39,7 +44,7 @@ body { font-family: var(--dv-font); color: var(--dv-text); }
 .dv-legend {
   display: flex; flex-wrap: wrap; justify-content: var(--dv-legend-align);
   gap: 2px 12px; font-size: var(--dv-legend-size); color: var(--dv-heading);
-  margin: 0 0 6px; min-height: 20px;
+  margin: 0 0 var(--dv-chart-gap, 6px); min-height: 20px;
   padding-right: 14px;  /* = the chart's right margin, so right-aligned legends end where the grid lines end */
 }
 .dv-stacked .dv-legend { justify-content: flex-start; }
@@ -59,15 +64,15 @@ body { font-family: var(--dv-font); color: var(--dv-text); }
 
 .dv-tooltip {
   position: absolute; z-index: 5; pointer-events: none;
-  background: #fff; color: #000;
-  border: 1px solid #d0d0d0; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  background: var(--dv-popup-bg, #fff); color: #000;
+  border: 1px solid var(--dv-popup-border, #d0d0d0); border-radius: 4px; box-shadow: var(--dv-popup-shadow, 0 2px 8px rgba(0,0,0,.15));
   padding: 8px 10px; font-size: var(--dv-tooltip-size); line-height: 1.35; min-width: 170px;
   opacity: 0; transition: opacity .12s;
 }
 .dv-tooltip.on { opacity: 1; }
 .dv-tooltip b { display: block; font-size: 1.08em; margin-bottom: 4px; }
 .dv-tooltip .r { display: flex; align-items: center; gap: 6px; }
-.dv-tooltip .r i { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.dv-tooltip .r i { width: 9px; height: 9px; border-radius: var(--dv-key-radius, 50%); flex: none; }
 .dv-tooltip .r span { flex: 1; }
 .dv-tooltip .r em { font-style: normal; font-weight: 600; font-variant-numeric: tabular-nums; }
 .dv-tooltip .t { border-top: 1px solid #e3e3e3; margin-top: 5px; padding-top: 4px; }

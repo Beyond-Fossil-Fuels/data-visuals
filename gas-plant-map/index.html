@@ -80,6 +80,12 @@ var SETTINGS = {
   padSides: 0,                                 // Space left and right of the graphic in px
   padBottom: 0,                                // Space below the graphic in px
   blockGap: 30,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
+  spaceTitle: -1,                              // Space under the title in px (-1 = the block gap)
+  spaceSubtitle: -1,                           // Space under the subtitle and instruction lines in px (-1 = standard)
+  spaceControls: -1,                           // Space between the legend, search box, time slider and buttons in px (-1 = standard)
+  spaceChart: -1,                              // Space between the legend or controls and the chart or map in px (-1 = standard)
+  spaceFooter: -1,                             // Space above the footer in px (-1 = the block gap)
+  notesPhone: "collapsed",                     // Notes under the footer on phones: collapsed behind a Show notes button, or shown in full (the source line always shows)
 
   // ---- Background ----
   bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
@@ -158,6 +164,9 @@ var SETTINGS = {
   borderColor: "#ffffff",                      // Country borders
   borderWidth: 1.2,                            // Border width in px
   smallBoxColor: "#8a8a8a",                    // Zoomed box and its line
+
+  // ---- Order of the controls ----
+  widgetOrder: "",                             // Order of the legend, search box and time slider where they share a place, e.g. search, legend, slider (empty = standard)
 
   // ---- Hover and selection ----
   hoverStyle: "outline",                       // What happens to the country under the pointer
@@ -1374,6 +1383,13 @@ var SETTINGS = {
     return r;
   }
 
+  // plants inside the view box (not those in the inset box), as [lon, lat]
+  function inView(S) {
+    return state.plants.filter(function (p) { return p.lon >= S.viewWest && p.lon <= S.viewEast && p.lat >= S.viewSouth && p.lat <= S.viewNorth &&
+      !(S.insetShow && p.lon >= S.insetWest && p.lon <= S.insetEast && p.lat >= S.insetSouth && p.lat <= S.insetNorth); })
+      .map(function (p) { return [p.lon, p.lat]; });
+  }
+
   DV.create({
     axes: false,   // no axes: design mode leaves out the axis label size
     sheetId: SHEET_ID,
@@ -1491,7 +1507,7 @@ var SETTINGS = {
       var list = [[ui.hint, S.hint ? S.legendPos : "hidden"], [ui.legend, S.legendPos]];
       if (ui.sizeLegend) list.push([ui.sizeLegend, S.sizeLegendPos]);
       list.push([ui.search, S.searchPos], [ui.panel, ui.panelOpen ? "below map" : "hidden", true]);
-      ui.layout.place(list, narrow);
+      ui.layout.place(list, narrow, S.widgetOrder);
       if (!state.topo) return;
 
       var w = ui.layout.stage.clientWidth;
@@ -1500,7 +1516,8 @@ var SETTINGS = {
       if (narrow) view.mapZoom = S.mapZoom * S.mapZoomPhone;
       ui.view.draw({
         S: S, width: w, height: h,
-        projection: DV.mapProjection(view, w, h),
+        // phones: no shift, and centred sideways on the plants (the legend is above the map there)
+        projection: narrow ? DV.phoneProjection(S, w, h, inView(S)) : DV.mapProjection(view, w, h),
         features: DV.mapShapes(state.topo, S),
         style: function () { return null; },     // countries are background only (see "Countries without data")
         label: (S.title || "Gas plant map") + ": gas power plants in Europe by status and capacity"

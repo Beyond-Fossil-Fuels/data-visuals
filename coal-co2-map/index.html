@@ -9,14 +9,14 @@
 <link rel="stylesheet" href="../shared/v1/core.css">
 <link rel="stylesheet" href="../shared/v1/map.css">
 <style>
-  .c3-sub { margin: 0 0 18px; font-size: var(--c3-sub-size); line-height: 1.4; }
+  .c3-sub { margin: 0 0 var(--dv-sub-gap, 18px); font-size: var(--c3-sub-size); line-height: 1.4; }
   .c3-sub:empty { display: none; }
   /* Country details (hover popup and click panel) */
   .c3-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; padding-right: 22px; }
   .c3-head img { width: 32px; height: 24px; flex: none; }
   .c3-head b { font-size: 1.3em; line-height: 1.15; margin: 0; display: inline; }
   .c3-value { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.1em; }
-  .c3-value i { width: 0.9em; height: 0.9em; border-radius: 2px; flex: none; }
+  .c3-value i { width: 0.9em; height: 0.9em; border-radius: var(--dv-key-radius, 2px); flex: none; }
   .c3-line { margin-top: 8px; }
   .c3-note { margin-top: 8px; color: #555; }
   .c3-value.na { font-weight: 400; }
@@ -69,6 +69,12 @@ var SETTINGS = {
   padSides: 0,                                 // Space left and right of the graphic in px
   padBottom: 0,                                // Space below the graphic in px
   blockGap: 30,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
+  spaceTitle: -1,                              // Space under the title in px (-1 = the block gap)
+  spaceSubtitle: -1,                           // Space under the subtitle and instruction lines in px (-1 = standard)
+  spaceControls: -1,                           // Space between the legend, search box, time slider and buttons in px (-1 = standard)
+  spaceChart: -1,                              // Space between the legend or controls and the chart or map in px (-1 = standard)
+  spaceFooter: -1,                             // Space above the footer in px (-1 = the block gap)
+  notesPhone: "collapsed",                     // Notes under the footer on phones: collapsed behind a Show notes button, or shown in full (the source line always shows)
 
   // ---- Background ----
   bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
@@ -150,6 +156,9 @@ var SETTINGS = {
   borderColor: "#ffffff",                      // Country borders
   borderWidth: 0.7,                            // Border width in px
   smallBoxColor: "#8a8a8a",                    // Zoomed box and its line
+
+  // ---- Order of the controls ----
+  widgetOrder: "",                             // Order of the legend, search box and time slider where they share a place, e.g. search, legend, slider (empty = standard)
 
   // ---- Hover and selection ----
   hoverStyle: "outline",                       // What happens to the country under the pointer
@@ -434,7 +443,7 @@ var SETTINGS = {
         [ui.legend, S.legendPos],
         [ui.search, S.searchPos],
         [ui.panel, ui.panelOpen ? S.panelPos : "hidden", true]
-      ], narrow);
+      ], narrow, S.widgetOrder);
       if (!state.topo) return;
       var w = ui.layout.stage.clientWidth;
       var h = DV.mapHeightFor(ctx, S, w, narrow, ui.layout.stage);   // same total height for every map (setting "Graphic height")
@@ -442,7 +451,7 @@ var SETTINGS = {
       if (narrow) view.mapZoom = S.mapZoom * S.mapZoomPhone;
       ui.view.draw({
         S: S, width: w, height: h,
-        projection: DV.mapProjection(view, w, h),
+        projection: narrow ? DV.phoneProjection(S, w, h) : DV.mapProjection(view, w, h),   // phones: no shift
         features: DV.mapShapes(state.topo, S),
         style: style(S),
         label: S.title + ": map of Europe coloured by CO₂ emissions from coal power"

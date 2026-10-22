@@ -120,6 +120,24 @@
     return p;
   };
 
+  /* Phones: the map's own position, whatever the legend does. On wide screens a corner legend sits on the map, so
+   * a map may be shifted (S.mapShiftX/Y) or given a wider view box to make room for it; on phones the legend
+   * moves above the map, so the shift is dropped and, given points (e.g. plants as [lon, lat]), the map is
+   * centred sideways on them. Returns the projection. */
+  DV.phoneProjection = function (S, w, h, points) {
+    var view = Object.create(S);
+    view.mapZoom = S.mapZoom * (S.mapZoomPhone || 1);
+    view.mapShiftX = 0; view.mapShiftY = 0;
+    var p = DV.mapProjection(view, w, h);
+    var xs = (points || []).map(function (q) { var xy = p(q); return xy ? xy[0] : NaN; })
+      .filter(function (x) { return x > -w && x < 2 * w; });
+    if (xs.length > 1) {
+      var mid = (Math.min.apply(null, xs) + Math.max.apply(null, xs)) / 2, t = p.translate();
+      p.translate([t[0] + w / 2 - mid, t[1]]);
+    }
+    return p;
+  };
+
   /* ------------------------------------------------------------------
    * LAYOUT: slots above, below, left and right of the map, four corners
    * on top of it, and side panels over the whole graphic (root).
@@ -146,8 +164,24 @@
     };
     return {
       stage: stage,
-      // narrow (phones): corners, sides and side panels move above the map, or below it for widgets that prefer it
-      place: function (list, narrow) {
+      // narrow (phones): corners, sides and side panels move above the map, or below it for widgets that prefer it.
+      // order (optional, e.g. "search, legend, slider"): the order of the legend(s), search box and time slider where
+      // they share a place; an instruction line (.dvm-hint) stays just above the legend, panels stay last.
+      place: function (list, narrow, order) {
+        var want = String(order || "").toLowerCase().split(/[\s,;]+/).filter(Boolean);
+        if (want.length) {
+          var kind = function (el) {
+            var c = " " + el.className + " ";
+            return / dvm-hint /.test(c) ? "legend" : / dvm-legend /.test(c) ? "legend" : / dvm-search /.test(c) ? "search" :
+              / dvm-slider /.test(c) ? "slider" : "";
+          };
+          var rank = function (it, i) {
+            var k = want.indexOf(kind(it[0]));
+            return (k < 0 ? 99 : k) * 1000 + i;   // unknown widgets (panels) last, ties in the page's order
+          };
+          list = list.map(function (it, i) { return { it: it, r: rank(it, i) }; })
+            .sort(function (a, b) { return a.r - b.r; }).map(function (x) { return x.it; });
+        }
         list.forEach(function (it) {
           var el = it[0], pos = it[1], below = it[2];
           if (narrow && pos !== "hidden" && !/^(above|below) map$/.test(pos)) pos = below ? "below map" : "above map";
@@ -832,6 +866,9 @@
         { key: "borderColor",  type: "color", def: "#ffffff", help: "Country borders" },
         { key: "borderWidth",  type: "range", min: 0, max: 3, step: 0.1, def: 0.7, help: "Border width in px" },
         { key: "smallBoxColor", type: "color", def: "#8a8a8a", help: "Zoomed box and its line" }
+      ]},
+      { name: "Order of the controls", fields: [
+        { key: "widgetOrder", type: "text", def: "", help: "Order of the legend, search box and time slider where they share a place, e.g. search, legend, slider (empty = standard)" }
       ]},
       { name: "Hover and selection", fields: [
         { key: "hoverStyle",   type: "select", options: ["outline", "outline and fade others", "fade others", "none"], def: "outline", help: "What happens to the country under the pointer" },

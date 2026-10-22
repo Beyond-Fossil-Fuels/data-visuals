@@ -62,6 +62,16 @@ var SETTINGS = {
   padSides: 0,                                 // Space left and right of the graphic in px
   padBottom: 0,                                // Space below the graphic in px
   blockGap: 30,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
+  spaceTitle: -1,                              // Space under the title in px (-1 = the block gap)
+  spaceSubtitle: -1,                           // Space under the subtitle and instruction lines in px (-1 = standard)
+  spaceControls: -1,                           // Space between the legend, search box, time slider and buttons in px (-1 = standard)
+  spaceChart: -1,                              // Space between the legend or controls and the chart or map in px (-1 = standard)
+  spaceFooter: -1,                             // Space above the footer in px (-1 = the block gap)
+  notesPhone: "collapsed",                     // Notes under the footer on phones: collapsed behind a Show notes button, or shown in full (the source line always shows)
+
+  // ---- Axis labels ----
+  axisLabelGap: -1,                            // Space between the axis labels and the chart in px (-1 = standard; bar and line charts)
+  xEdgeLabels: "centred",                      // First and last x-axis labels: centred under their bar or year, or kept inside the chart so they never touch the y-axis numbers
 
   // ---- Background ----
   bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through

@@ -52,6 +52,12 @@
       { key: "dotSize",     type: "range", min: 1, max: 10, step: 0.5, def: 4.5, help: "Dot radius in px" },
       { key: "showGrid",    type: "check", def: true, help: "Show horizontal grid lines" }
     ]},
+    { name: "Popups", fields: [
+      { key: "popupBg",     type: "color", def: "#ffffff", help: "Popup (tooltip) background" },
+      { key: "popupBorder", type: "color", def: "#d0d0d0", help: "Popup outline colour" },
+      { key: "popupShadow", type: "check", def: true, help: "Soft shadow under popups" },
+      { key: "popupKey",    type: "select", options: ["circle", "square"], def: "circle", help: "Colour key next to the values in popups" }
+    ]},
     { name: "Arrow style", fields: [
       { key: "arrowColor",     type: "color", def: "#000000", help: "Arrow colour" },
       { key: "arrowThickness", type: "range", min: 1, max: 16, step: 0.5, def: 8, help: "Line thickness in px" },
@@ -79,7 +85,18 @@
       { key: "padTop",    type: "range", min: 0, max: 80, step: 1, def: 0, help: "Space above the graphic in px" },
       { key: "padSides",  type: "range", min: 0, max: 80, step: 1, def: 0, help: "Space left and right of the graphic in px" },
       { key: "padBottom", type: "range", min: 0, max: 80, step: 1, def: 0, help: "Space below the graphic in px" },
-      { key: "blockGap",  type: "range", min: 0, max: 60, step: 1, def: 30, help: "Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)" }
+      { key: "blockGap",  type: "range", min: 0, max: 60, step: 1, def: 30, help: "Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)" },
+      // separate spaces between the parts (-1 keeps the standard spacing)
+      { key: "spaceTitle",    type: "range", min: -1, max: 80, step: 1, def: -1, help: "Space under the title in px (-1 = the block gap)" },
+      { key: "spaceSubtitle", type: "range", min: -1, max: 80, step: 1, def: -1, help: "Space under the subtitle and instruction lines in px (-1 = standard)" },
+      { key: "spaceControls", type: "range", min: -1, max: 80, step: 1, def: -1, help: "Space between the legend, search box, time slider and buttons in px (-1 = standard)" },
+      { key: "spaceChart",    type: "range", min: -1, max: 80, step: 1, def: -1, help: "Space between the legend or controls and the chart or map in px (-1 = standard)" },
+      { key: "spaceFooter",   type: "range", min: -1, max: 80, step: 1, def: -1, help: "Space above the footer in px (-1 = the block gap)" },
+      { key: "notesPhone",    type: "select", options: ["collapsed", "shown"], def: "collapsed", help: "Notes under the footer on phones: collapsed behind a Show notes button, or shown in full (the source line always shows)" }
+    ]},
+    { name: "Axis labels", fields: [
+      { key: "axisLabelGap", type: "range", min: -1, max: 30, step: 1, def: -1, help: "Space between the axis labels and the chart in px (-1 = standard; bar and line charts)" },
+      { key: "xEdgeLabels",  type: "select", options: ["centred", "inside the chart"], def: "centred", help: "First and last x-axis labels: centred under their bar or year, or kept inside the chart so they never touch the y-axis numbers" }
     ]},
     { name: "Background", fields: [
       { key: "bgMode", type: "select", options: ["white", "brand colour", "transparent"], def: "white",
@@ -95,8 +112,8 @@
     // a graphic that defines one of these fields itself keeps its own version
     var own = {};
     groups.forEach(function (g) { g.fields.forEach(function (f) { own[f.key] = true; }); });
-    // graphics without axes (maps, pictograms: cfg.axes === false) leave out the axis label size
-    if (cfg && cfg.axes === false) own.axisSize = true;
+    // graphics without axes (maps, pictograms: cfg.axes === false) leave out the axis settings
+    if (cfg && cfg.axes === false) own.axisSize = own.axisLabelGap = own.xEdgeLabels = true;
     var base = GRAPHIC_BASE_GROUPS.map(function (g) {
       return { name: g.name, fields: g.fields.filter(function (f) { return !own[f.key]; }) };
     });
@@ -770,14 +787,38 @@
         st.setProperty("--dv-title-size", ctx.sz(S.titleSize, 22) + "px");
         // one gap between all the blocks (title, subtitle, buttons, charts, footer)
         var gap = S.blockGap != null ? S.blockGap : 30;
-        st.setProperty("--dv-title-gap", gap + "px");
+        st.setProperty("--dv-title-gap", (S.spaceTitle >= 0 ? S.spaceTitle : gap) + "px");
         st.setProperty("--dv-gap", gap + "px");
+        // separate spaces, where set (-1 = standard)
+        [["spaceSubtitle", "--dv-sub-gap"], ["spaceControls", "--dv-controls-gap"], ["spaceChart", "--dv-chart-gap"], ["spaceFooter", "--dv-footer-gap"]]
+          .forEach(function (p) { if (S[p[0]] >= 0) st.setProperty(p[1], S[p[0]] + "px"); else st.removeProperty(p[1]); });
         st.setProperty("--dv-heading-size", ctx.sz(S.headingSize, 15) + "px");
         st.setProperty("--dv-legend-size", ctx.sz(S.legendSize, 12) + "px");
         st.setProperty("--dv-footer-size", Math.min(ctx.sz(S.footerSize, 12), ctx.sz(S.legendSize, 12)) + "px");   // never larger than the legend
         if (S.padTop != null) st.padding = S.padTop + "px " + S.padSides + "px " + S.padBottom + "px";
         cfg.render(ctx);
+        collapseNotes(S);
         postHeight();
+      }
+      /* Phones: the notes under the footer fold away behind a "Show notes" button (S.notesPhone);
+       * the footer's source line stays. Images and PDFs always show the notes. */
+      var notesOpen = false, notesBtn = null;
+      function collapseNotes(S) {
+        var notes = document.getElementById("notes");
+        if (!notes) return;
+        var fold = ctx.stacked && S.notesPhone !== "shown" && notes.textContent.trim() !== "";
+        if (fold && !notesBtn) {
+          notesBtn = document.createElement("button");
+          notesBtn.type = "button"; notesBtn.className = "dv-notes-btn dv-control";
+          notesBtn.addEventListener("click", function () { notesOpen = !notesOpen; collapseNotes(ctx.S); postHeight(); });
+          notes.parentNode.insertBefore(notesBtn, notes);
+        }
+        if (notesBtn) {
+          notesBtn.style.display = fold ? "" : "none";
+          notesBtn.textContent = notesOpen ? "Hide notes" : "Show notes";
+          notesBtn.setAttribute("aria-expanded", notesOpen ? "true" : "false");
+        }
+        notes.classList.toggle("dv-notes-folded", fold && !notesOpen);
       }
       function rerender() { render(true); }
       ctx.rerender = rerender;
@@ -797,6 +838,10 @@
         de.setProperty("--dv-bg", S.pageBg);
         de.setProperty("--dv-text", S.textColor);
         de.setProperty("--dv-heading", S.headingColor);
+        de.setProperty("--dv-popup-bg", S.popupBg);
+        de.setProperty("--dv-popup-border", S.popupBorder);
+        de.setProperty("--dv-popup-shadow", S.popupShadow === false ? "none" : "0 2px 8px rgba(0,0,0,.15)");
+        de.setProperty("--dv-key-radius", S.popupKey === "square" ? "2px" : "50%");
         root.style.maxWidth = S.maxWidth + "px";
         // Editable PDF (?print&fonts=local): static Inter files, which the PDF embeds under their real names
         // (the web Inter is a variable font, which PDFs can only hold as uneditable "Type 3" glyphs)

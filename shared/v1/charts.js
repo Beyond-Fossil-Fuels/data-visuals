@@ -214,15 +214,16 @@
     var yt = ticks(o.yMax, o.tickStep);
     var tickText = yt.map(fmtY);
     var longest = o.yAxis === false ? 0 : Math.max.apply(null, tickText.map(function (s) { return DV.textWidth(s, fs); }));
+    var pad = S.axisLabelGap >= 0 ? S.axisLabelGap : null, padY = pad == null ? 6 : pad, padX = pad == null ? 4 : pad;
     var m = { top: o.top != null ? o.top : (o.topLabel ? (o.topLabelSize || fs) * 1.6 : 8), right: o.right != null ? o.right : 4,
-      bottom: o.xAxis === false ? 2 : fs + 10, left: o.yAxis === false ? 2 : longest + 8 };
+      bottom: o.xAxis === false ? 2 : fs + 6 + padX, left: o.yAxis === false ? 2 : longest + padY + 2 };
     var iw = Math.max(1, W - m.left - m.right);
     var band = iw / Math.max(1, n), gap = o.gap == null ? 0.2 : o.gap, bw = band * (1 - gap);
     // every label shown (xEvery: 1) but they don't fit side by side: slant them
     var widest = 0;
     if (o.xAxis !== false) rows.forEach(function (d, i) { widest = Math.max(widest, DV.textWidth(o.label(d, i), fs)); });
     var slant = o.xAxis !== false && o.xEvery === 1 && widest + fs * 0.4 > band;
-    if (slant) m.bottom = widest * 0.71 + fs + 8;
+    if (slant) m.bottom = widest * 0.71 + fs + 4 + padX;
     var ih = Math.max(1, H - m.top - m.bottom);
     var x = function (i) { return m.left + band * i + (band - bw) / 2; };
     var y = function (v) { return m.top + ih - (DV.clamp(v, 0, o.yMax) / o.yMax) * ih; };
@@ -233,7 +234,7 @@
     }
     yt.forEach(function (v, i) {
       if (v > 0 && S.showGrid && o.grid !== false) el("line", { x1: m.left, x2: W - m.right, y1: y(v), y2: y(v), stroke: S.gridColor }, g);
-      if (o.yAxis !== false) el("text", { x: m.left - 6, y: y(v), "text-anchor": "end", "dominant-baseline": "middle", "font-size": fs, fill: S.axisColor }, g)
+      if (o.yAxis !== false) el("text", { x: m.left - padY, y: y(v), "text-anchor": "end", "dominant-baseline": "middle", "font-size": fs, fill: S.axisColor }, g)
         .textContent = tickText[i];
     });
     el("line", { x1: m.left, x2: W - m.right, y1: y(0), y2: y(0), stroke: S.axisColor, "stroke-opacity": 0.3 }, g);
@@ -257,7 +258,12 @@
         // a centred label slightly wider than the last bar's room is nudged left to stay inside the chart
         // (graphics have no outer padding, so anything past the edge would be cut off in the embed)
         var tx = Math.max(lw / 2, Math.min(cx, W - lw / 2));
-        el("text", { x: anchor === "start" ? x(i) : tx, y: y(0) + fs + 4, "text-anchor": anchor, "font-size": fs, fill: S.axisColor }, g)
+        // S.xEdgeLabels "inside the chart": the first label starts at the first bar, the last ends at the last bar
+        if (anchor === "middle" && S.xEdgeLabels === "inside the chart") {
+          if (i === 0) { anchor = "start"; tx = x(0); }
+          else if (i === n - 1) { anchor = "end"; tx = Math.min(W, x(i) + bw); }
+        }
+        el("text", { x: o.xAlign === "start" ? x(i) : tx, y: y(0) + fs + padX, "text-anchor": anchor, "font-size": fs, fill: S.axisColor }, g)
           .textContent = o.label(d, i);
       });
     }
@@ -322,7 +328,8 @@
     var totalW = 0;
     if (o.total) rows.forEach(function (d, i) { totalW = Math.max(totalW, DV.textWidth(o.total(d, i, 0), o.totalSize || fs, o.totalWeight || 700)); });
     var lastTick = showAxis ? DV.textWidth(fmtX(xt[xt.length - 1]), fs) / 2 : 0;
-    var m = { top: o.top != null ? o.top : 4, bottom: showAxis ? fs + 12 : (o.bottom != null ? o.bottom : 2),
+    var padB = S.axisLabelGap >= 0 ? S.axisLabelGap : 6;
+    var m = { top: o.top != null ? o.top : 4, bottom: showAxis ? fs + 6 + padB : (o.bottom != null ? o.bottom : 2),
       left: o.label ? o.labelW : 0, right: Math.max(o.total ? totalW + 10 : 0, lastTick, o.right || 0) };
     var rowH = o.rowH, H = m.top + n * rowH + m.bottom;
     sizeSvg(svg, W, H);
@@ -339,7 +346,7 @@
     });
     xt.forEach(function (v) {
       if (o.grid && v > 0) el("line", { x1: x(v), x2: x(v), y1: m.top, y2: m.top + n * rowH, stroke: S.gridColor, "stroke-dasharray": "4 4" }, g);
-      el("text", { x: x(v), y: m.top + n * rowH + fs + 6, "text-anchor": "middle", "font-size": fs, fill: S.axisColor }, g).textContent = fmtX(v);
+      el("text", { x: x(v), y: m.top + n * rowH + fs + padB, "text-anchor": "middle", "font-size": fs, fill: S.axisColor }, g).textContent = fmtX(v);
     });
     if (o.axisLine !== false) el("line", { x1: m.left, x2: m.left, y1: m.top, y2: m.top + n * rowH, stroke: S.axisColor, "stroke-opacity": 0.35 }, g);
 
@@ -411,7 +418,8 @@
     var yt = ticks(o.yMax, o.tickStep), tickText = yt.map(fmtY);
     var longest = Math.max.apply(null, tickText.map(function (s) { return DV.textWidth(s, fs); }));
     var EL = o.endLabels;
-    var m = { top: o.top != null ? o.top : 10, right: EL ? EL.width + 12 : (o.right != null ? o.right : 12), bottom: fs + 12, left: longest + 10 };
+    var pad = S.axisLabelGap >= 0 ? S.axisLabelGap : null, padY = pad == null ? 8 : pad, padB = pad == null ? 6 : pad;
+    var m = { top: o.top != null ? o.top : 10, right: EL ? EL.width + 12 : (o.right != null ? o.right : 12), bottom: fs + 6 + padB, left: longest + padY + 2 };
     var iw = Math.max(1, W - m.left - m.right), ih = Math.max(1, H - m.top - m.bottom);
     var padX = o.padX || 0, x0 = xs[0], x1 = xs[n - 1];
     var x = function (v) { return m.left + padX + (x1 === x0 ? 0.5 : (v - x0) / (x1 - x0)) * (iw - padX * 2); };
@@ -420,7 +428,7 @@
     var g = el("g", {}, svg);
     yt.forEach(function (v, i) {
       if (v > 0 && S.showGrid) el("line", { x1: m.left, x2: m.left + iw, y1: y(v), y2: y(v), stroke: S.gridColor }, g);
-      el("text", { x: m.left - 8, y: y(v), "text-anchor": "end", "dominant-baseline": "middle", "font-size": fs, fill: S.axisColor }, g)
+      el("text", { x: m.left - padY, y: y(v), "text-anchor": "end", "dominant-baseline": "middle", "font-size": fs, fill: S.axisColor }, g)
         .textContent = tickText[i];
     });
     el("line", { x1: m.left, x2: m.left + iw, y1: y(0), y2: y(0), stroke: S.axisColor, "stroke-opacity": 0.35 }, g);
@@ -432,10 +440,15 @@
       xTicks = [];
       xs.forEach(function (v) { if (x(v) - last >= minGap) { xTicks.push(v); last = x(v); } });
     }
-    xTicks.forEach(function (v) {
+    var inside = S.xEdgeLabels === "inside the chart";
+    xTicks.forEach(function (v, k) {
       el("line", { x1: x(v), x2: x(v), y1: y(0), y2: y(0) + 5, stroke: S.axisColor, "stroke-opacity": 0.35 }, g);
       var lw = DV.textWidth(xLabel(v), fs);   // kept inside the chart (no outer padding to spill into)
-      el("text", { x: Math.max(lw / 2, Math.min(x(v), W - lw / 2)), y: y(0) + fs + 6, "text-anchor": "middle", "font-size": fs, fill: S.axisColor }, g).textContent = xLabel(v);
+      var tx = Math.max(lw / 2, Math.min(x(v), W - lw / 2)), anchor = "middle";
+      // S.xEdgeLabels "inside the chart": the first label starts at its tick, the last ends at its tick
+      if (inside && k === 0 && v === x0) { anchor = "start"; tx = x(v); }
+      else if (inside && k === xTicks.length - 1 && v === x1) { anchor = "end"; tx = x(v); }
+      el("text", { x: tx, y: y(0) + fs + padB, "text-anchor": anchor, "font-size": fs, fill: S.axisColor }, g).textContent = xLabel(v);
     });
 
     // values (stacked or not)

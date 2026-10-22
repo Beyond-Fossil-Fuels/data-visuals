@@ -18,13 +18,13 @@
   .g2-rows td:first-child { white-space: nowrap; }
   .g2-rows td + td { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; padding-left: 1em; }
   .g2-rows i { display: inline-block; width: 0.8em; height: 0.8em; border-radius: 50%; margin-right: 0.45em; vertical-align: -0.05em; }
-  .g2-rows i.sq { border-radius: 2px; }
+  .g2-rows i.sq { border-radius: var(--dv-key-radius, 2px); }
   .g2-rows .na { font-weight: 400; color: #666; }
   /* Notes under the footer */
   .g2-notes { margin: 6px 0 0; font-size: var(--dv-footer-size); }
   .g2-notes p { margin: 0 0 4px; }
   .g2-notes:empty { display: none; }
-  .g2-sub { margin: 0 0 var(--dv-gap, 14px); font-size: var(--g2-sub-size); line-height: 1.4; }
+  .g2-sub { margin: 0 0 var(--dv-sub-gap, var(--dv-gap, 14px)); font-size: var(--g2-sub-size); line-height: 1.4; }
   .g2-sub:empty { display: none; }
   .g2-size-note { font-size: 0.85em; color: #555; margin-top: 4px; max-width: 170px; line-height: 1.25; }
 </style>
@@ -77,6 +77,12 @@ var SETTINGS = {
   padSides: 0,                                 // Space left and right of the graphic in px
   padBottom: 0,                                // Space below the graphic in px
   blockGap: 30,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
+  spaceTitle: -1,                              // Space under the title in px (-1 = the block gap)
+  spaceSubtitle: -1,                           // Space under the subtitle and instruction lines in px (-1 = standard)
+  spaceControls: -1,                           // Space between the legend, search box, time slider and buttons in px (-1 = standard)
+  spaceChart: -1,                              // Space between the legend or controls and the chart or map in px (-1 = standard)
+  spaceFooter: -1,                             // Space above the footer in px (-1 = the block gap)
+  notesPhone: "collapsed",                     // Notes under the footer on phones: collapsed behind a Show notes button, or shown in full (the source line always shows)
 
   // ---- Background ----
   bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
@@ -169,6 +175,9 @@ var SETTINGS = {
   borderColor: "#ffffff",                      // Country borders
   borderWidth: 0.8,                            // Border width in px
   smallBoxColor: "#8a8a8a",                    // Zoomed box and its line
+
+  // ---- Order of the controls ----
+  widgetOrder: "",                             // Order of the legend, search box and time slider where they share a place, e.g. search, legend, slider (empty = standard)
 
   // ---- Hover and selection ----
   hoverStyle: "outline",                       // What happens to the country under the pointer
@@ -534,7 +543,7 @@ var SETTINGS = {
       var list = [[ui.importsLegend, S.importsLegendPos], [ui.statusLegend, S.statusLegendPos]];
       if (ui.sizeLegend) list.push([ui.sizeLegend, S.sizeLegendPos]);
       list.push([ui.search, S.searchPos], [ui.panel, ui.panelOpen ? "below map" : "hidden", true]);
-      ui.layout.place(list, narrow);
+      ui.layout.place(list, narrow, S.widgetOrder);
       if (!state.topo) return;
 
       var w = ui.layout.stage.clientWidth;
@@ -543,7 +552,7 @@ var SETTINGS = {
       if (narrow) view.mapZoom = S.mapZoom * S.mapZoomPhone;
       ui.view.draw({
         S: S, width: w, height: h,
-        projection: DV.mapProjection(view, w, h),
+        projection: narrow ? DV.phoneProjection(S, w, h) : DV.mapProjection(view, w, h),   // phones: no shift
         features: DV.mapShapes(state.topo, S),
         style: style(S),
         label: (S.title || "Gas import map") + ": countries coloured by gas imports, with gas power capacity operating and in development"
