@@ -50,7 +50,7 @@
 var SETTINGS = {
   // ---- Text ----
   title: "Doubling down: current gas import reliance vs. planned capacity", // Main title (empty = none)
-  footer: "Sources: [BFF gas power plant database](https://beyondfossilfuels.org/gas/) (July 2026); 2024 energy balances from [Eurostat](https://ec.europa.eu/eurostat/databrowser/view/nrg_bal_c/default/table?lang=en) and, for the UK, [DUKES](https://www.gov.uk/government/statistics/natural-gas-chapter-4-digest-of-united-kingdom-energy-statistics-dukes).", // Footer; [text](https://…) makes a link. Leave empty to hide
+  footer: "Sources: [BFF gas power plant database](https://beyondfossilfuels.org/gas/) ({timestamp}); import figures from [Eurostat](https://ec.europa.eu/eurostat/databrowser/view/nrg_bal_c/default/table?lang=en) and, for the UK, [DUKES](https://www.gov.uk/government/statistics/natural-gas-chapter-4-digest-of-united-kingdom-energy-statistics-dukes).", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
   notes: "Note: plants in development include those at announced, pre-construction, construction and shelved statuses; gas imports are each country's total natural gas imports in 2024.", // Notes under the footer, one paragraph per line; [text](https://…) makes a link
   importsTitle: "Gas imports (TWh)",           // Title of the gas imports colour legend
   statusTitle: "Gas power capacity",           // Title of the operating / in development legend (empty = none)
@@ -408,6 +408,7 @@ var SETTINGS = {
     axes: false,   // no axes: design mode leaves out the axis label size
     sheetId: SHEET_ID,
     sheetTab: SHEET_TAB,
+    graphicId: "G2",
     fallback: FALLBACK,
     columns: ["ISO", "Country", "Gas imports (TWh)", "Operating (GW)", "In development (GW)"],
     text: true,
@@ -415,7 +416,7 @@ var SETTINGS = {
     groups: [
       { name: "Text", fields: [
         { key: "title",        type: "text", def: "Doubling down: current gas import reliance vs. planned capacity", help: "Main title (empty = none)" },
-        { key: "footer",       type: "text", def: "Sources: [BFF gas power plant database](https://beyondfossilfuels.org/gas/) (July 2026); 2024 energy balances from [Eurostat](https://ec.europa.eu/eurostat/databrowser/view/nrg_bal_c/default/table?lang=en) and, for the UK, [DUKES](https://www.gov.uk/government/statistics/natural-gas-chapter-4-digest-of-united-kingdom-energy-statistics-dukes).", help: "Footer; [text](https://…) makes a link. Leave empty to hide" },
+        { key: "footer",       type: "text", def: "Sources: [BFF gas power plant database](https://beyondfossilfuels.org/gas/) ({timestamp}); import figures from [Eurostat](https://ec.europa.eu/eurostat/databrowser/view/nrg_bal_c/default/table?lang=en) and, for the UK, [DUKES](https://www.gov.uk/government/statistics/natural-gas-chapter-4-digest-of-united-kingdom-energy-statistics-dukes).", help: "Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide" },
         { key: "notes",        type: "textarea", rows: 4, def: "Note: plants in development include those at announced, pre-construction, construction and shelved statuses; gas imports are each country's total natural gas imports in 2024.", help: "Notes under the footer, one paragraph per line; [text](https://…) makes a link" },
         { key: "importsTitle", type: "text", def: "Gas imports (TWh)", help: "Title of the gas imports colour legend" },
         { key: "statusTitle",  type: "text", def: "Gas power capacity", help: "Title of the operating / in development legend (empty = none)" },

@@ -55,7 +55,7 @@ var SETTINGS = {
   lHist: "Historic",                           // Legend of the country charts: historic
   lProj: "Projected",                          // Legend of the country charts: projected
   unitLabel: "GW",                             // Unit after the numbers
-  footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: May 2026", // Footer; links as [text](https://…); {updated} = cell A1 of the sheet tab (e.g. the date of the data). Leave empty to hide
+  footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
   notes: "Note: National coal phase-out commitments are only included if legally binding.", // Notes under the footer, one paragraph per line; links as [text](https://…)
   // Text sizes:
   titleSize: 32,                               // Main title size in px (shrinks on small screens)
@@ -293,6 +293,7 @@ var SETTINGS = {
   DV.create({
     sheetId: SHEET_ID,
     sheetTab: "C5",
+    graphicId: "C5",
     fallback: FALLBACK,
     columns: ["Year", HARD, LIG],
 
@@ -300,7 +301,7 @@ var SETTINGS = {
       DV.chartTextGroup({
         title: "Coal power capacity: development since 2016 and projections up to 2030",
         subtitle: "The rapid decline in capacity shows that coal is on the way out. However, to reach the goal of a complete 2030 coal phase-out in Europe, the positive trend needs to accelerate.",
-        footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: May 2026",
+        footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: {timestamp}",
         notes: "Note: National coal phase-out commitments are only included if legally binding.",
         extra: [
           { key: "hint",        type: "text", def: "Move the slider or click play to see how historic and projected capacity has been decreasing between {first} and {last}.", help: "Line above the slider; {first} and {last} are the first and last projection years" },

@@ -50,7 +50,7 @@ var SETTINGS = {
   unitLabel: "MW",                             // Unit in the tooltip (the sheet's unit)
   axisUnit: "GW",                              // Unit on the axis and after the bars (values divided by 1,000)
   totalLabel: "Total",                         // Tooltip: total
-  footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Power plants tracked since 2023 | Last update: July 2026", // Footer; links as [text](https://…); {updated} = cell A1 of the sheet tab (e.g. the date of the data). Leave empty to hide
+  footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Gas power plants tracked since 2023 | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
   notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.", // Notes under the footer, one paragraph per line; links as [text](https://…)
   // Text sizes:
   titleSize: 32,                               // Main title size in px (shrinks on small screens)
@@ -169,6 +169,7 @@ var SETTINGS = {
   DV.create({
     sheetId: SHEET_ID,
     sheetTab: "G5+G6",
+    graphicId: "G5",
     fallback: FALLBACK,
     columns: STATUSES.map(col),
 
@@ -176,7 +177,7 @@ var SETTINGS = {
       DV.chartTextGroup({
         title: "Europe’s existing fleet and new plant projects capacity",
         subtitle: "Filter by project focus using the buttons below: show all statuses, new projects with cancellations, or existing fleet with retirements. Toggle individual statuses on/off by clicking the legend, and hover over bars to see capacity values.",
-        footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Power plants tracked since 2023 | Last update: July 2026",
+        footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Gas power plants tracked since 2023 | Last update: {timestamp}",
         notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.",
         subtitleSize: 17,
         extra: [

@@ -47,7 +47,7 @@
 var SETTINGS = {
   // ---- Text ----
   title: "Overview of country coal phase-out announcements and plans in Europe", // Main title
-  footer: "Source: [Beyond Fossil Fuels coal tracker](https://beyondfossilfuels.org/coal/) | Last update: {last}", // Footer; {last} is the newest date in the data; [text](https://…) makes a link. Leave empty to hide
+  footer: "Source: [Beyond Fossil Fuels coal tracker](https://beyondfossilfuels.org/coal/) | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
   legendTitle: "",                             // Legend title (empty = none)
   statusLabels: "no-coal :: No coal in electricity mix\nby-2030 :: Coal phase-out commitment 2030 or earlier\nafter-2030 :: Coal phase-out commitment, but after 2030\ndiscussion :: Coal phase-out under official discussion\nno-discussion :: No official coal phase-out discussion", // Legend wording, one line per status: code :: wording. The line order is the legend order
   searchPlaceholder: "Select country",         // Search box placeholder
@@ -368,6 +368,8 @@ var SETTINGS = {
     axes: false,   // no axes: design mode leaves out the axis label size
     sheetId: SHEET_ID,
     sheetTab: SHEET_TAB,
+    graphicId: "C1",
+    fromData: true,
     fallback: FALLBACK,
     columns: ["ISO", "Country"],
     text: true,
@@ -375,7 +377,7 @@ var SETTINGS = {
     groups: [
       { name: "Text", fields: [
         { key: "title",             type: "text", def: "Overview of country coal phase-out announcements and plans in Europe", help: "Main title" },
-        { key: "footer",            type: "text", def: "Source: [Beyond Fossil Fuels coal tracker](https://beyondfossilfuels.org/coal/) | Last update: {last}", help: "Footer; {last} is the newest date in the data; [text](https://…) makes a link. Leave empty to hide" },
+        { key: "footer",            type: "text", def: "Source: [Beyond Fossil Fuels coal tracker](https://beyondfossilfuels.org/coal/) | Last update: {timestamp}", help: "Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide" },
         { key: "legendTitle",       type: "text", def: "", help: "Legend title (empty = none)" },
         { key: "statusLabels",      type: "textarea", rows: 5, def: [
             "no-coal :: No coal in electricity mix",
@@ -423,7 +425,7 @@ var SETTINGS = {
       st.setProperty("--dvm-panel-size", S.panelTextSize + "px");
 
       var last = state.dates.length ? state.dates[state.dates.length - 1].label : "";
-      document.getElementById("dv-footer").innerHTML = DV.linkify(fill(S.footer, { last: last }));
+      document.getElementById("dv-footer").innerHTML = DV.linkify(DV.fillFooter(S.footer, ctx, { last: last }));
 
       // legend (rebuilt so wording and colour changes show)
       if (ui.legend) ui.legend.remove();

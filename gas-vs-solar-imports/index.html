@@ -48,7 +48,7 @@ var SETTINGS = {
   tip2: "€100 billion of imported solar panels produces {value} of electricity over their 25-year lifetime.", // Tooltip text for the second group (same placeholders)
   tipTime: "Over their {life}-year lifetime the panels produce about {perYear} a year, so they match the gas's {gas} in about {years} years.", // Tooltip line comparing time; {life}, {perYear} (second group ÷ lifetime), {gas} (first group) and {years} (first ÷ per year) are filled in. Empty = none
   tipIcons: "Each icon = {per} TWh ({count} icons)", // Last tooltip line in the icon version (empty = none)
-  footer: "Sources: [Eurostat](https://ec.europa.eu/eurostat/web/main/data/database), [SolarPower Europe](https://www.solarpowereurope.org/insights/outlooks/eu-market-outlook-for-solar-power-2024-2028/detail), [Bruegel](https://www.bruegel.org/dataset/eu-renewables-value-tracker)", // Footer; links as [text](https://…); {updated} = cell A1 of the sheet tab (e.g. the date of the data). Leave empty to hide
+  footer: "Sources: [Eurostat](https://ec.europa.eu/eurostat/web/main/data/database), [SolarPower Europe](https://www.solarpowereurope.org/insights/outlooks/eu-market-outlook-for-solar-power-2024-2028/detail), [Bruegel](https://www.bruegel.org/dataset/eu-renewables-value-tracker) | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
   notes: "Methodology and underlying data available [here](https://docs.google.com/spreadsheets/d/1gBCz32Kq0v4UEcsvCQzWvQb4B9mfSwxYpf9wVwPwF6s/edit?usp=sharing).", // Notes under the footer, one paragraph per line; links as [text](https://…)
   // Text sizes:
   titleSize: 32,                               // Main title size in px (shrinks on small screens)
@@ -126,6 +126,7 @@ var SETTINGS = {
     axes: false,   // no axes: design mode leaves out the axis label size
     sheetId: SHEET_ID,
     sheetTab: "R2",
+    graphicId: "R2",
     fallback: FALLBACK,
     columns: ["TWh"],
 
@@ -133,7 +134,7 @@ var SETTINGS = {
       DV.chartTextGroup({
         title: "Spending €100 billion on solar panel imports instead of gas imports could produce 9x more electricity",
         subtitle: "EU27, 2024 import data: gas burned once for electricity vs. solar panels over a 25-year lifetime",
-        footer: "Sources: [Eurostat](https://ec.europa.eu/eurostat/web/main/data/database), [SolarPower Europe](https://www.solarpowereurope.org/insights/outlooks/eu-market-outlook-for-solar-power-2024-2028/detail), [Bruegel](https://www.bruegel.org/dataset/eu-renewables-value-tracker)",
+        footer: "Sources: [Eurostat](https://ec.europa.eu/eurostat/web/main/data/database), [SolarPower Europe](https://www.solarpowereurope.org/insights/outlooks/eu-market-outlook-for-solar-power-2024-2028/detail), [Bruegel](https://www.bruegel.org/dataset/eu-renewables-value-tracker) | Last update: {timestamp}",
         notes: "Methodology and underlying data available [here](https://docs.google.com/spreadsheets/d/1gBCz32Kq0v4UEcsvCQzWvQb4B9mfSwxYpf9wVwPwF6s/edit?usp=sharing).",
         extra: [
           { key: "unitLabel", type: "text", def: "TWh", help: "Unit after the numbers" },

@@ -203,6 +203,24 @@
    * ------------------------------------------------------------------ */
   // keepText: leave every cell as text (maps: names, statuses, links). Otherwise columns after the first are numbers.
   function parseTable(text, keepText) {
+    var rows = parseRows(text);
+    var headers = rows[0].map(function (h) { return h.trim(); });
+    var data = rows.slice(1)
+      .filter(function (r) { return (r[0] || "").trim() !== ""; })   // skip blank rows
+      .map(function (r) {
+        var o = {};
+        headers.forEach(function (h, i) {
+          var v = (r[i] || "").trim();
+          o[h] = i === 0 || keepText ? v : (v === "" ? 0 : +v.replace(/,/g, ""));
+        });
+        return o;
+      });
+    return { headers: headers, data: data };
+  }
+  DV.parseTable = parseTable;
+
+  // CSV or TSV text -> rows of cells (quotes handled)
+  function parseRows(text) {
     text = text.replace(/^﻿/, "").trim();
     var sep = text.split(/\r?\n/)[0].indexOf("\t") > -1 ? "\t" : ",";
     var rows = [], row = [], cell = "", q = false;
@@ -220,21 +238,8 @@
       } else cell += ch;
     }
     row.push(cell); rows.push(row);
-
-    var headers = rows[0].map(function (h) { return h.trim(); });
-    var data = rows.slice(1)
-      .filter(function (r) { return (r[0] || "").trim() !== ""; })   // skip blank rows
-      .map(function (r) {
-        var o = {};
-        headers.forEach(function (h, i) {
-          var v = (r[i] || "").trim();
-          o[h] = i === 0 || keepText ? v : (v === "" ? 0 : +v.replace(/,/g, ""));
-        });
-        return o;
-      });
-    return { headers: headers, data: data };
+    return rows;
   }
-  DV.parseTable = parseTable;
 
   function isValid(t, columns, keepText) {
     return t.data.length > 0 && (columns || []).every(function (k) {
@@ -259,6 +264,83 @@
         return fallback;
       });
   }
+
+  /* ------------------------------------------------------------------
+   * FOOTER DATE {timestamp}: column "timestamp" of the sheet's first tab
+   * "List of graphics", in the row whose ID is the graphic's (cfg.graphicId):
+   *   a date        -> "Month YYYY" (e.g. "July 2026")
+   *   [from data]   -> the latest period in the graphic's own data (as {last})
+   *   empty         -> nothing, and the "| Last update: …" part is left out
+   * If the tab can't be read: the latest period for graphics with cfg.fromData, nothing for the others.
+   * ------------------------------------------------------------------ */
+  var LIST_TAB = "List of graphics", listPromise = {};
+  function loadTimestamp(cfg) {
+    if (!cfg.graphicId || !cfg.sheetId || !window.fetch) return Promise.resolve(null);
+    if (!listPromise[cfg.sheetId]) {
+      listPromise[cfg.sheetId] = fetch("https://docs.google.com/spreadsheets/d/" + cfg.sheetId +
+        "/gviz/tq?tqx=out:csv&headers=1&sheet=" + encodeURIComponent(LIST_TAB), { cache: "no-store" })
+        .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
+        .then(parseRows)
+        .catch(function () { return null; });
+    }
+    return listPromise[cfg.sheetId].then(function (rows) {
+      if (!rows) return null;
+      // the header row is the one with "ID" and "timestamp" (the tab can have a title row above it)
+      var idCol = -1, tsCol = -1, i;
+      for (i = 0; i < rows.length && tsCol < 0; i++) {
+        var low = rows[i].map(function (c) { return c.trim().toLowerCase(); });
+        if (low.indexOf("id") > -1 && low.indexOf("timestamp") > -1) { idCol = low.indexOf("id"); tsCol = low.indexOf("timestamp"); }
+      }
+      if (tsCol < 0) return null;
+      var id = String(cfg.graphicId).toLowerCase();
+      for (; i < rows.length; i++) {
+        if ((rows[i][idCol] || "").trim().toLowerCase() === id) return { value: (rows[i][tsCol] || "").trim() };
+      }
+      return null;
+    });
+  }
+  var MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  // A date as typed or exported by the sheet -> "Month YYYY". Text that isn't a date is shown as it is.
+  DV.monthYear = function (s) {
+    s = String(s || "").trim();
+    var m, y, mo;
+    if ((m = /^(\d{4})-(\d{1,2})(-\d{1,2})?/.exec(s))) { y = +m[1]; mo = +m[2]; }
+    else if ((m = /^(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})/.exec(s))) {
+      var a = +m[1], b = +m[2]; y = +m[3];
+      // day/month (UK) unless that's impossible; dates are usually the 1st of the month
+      mo = b > 12 ? a : a > 12 ? b : a === 1 && b !== 1 ? b : b === 1 && a !== 1 ? a : b;
+    } else if (/^\d{5}(\.\d+)?$/.test(s)) {
+      // a spreadsheet date serial number (days since 30 Dec 1899)
+      var d = new Date(Date.UTC(1899, 11, 30) + Math.floor(+s) * 864e5);
+      y = d.getUTCFullYear(); mo = d.getUTCMonth() + 1;
+    } else if ((m = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\b.*?\b(\d{4})\b/i.exec(s))) {
+      y = +m[2]; mo = "janfebmaraprmayjunjulaugsepoctnovdec".indexOf(m[1].toLowerCase()) / 3 + 1;
+    }
+    return mo >= 1 && mo <= 12 ? MONTH_NAMES[mo - 1] + " " + y : s;
+  };
+  /* Fills the footer placeholders: {first} / {last} (first and last period in the data; vars.last
+   * overrides the latest), {timestamp} (see above) and {updated} (cell A1 of the tab, kept for old footers). */
+  DV.fillFooter = function (text, ctx, vars) {
+    vars = vars || {};
+    var data = ctx.data || [], P = ctx.P;
+    var last = vars.last != null ? vars.last : data.length ? DV.footerPeriod(data[data.length - 1][P]) : "";
+    var first = vars.first != null ? vars.first : data.length ? data[0][P] : "";
+    var t = ctx.timestamp, ts;
+    if (!t) ts = ctx.fromData ? last : "";
+    else if (/^\[?\s*from data\s*\]?$/i.test(t.value)) ts = last;
+    else ts = t.value ? DV.monthYear(t.value) : "";
+    text = String(text || "");
+    if (ts === "" && text.indexOf("{timestamp}") > -1) {
+      // leave out the whole "| Last update: {timestamp}" part, or "({timestamp})", so no label is left dangling
+      text = text.split(/\s+\|\s+/).filter(function (part) { return part.indexOf("{timestamp}") < 0 || !/\|/.test(text); })
+        .join(" | ").replace(/\s*\(\s*\{timestamp\}\s*\)/g, "").replace(/\{timestamp\}/g, "");
+    }
+    return text
+      .replace(/\{timestamp\}/g, ts)
+      .replace(/\{updated\}/g, (ctx.headers || [])[0] || "")
+      .replace(/\{first\}/g, first)
+      .replace(/\{last\}/g, last);
+  };
 
   /* ------------------------------------------------------------------
    * FONTS: Adobe Fonts web project (optional) + Google Fonts on demand
@@ -582,7 +664,10 @@
    * DV.create: sets up a graphic.
    * cfg = { root: "dv" (element id), sheetId, sheetTab, fallback (text), columns (required),
    *         groups (this graphic's settings schema), build(ctx), render(ctx),
-   *         text (optional: true keeps every cell as text, e.g. for maps) }
+   *         text (optional: true keeps every cell as text, e.g. for maps),
+   *         graphicId (optional: the ID in the List of graphics tab, for the footer's {timestamp}),
+   *         fromData (optional: true = {timestamp} shows the latest period when that tab can't be read),
+   *         last (optional: fn(ctx) -> the latest period, when it isn't in the first column) }
    * ctx = { S (all settings), data, headers, P (period column), root, W (width),
    *         k (scale 0-1), stacked, sz(size, min) }
    * ------------------------------------------------------------------ */
@@ -650,12 +735,14 @@
     var ctx = { root: root, S: merged() };
     // cfg.datasets = { name: { sheetTab, fallback } } loads extra tabs too (ctx.datasets[name])
     var extraNames = Object.keys(cfg.datasets || {});
-    Promise.all([loadData(cfg)].concat(extraNames.map(function (n) {
+    ctx.fromData = !!cfg.fromData;
+    Promise.all([loadData(cfg), loadTimestamp(cfg)].concat(extraNames.map(function (n) {
       var d = cfg.datasets[n];
       return loadData({ sheetId: d.sheetId || cfg.sheetId, sheetTab: d.sheetTab, fallback: d.fallback, columns: d.columns || cfg.columns,
         text: "text" in d ? d.text : cfg.text });
     }))).then(function (tables) {
       var table = tables[0];
+      ctx.timestamp = tables.splice(1, 1)[0];
       ctx.datasets = {};
       extraNames.forEach(function (n, i) { ctx.datasets[n] = tables[i + 1]; });
       ctx.data = table.data;
@@ -714,12 +801,9 @@
         var title = document.getElementById("dv-title");
         if (title) title.textContent = S.title || "";
         var footer = document.getElementById("dv-footer");
-        // {first} / {last}: first and last period in the data; {updated}: cell A1 of the sheet tab
-        // (e.g. "October 2026"), so a new date needs only the sheet, not a new file
-        if (footer) footer.innerHTML = DV.linkify((S.footer || "")
-          .replace(/\{updated\}/g, ctx.headers[0] || "")
-          .replace(/\{first\}/g, ctx.data[0][ctx.P])
-          .replace(/\{last\}/g, DV.footerPeriod(ctx.data[ctx.data.length - 1][ctx.P])));
+        // {first} / {last}: first and last period in the data (cfg.last(ctx) can give the latest);
+        // {timestamp}: the date in the sheet's List of graphics tab, so a new date needs only the sheet
+        if (footer) footer.innerHTML = DV.linkify(DV.fillFooter(S.footer, ctx, cfg.last ? { last: cfg.last(ctx) } : null));
 
         cfg.build(ctx);
         render(true);
