@@ -230,6 +230,12 @@
     if (o.xAxis !== false) rows.forEach(function (d, i) { widest = Math.max(widest, DV.textWidth(o.label(d, i), fs)); });
     var slant = o.xAxis !== false && o.xEvery === 1 && widest + fs * 0.4 > band;
     if (slant) m.bottom = widest * 0.71 + fs + 4 + padX;
+    // centred labels: if the first one would touch the y-axis "0" at the corner, the x labels sit a little lower
+    if (!slant && pad == null && o.xAxis !== false && o.yAxis !== false && S.xEdgeLabels !== "inside the chart" && n &&
+        (o.xLabelAt ? o.xLabelAt(0, n) : true) && m.left + band / 2 - DV.textWidth(o.label(rows[0], 0), fs) / 2 < m.left - padY + 2) {
+      padX = Math.max(padX, Math.ceil(fs * 0.5) + 3);
+      m.bottom = fs + 6 + padX;
+    }
     var ih = Math.max(1, H - m.top - m.bottom);
     var x = function (i) { return m.left + band * i + (band - bw) / 2; };
     var y = function (v) { return m.top + ih - (DV.clamp(v, 0, o.yMax) / o.yMax) * ih; };
@@ -426,9 +432,20 @@
     var EL = o.endLabels;
     var pad = S.axisLabelGap >= 0 ? S.axisLabelGap : null, padY = pad == null ? 8 : pad, padB = pad == null ? 6 : pad;
     var m = { top: o.top != null ? o.top : 10, right: EL ? EL.width + 12 : (o.right != null ? o.right : 12), bottom: fs + 6 + padB, left: longest + padY + 2 };
+    // room on the right for half the last year label, so it can sit centred on its tick
+    if (!EL && o.right == null && n) m.right = Math.max(m.right, DV.textWidth((o.xLabel || String)(xs[n - 1]), fs) / 2 + 1);
     var iw = Math.max(1, W - m.left - m.right), ih = Math.max(1, H - m.top - m.bottom);
     var padX = o.padX || 0, x0 = xs[0], x1 = xs[n - 1];
     var x = function (v) { return m.left + padX + (x1 === x0 ? 0.5 : (v - x0) / (x1 - x0)) * (iw - padX * 2); };
+    // centred labels: if the first one would touch the y-axis "0" at the corner, the x labels sit a little lower
+    var xLabel0 = o.xLabel || function (v) { return String(v); }, v0 = o.xTicks && o.xTicks.length ? o.xTicks[0] : x0;
+    if (pad == null && S.xEdgeLabels !== "inside the chart" && n) {
+      var lw0 = DV.textWidth(xLabel0(v0), fs);
+      if (Math.max(lw0 / 2, x(v0)) - lw0 / 2 < m.left - padY + 2) {
+        padB = Math.max(padB, Math.ceil(fs * 0.5) + 3);
+        m.bottom = fs + 6 + padB; ih = Math.max(1, H - m.top - m.bottom);
+      }
+    }
     var y = function (v) { return m.top + ih - (DV.clamp(v, 0, o.yMax) / o.yMax) * ih; };
 
     var g = el("g", {}, svg);
