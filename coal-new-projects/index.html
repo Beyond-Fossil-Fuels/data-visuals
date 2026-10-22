@@ -65,6 +65,7 @@ var SETTINGS = {
   barGap: 0.04,                                // Space between bars, as a share of each bar's slot
   labelEvery: 8,                               // Label every n quarters on the x-axis
   headingAlign: "center",                      // Panel heading alignment
+  regionNames: "W. Balkans :: Western Balkans\nEU [+UK] :: EU + UK", // Region names as shown, one per line: name in the sheet :: name shown (the sheet stays as it is)
 
   // ---- Layout ----
   chartHeight: 0.95,                           // Chart height as a share of its width
@@ -244,7 +245,8 @@ var SETTINGS = {
         { key: "legendPos",    type: "select", options: ["left", "center", "right"], def: "left", help: "Legend alignment" },
         { key: "barGap",       type: "range", min: 0, max: 0.5, step: 0.02, def: 0.04, help: "Space between bars, as a share of each bar's slot" },
         { key: "labelEvery",   type: "range", min: 1, max: 16, step: 1, def: 8, help: "Label every n quarters on the x-axis" },
-        { key: "headingAlign", type: "select", options: ["left", "center"], def: "center", help: "Panel heading alignment" }
+        { key: "headingAlign", type: "select", options: ["left", "center"], def: "center", help: "Panel heading alignment" },
+        { key: "regionNames",  type: "textarea", rows: 3, def: "W. Balkans :: Western Balkans\nEU [+UK] :: EU + UK", help: "Region names as shown, one per line: name in the sheet :: name shown (the sheet stays as it is)" }
       ]},
       { name: "Layout", fields: [
         { key: "chartHeight", type: "range", min: 0.4, max: 1.6, step: 0.02, def: 0.95, help: "Chart height as a share of its width" },
@@ -264,10 +266,13 @@ var SETTINGS = {
 
       // one panel per region, in sheet order
       var grid = document.getElementById("grid"); DV.clear(grid); panels = [];
-      var byRegion = {};
+      var byRegion = {}, shown = {};
+      String(S.regionNames || "").split(/\n/).forEach(function (l) {
+        var m = l.split("::"); if (m.length > 1 && m[0].trim()) shown[m[0].trim()] = m.slice(1).join("::").trim();
+      });
       ctx.data.forEach(function (d) {
         var r = d.Region;
-        if (!byRegion[r]) { byRegion[r] = []; panels.push({ name: r, rows: byRegion[r] }); }
+        if (!byRegion[r]) { byRegion[r] = []; panels.push({ name: shown[r] || r, rows: byRegion[r] }); }
         var row = { Period: d.Period };
         Object.keys(PALETTE_KEY).forEach(function (k) { row[k] = +String(d[k]).replace(/,/g, "") || 0; });
         byRegion[r].push(row);
@@ -297,8 +302,11 @@ var SETTINGS = {
       panels.forEach(function (p, pi) {
         var w = p.svg.parentNode.clientWidth;
         var h = DV.clamp(w * S.chartHeight * (ctx.stacked ? 0.7 : 1), 200, 620);
+        // label every n quarters, or every 2n, 3n… where the panels are too narrow for the labels to fit
+        var every = Math.max(1, S.labelEvery), lw = DV.axisFs(S, w) * 0.62 * String(p.rows[0].Period).length + 10;
+        while (every < p.rows.length && every * (w - 40) / p.rows.length < lw) every += Math.max(1, S.labelEvery);
         DV.bars({ S: S, svg: p.svg, tip: p.tip, width: w, height: h, rows: p.rows, percent: true,
-          label: function (d) { return d.Period; }, xLabelAt: function (i) { return i % S.labelEvery === 0; },
+          label: function (d) { return d.Period; }, xLabelAt: function (i) { return i % every === 0; },
           gap: S.barGap, sep: S.pageBg === "transparent" ? "#fff" : S.pageBg, sepWidth: 0.5, series: series,
           yMax: 100, tickStep: 50, fmtY: function (v) { return v + "%"; }, yAxis: pi === 0 || ctx.stacked,
           tooltip: function (i) {
