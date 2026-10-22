@@ -60,6 +60,7 @@
 var SETTINGS = {
   // ---- Text ----
   title: "Europe’s existing and planned gas power plants", // Main title (empty = none)
+  hint: "Hold ⌘ (Mac) or Ctrl (Windows) and scroll to zoom, or pinch with two fingers on a phone. Click a status in the legend to show only that status.", // Instruction line above the legend (empty = none)
   footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/gas/) | Gas power plants tracked since 2023 | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
   notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.", // Notes under the footer, one paragraph per line; [text](https://…) makes a link
   legendTitle: "",                             // Legend title (empty = none)
@@ -174,6 +175,7 @@ var SETTINGS = {
 <script src="../shared/vendor/d3-geo.min.js"></script>
 <script src="../shared/vendor/topojson-client.min.js"></script>
 <script src="../shared/vendor/topojson-simplify.min.js"></script>
+<script src="../shared/vendor/d3-zoom.bundle.min.js"></script>
 <script src="../shared/v1/map.js"></script>
 <script>
 (function () {
@@ -1333,12 +1335,14 @@ var SETTINGS = {
   function makeUI(ctx) {
     var layout = DV.mapLayout(document.getElementById("map"), ctx.root);
     var view = DV.mapView(layout.stage);
+    view.enableZoom({ resetLabel: "Reset zoom" });
     var panel = document.createElement("div"); panel.className = "dvm-panel dv-control c2-card";
     var close = document.createElement("button"); close.className = "dvm-panel-close"; close.type = "button";
     close.setAttribute("aria-label", "Close"); close.innerHTML = "&times;";
     var body = document.createElement("div");
     panel.appendChild(close); panel.appendChild(body);
-    ui = { layout: layout, view: view, panel: panel, panelBody: body, panelOpen: false };
+    var hint = document.createElement("p"); hint.className = "dvm-hint dv-control";
+    ui = { layout: layout, view: view, panel: panel, panelBody: body, panelOpen: false, hint: hint };
     view.tip.classList.add("c2-card");
     close.addEventListener("click", function () { select(ctx, null); });
 
@@ -1382,6 +1386,7 @@ var SETTINGS = {
     groups: [
       { name: "Text", fields: [
         { key: "title",             type: "text", def: "Europe’s existing and planned gas power plants", help: "Main title (empty = none)" },
+        { key: "hint",              type: "text", def: "Hold ⌘ (Mac) or Ctrl (Windows) and scroll to zoom, or pinch with two fingers on a phone. Click a status in the legend to show only that status.", help: "Instruction line above the legend (empty = none)" },
         { key: "footer",            type: "text", def: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/gas/) | Gas power plants tracked since 2023 | Last update: {timestamp}", help: "Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide" },
         { key: "notes",             type: "textarea", rows: 6, def: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.", help: "Notes under the footer, one paragraph per line; [text](https://…) makes a link" },
         { key: "legendTitle",       type: "text", def: "", help: "Legend title (empty = none)" },
@@ -1458,6 +1463,7 @@ var SETTINGS = {
         onToggle: S.legendFilter ? function (active) { state.active = active; ctx.rerender(); } : null
       });
       ui.legend.setLayout(S.legendDir, S.legendGap);
+      ui.hint.textContent = S.hint || "";
       ui.search.setPlaceholder(S.searchPlaceholder);
       if (ui.panelOpen) ui.panelBody.innerHTML = info(S, state.byId[state.selected]);
 
@@ -1481,7 +1487,8 @@ var SETTINGS = {
         ui.sizeLegend = DV.bubbleLegend({ title: S.sizeLegendTitle, values: values, r: DV.bubbleRadius(S, maxCap, w0),
           fmt: function (v) { return DV.fmt(v, "", 0); } });
       }
-      var list = [[ui.legend, S.legendPos]];
+      // the instruction line sits just above the legend, wherever the legend goes
+      var list = [[ui.hint, S.hint ? S.legendPos : "hidden"], [ui.legend, S.legendPos]];
       if (ui.sizeLegend) list.push([ui.sizeLegend, S.sizeLegendPos]);
       list.push([ui.search, S.searchPos], [ui.panel, ui.panelOpen ? "below map" : "hidden", true]);
       ui.layout.place(list, narrow);

@@ -172,6 +172,9 @@
    * view.select(id)              outline one country (null clears)
    * view.onHover = function (id, kind) -> tooltip HTML (or "" for none)
    * view.onClick = function (id, kind)
+   * view.enableZoom({ resetLabel, maxZoom }) zoom and pan (needs shared/vendor/d3-zoom.bundle.min.js):
+   *   ⌘/Ctrl + scroll or a trackpad pinch on desktop (plain scrolling still scrolls the page), two-finger
+   *   pinch on touch screens, drag to pan once zoomed, and a reset button. Bubbles grow only slightly.
    * ------------------------------------------------------------------ */
   DV.mapView = function (stage) {
     var svg = DV.el("svg", { "class": "dvm-svg", role: "img" }, stage);
@@ -180,6 +183,9 @@
     var tip = div("dv-tooltip dvm-tip", stage);
     var view = { svg: svg, tip: tip, paths: {}, extra: {}, features: [], selected: null, onHover: null, onClick: null };
     var S = {}, styleFn = null, hoverKey = null, hoverEl = null;
+    // zoom (view.enableZoom): scale zk and offset zx, zy; bubbles are drawn at bubbleScale() of their size
+    var zk = 1, zx = 0, zy = 0;
+    function bubbleScale() { return Math.pow(zk, 0.25) / zk; }
 
     function clearOutline(cls) {
       Array.prototype.forEach.call(gTop.querySelectorAll("." + cls), function (o) { o.parentNode.removeChild(o); });
@@ -238,6 +244,7 @@
       drawSmall(o);
       drawInset(o);
       if (view.selected) view.select(view.selected, view.selectedKind);
+      if (view.zoom) view.zoom.size(o.width, o.height);
     };
 
     /* Inset: a far-away area (e.g. the Canary Islands and Madeira) drawn in a box in a corner of the map,
@@ -325,9 +332,9 @@
         var ins = view.inset, inInset = ins && b.lon >= ins.W && b.lon <= ins.E && b.lat >= ins.S && b.lat <= ins.N;
         var xy = (inInset ? ins.proj : view.projection)([b.lon, b.lat]);
         if (!xy || !(b.r > 0)) return;
-        var cx = xy[0] + (b.dx || 0), cy = xy[1] + (b.dy || 0);
+        var cx = xy[0] + (b.dx || 0), cy = xy[1] + (b.dy || 0), R = b.r * bubbleScale();
         var pie = b.slices && b.slices.filter(function (sl) { return sl.value > 0; });
-        var c = DV.el("circle", { cx: cx, cy: cy, r: b.r, fill: pie && pie.length > 1 ? "none" : (pie && pie.length ? pie[0].fill : b.fill),
+        var c = DV.el("circle", { cx: cx, cy: cy, r: R, "data-r": b.r, fill: pie && pie.length > 1 ? "none" : (pie && pie.length ? pie[0].fill : b.fill),
           "fill-opacity": b.opacity == null ? 1 : b.opacity,
           stroke: b.stroke || "none", "stroke-width": b.strokeWidth || 0, "stroke-opacity": b.strokeOpacity == null ? 1 : b.strokeOpacity,
           "data-id": b.id, "data-kind": "bubble", "class": "dvm-b" }, gBub);
@@ -336,8 +343,8 @@
           var total = pie.reduce(function (t, sl) { return t + sl.value; }, 0), a0 = -Math.PI / 2;
           pie.forEach(function (sl) {
             var a1 = a0 + sl.value / total * 2 * Math.PI, large = a1 - a0 > Math.PI ? 1 : 0;
-            DV.el("path", { d: "M" + cx + " " + cy + "L" + (cx + b.r * Math.cos(a0)) + " " + (cy + b.r * Math.sin(a0)) +
-              "A" + b.r + " " + b.r + " 0 " + large + " 1 " + (cx + b.r * Math.cos(a1)) + " " + (cy + b.r * Math.sin(a1)) + "Z",
+            DV.el("path", { d: "M" + cx + " " + cy + "L" + (cx + R * Math.cos(a0)) + " " + (cy + R * Math.sin(a0)) +
+              "A" + R + " " + R + " 0 " + large + " 1 " + (cx + R * Math.cos(a1)) + " " + (cy + R * Math.sin(a1)) + "Z",
               fill: sl.fill, "fill-opacity": b.opacity == null ? 1 : b.opacity, stroke: b.stroke || "none",
               "stroke-width": (b.strokeWidth || 0) * 0.6, "stroke-linejoin": "round", "data-id": b.id, "data-kind": "bubble" }, gBub);
             a0 = a1;
@@ -354,8 +361,8 @@
       clearOutline(cls);
       if (!el || !(width > 0)) return;
       var cx = el.getAttribute("cx"), cy = el.getAttribute("cy"), r = +el.getAttribute("r");
-      DV.el("circle", { cx: cx, cy: cy, r: r + width / 2, fill: "none", stroke: outer, "stroke-width": width, "class": cls }, gTop);
-      DV.el("circle", { cx: cx, cy: cy, r: Math.max(0.5, r - width / 4), fill: "none", stroke: inner, "stroke-width": width / 2, "class": cls }, gTop);
+      DV.el("circle", { cx: cx, cy: cy, r: r + width / 2 / zk, fill: "none", stroke: outer, "stroke-width": width, "class": cls }, gTop);
+      DV.el("circle", { cx: cx, cy: cy, r: Math.max(0.5 / zk, r - width / 4 / zk), fill: "none", stroke: inner, "stroke-width": width / 2, "class": cls }, gTop);
     }
     view.select = function (id, kind) {
       view.selected = id; view.selectedKind = kind || "country";
@@ -370,12 +377,12 @@
     function nearestBubble(evt) {
       if (!bubbleList.length) return null;
       var rect = svg.getBoundingClientRect(), k = (+svg.getAttribute("width") || rect.width) / rect.width;
-      var px = (evt.clientX - rect.left) * k, py = (evt.clientY - rect.top) * k;
-      var reach = S.bubbleHit == null ? 8 : +S.bubbleHit, best = null, bestScore = Infinity;
+      var px = ((evt.clientX - rect.left) * k - zx) / zk, py = ((evt.clientY - rect.top) * k - zy) / zk;
+      var reach = (S.bubbleHit == null ? 8 : +S.bubbleHit) / zk, best = null, bestScore = Infinity, f = bubbleScale();
       bubbleList.forEach(function (b) {
-        var d = Math.sqrt((b.x - px) * (b.x - px) + (b.y - py) * (b.y - py));
+        var d = Math.sqrt((b.x - px) * (b.x - px) + (b.y - py) * (b.y - py)), r = b.r * f;
         // inside a bubble: the smallest one wins (it's drawn on top); outside: the nearest edge
-        var score = d <= b.r ? -1e6 + b.r : d - b.r <= reach ? d - b.r : Infinity;
+        var score = d <= r ? -1e6 + r : d - r <= reach ? d - r : Infinity;
         if (score < bestScore) { bestScore = score; best = b; }
       });
       return best ? { id: best.id, kind: "bubble", el: best.el } : null;
@@ -441,6 +448,85 @@
       if (view.onClick) view.onClick(t ? t.id : null, t ? t.kind : null);
     });
     view.hideTip = function () { tip.classList.remove("on"); };
+
+    view.enableZoom = function (o) {
+      if (view.zoom || !window.d3 || !d3.zoom) return;
+      o = o || {};
+      var gZ = DV.el("g", { "class": "dvm-zoom" });
+      svg.insertBefore(gZ, gLand);
+      [gLand, gSmall, gBub, gTop].forEach(function (g) { gZ.appendChild(g); });
+      svg.classList.add("dvm-zoomable");
+      var reset = div("dvm-reset dv-control", stage, "button");
+      reset.type = "button"; reset.textContent = o.resetLabel || "Reset zoom"; reset.hidden = true;
+      var sel = d3.select(svg), size = [0, 0];
+      var z = d3.zoom().scaleExtent([1, o.maxZoom || 12])
+        // the mouse wheel zooms only with ⌘ or Ctrl held (a trackpad pinch sends Ctrl): plain scrolling scrolls the page.
+        // Touch is handled below; dragging pans once zoomed in.
+        .filter(function (e) {
+          if (e.type === "wheel") return e.ctrlKey || e.metaKey;
+          if (/^touch/.test(e.type)) return false;
+          return zk > 1.001 && !e.button;
+        })
+        // a mouse wheel notch zooms about 1.4x; trackpad pinches (small steps) stay smooth
+        .wheelDelta(function (e) { return DV.clamp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : e.deltaMode ? 1 : 0.002) * (e.ctrlKey ? 10 : 4), -0.5, 0.5); })
+        .on("zoom", function (e) { apply(e.transform); });
+      function apply(t) {
+        zk = t.k; zx = t.x; zy = t.y;
+        gZ.setAttribute("transform", "translate(" + zx + "," + zy + ") scale(" + zk + ")");
+        var f = bubbleScale(), zoomed = zk > 1.001;
+        Array.prototype.forEach.call(gBub.querySelectorAll("circle[data-r]"), function (c) { c.setAttribute("r", +c.getAttribute("data-r") * f); });
+        unhover(); hoverKey = null; tip.classList.remove("on");
+        if (view.selected && view.selectedKind === "bubble") view.select(view.selected, "bubble");
+        reset.hidden = !zoomed;
+        svg.classList.toggle("dvm-zoomed", zoomed);
+        // zoomed in, one finger pans the map; otherwise it scrolls the page
+        svg.style.touchAction = zoomed ? "none" : "pan-x pan-y";
+      }
+      sel.call(z).on("dblclick.zoom", null);
+      svg.style.touchAction = "pan-x pan-y";
+      reset.addEventListener("click", function () { sel.transition().duration(350).call(z.transform, d3.zoomIdentity); });
+
+      // touch: two fingers pinch (and move), one finger pans once zoomed in
+      var t0 = null;
+      function pts(e) {
+        var r = svg.getBoundingClientRect(), k = (+svg.getAttribute("width") || r.width) / r.width;
+        return Array.prototype.map.call(e.touches, function (p) { return [(p.clientX - r.left) * k, (p.clientY - r.top) * k]; });
+      }
+      function mid(p) { return p.length > 1 ? [(p[0][0] + p[1][0]) / 2, (p[0][1] + p[1][1]) / 2] : p[0]; }
+      function dist(p) { return p.length > 1 ? Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]) : 0; }
+      function start(e) {
+        var p = pts(e);
+        if (p.length > 1 || (p.length === 1 && zk > 1.001)) {
+          var m = mid(p);
+          t0 = { n: p.length, m: [(m[0] - zx) / zk, (m[1] - zy) / zk], d: dist(p), k: zk };
+          if (p.length > 1) e.preventDefault();
+        } else t0 = null;
+      }
+      svg.addEventListener("touchstart", start, { passive: false });
+      svg.addEventListener("touchmove", function (e) {
+        if (!t0) return;
+        var p = pts(e);
+        if (p.length !== t0.n) { start(e); return; }
+        e.preventDefault();
+        var m = mid(p), k = t0.n > 1 && t0.d ? t0.k * dist(p) / t0.d : zk;
+        k = DV.clamp(k, 1, o.maxZoom || 12);
+        sel.call(z.transform, d3.zoomIdentity.translate(m[0] - t0.m[0] * k, m[1] - t0.m[1] * k).scale(k));
+      }, { passive: false });
+      svg.addEventListener("touchend", function (e) { if (e.touches.length) start(e); else t0 = null; });
+
+      view.zoom = {
+        size: function (w, h) {
+          if (w === size[0] && h === size[1]) return;
+          var first = !size[0];
+          size = [w, h];
+          z.extent([[0, 0], [w, h]]).translateExtent([[0, 0], [w, h]]);
+          if (!first) sel.call(z.transform, d3.zoomIdentity);   // a new size starts from the whole map again
+        },
+        reset: function () { sel.call(z.transform, d3.zoomIdentity); }
+      };
+      var w0 = +svg.getAttribute("width"), h0 = +svg.getAttribute("height");
+      if (w0 && h0) view.zoom.size(w0, h0);
+    };
     // show the popup next to a bubble (e.g. after a search), as if the pointer were on it
     view.tipAt = function (id, html) {
       var b = bubbleEls[id];
@@ -448,7 +534,8 @@
       tip.innerHTML = html; tip.classList.add("on");
       var sr = svg.getBoundingClientRect(), st = stage.getBoundingClientRect();
       var k = sr.width / (+svg.getAttribute("width") || sr.width);
-      var x = sr.left - st.left + (+b.getAttribute("cx")) * k, y = sr.top - st.top + (+b.getAttribute("cy")) * k, r = +b.getAttribute("r") * k;
+      var x = sr.left - st.left + (+b.getAttribute("cx") * zk + zx) * k, y = sr.top - st.top + (+b.getAttribute("cy") * zk + zy) * k;
+      var r = +b.getAttribute("r") * zk * k;
       placeTip({ clientX: st.left + x + r, clientY: st.top + y + r });
       hoverKey = id + "bubble";
     };

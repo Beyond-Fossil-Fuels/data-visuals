@@ -11,6 +11,18 @@
 .dvm-svg .dvm-c { transition: fill .35s, fill-opacity .2s, opacity .15s; }
 .dvm-svg .dvm-on, .dvm-svg .dvm-b { cursor: pointer; }
 .dvm-svg.dvm-fading .dvm-c.dvm-on:not(.dvm-hovered) { opacity: var(--dvm-fade, 0.4); }
+/* zoom (view.enableZoom): lines keep their width, the map can be dragged once zoomed in */
+.dvm-zoomable .dvm-zoom * { vector-effect: non-scaling-stroke; }
+.dvm-zoomable.dvm-zoomed { cursor: grab; }
+.dvm-zoomable.dvm-zoomed:active { cursor: grabbing; }
+.dvm-reset { position: absolute; right: 8px; bottom: 8px; z-index: 4; font: inherit; font-size: 13px; padding: 5px 12px;
+  border: 1px solid #000; border-radius: 999px; background: #fff; color: #000; cursor: pointer; }
+.dvm-reset[hidden] { display: none; }
+/* zoomed in, the map runs under the corner widgets: give them a light backdrop so they stay readable */
+.dvm-stage:has(.dvm-zoomed) .dvm-corner > * { background: rgba(255, 255, 255, 0.88); border-radius: 6px; box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.88); }
+/* instruction line above the legend (e.g. how to zoom) */
+.dvm-hint { margin: 0; font-size: var(--dv-legend-size); color: var(--dv-heading); max-width: 40em; }
+.dvm-hint:empty { display: none; }
 
 /* slots around the map */
 .dvm-slot { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: flex-start; justify-content: space-between; }
