@@ -7,11 +7,11 @@
  * ================================================================ */
 var BRAND = {
   // ---- Fonts ----
-  font: "Inter",                               // Main font (a Google Fonts name, or an Adobe Fonts name when adobeKitId is set)
-  titleFont: "alfabet",                        // Font for main titles only (empty = same as main font)
+  font: "acumin-pro",                          // Main font (a Google Fonts name, or an Adobe Fonts name when adobeKitId is set)
+  titleFont: "acumin-pro",                     // Font for main titles only (empty = same as main font)
   adobeKitId: "fpb7yyu",                       // Adobe Fonts web project ID, e.g. abc1def (empty = not used)
-  titleWeight: 700,                            // Main title boldness
-  headingWeight: 700,                          // Chart heading boldness
+  titleWeight: 500,                            // Main title boldness
+  headingWeight: 500,                          // Chart heading boldness
 
   // ---- Colours ----
   background: "#fffaf2",                       // Page background (each graphic can use it, white or transparent)
@@ -21,21 +21,21 @@ var BRAND = {
   gridColor: "#eceef0",                        // Horizontal grid lines
 
   // ---- Layout ----
-  titleAlign: "center",                        // Main title alignment
-  legendAlign: "right",                        // Legend alignment when charts sit side by side
-  maxWidth: 1050,                              // Widest a graphic gets, in px
-  stackBelow: 570,                             // Below this width (px) charts stack vertically
+  titleAlign: "left",                          // Main title alignment
+  legendAlign: "left",                         // Legend alignment when charts sit side by side
+  maxWidth: 1600,                              // Widest a graphic gets, in px
+  stackBelow: 550,                             // Below this width (px) charts stack vertically
 
   // ---- Chart style ----
-  areaOpacity: 0.8,                            // How solid coloured areas are (0 = invisible, 1 = solid)
+  areaOpacity: 1,                              // How solid coloured areas are (0 = invisible, 1 = solid)
   lineWidth: 2.5,                              // Line along the top of each area, in px (0 = none)
-  showDots: true,                              // Show a dot at every data point
-  dotSize: 4.5,                                // Dot radius in px
+  showDots: false,                             // Show a dot at every data point
+  dotSize: 5,                                  // Dot radius in px
   showGrid: true,                              // Show horizontal grid lines
 
   // ---- Arrow style ----
   arrowColor: "#000000",                       // Arrow colour
-  arrowThickness: 6.5,                         // Line thickness in px
+  arrowThickness: 7,                           // Line thickness in px
   arrowHeadSize: 24,                           // Arrowhead size in px
   arrowHeadStyle: "filled",                    // Arrowhead: open chevron or filled triangle
   arrowLineStyle: "solid",                     // Line style

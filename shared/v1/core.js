@@ -4,7 +4,7 @@
  * Used by every graphic in this repository. It handles:
  *   - loading data from the public Google Sheet (with built-in fallback data)
  *   - merging brand settings (shared/brand.js) with each graphic's SETTINGS
- *   - fonts (Google Fonts, plus an optional Adobe Fonts web project)
+ *   - fonts (Adobe Fonts web project for the BFF fonts, Google Fonts on demand)
  *   - responsive re-rendering and iframe auto-height
  *   - reusable chart pieces: stacked area chart, legend, tooltip, arrow
  *   - design mode (open a graphic with ?design): live settings panel + export
@@ -68,10 +68,10 @@
    * ------------------------------------------------------------------ */
   var GRAPHIC_BASE_GROUPS = [
     { name: "Text sizes", fields: [
-      { key: "titleSize",   type: "range", min: 16, max: 72, step: 1, def: 32, help: "Main title size in px (shrinks on small screens)" },
+      { key: "titleSize",   type: "range", min: 16, max: 72, step: 1, def: 23, help: "Main title size in px (shrinks on small screens)" },
       { key: "headingSize", type: "range", min: 11, max: 32, step: 0.5, def: 21, help: "Chart heading (subtitle) size in px" },
-      { key: "footerSize",  type: "range", min: 10, max: 32, step: 0.5, def: 14, help: "Footer (sources and notes) text size in px (never larger than the legend)" },
-      { key: "legendSize",  type: "range", min: 10, max: 22, step: 0.5, def: 14, help: "Legend text size in px" },
+      { key: "footerSize",  type: "range", min: 10, max: 32, step: 0.5, def: 10, help: "Footer (sources and notes) text size in px (never larger than the legend)" },
+      { key: "legendSize",  type: "range", min: 10, max: 22, step: 0.5, def: 18, help: "Legend text size in px" },
       { key: "axisSize",    type: "range", min: 9, max: 22, step: 0.5, def: 14, help: "Axis label size in px" },
       { key: "tooltipSize", type: "range", min: 10, max: 18, step: 0.5, def: 14, help: "Tooltip (popup) text size in px" }
     ]},
@@ -79,7 +79,7 @@
       { key: "padTop",    type: "range", min: 0, max: 80, step: 1, def: 0, help: "Space above the graphic in px" },
       { key: "padSides",  type: "range", min: 0, max: 80, step: 1, def: 0, help: "Space left and right of the graphic in px" },
       { key: "padBottom", type: "range", min: 0, max: 80, step: 1, def: 0, help: "Space below the graphic in px" },
-      { key: "blockGap",  type: "range", min: 0, max: 60, step: 1, def: 14, help: "Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)" }
+      { key: "blockGap",  type: "range", min: 0, max: 60, step: 1, def: 30, help: "Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)" }
     ]},
     { name: "Background", fields: [
       { key: "bgMode", type: "select", options: ["white", "brand colour", "transparent"], def: "white",
@@ -769,7 +769,7 @@
         var st = root.style;
         st.setProperty("--dv-title-size", ctx.sz(S.titleSize, 22) + "px");
         // one gap between all the blocks (title, subtitle, buttons, charts, footer)
-        var gap = S.blockGap != null ? S.blockGap : 14;
+        var gap = S.blockGap != null ? S.blockGap : 30;
         st.setProperty("--dv-title-gap", gap + "px");
         st.setProperty("--dv-gap", gap + "px");
         st.setProperty("--dv-heading-size", ctx.sz(S.headingSize, 15) + "px");
@@ -857,9 +857,9 @@
         root.parentNode.insertBefore(frame, root);
         frame.appendChild(root);
 
-        // BFF fonts first (alfabet and acumin-pro come from the Adobe Fonts project in adobeKitId)
-        var BFF_FONTS = [["alfabet", "alfabet (BFF titles, Adobe Fonts)"], ["Inter", "Inter (BFF text)"],
-          ["acumin-pro", "acumin-pro (BFF website, Adobe Fonts)"]];
+        // BFF fonts first (acumin-pro and alfabet come from the Adobe Fonts project in adobeKitId)
+        var BFF_FONTS = [["acumin-pro", "acumin-pro (BFF titles and text, Adobe Fonts)"], ["alfabet", "alfabet (Adobe Fonts)"],
+          ["Inter", "Inter"]];
         var FONT_SUGGESTIONS = ["Lexend", "Roboto", "Nunito", "Source Sans 3", "Open Sans", "Lato", "Montserrat",
           "Poppins", "Work Sans", "IBM Plex Sans", "Noto Sans", "Barlow", "DM Sans", "Fira Sans", "Libre Franklin",
           "Public Sans", "Manrope", "Space Grotesk", "Merriweather", "Lora", "Playfair Display", "Roboto Slab", "Oswald"];
@@ -912,9 +912,9 @@
           '<div class="gd-row"><label for="gd-if">Format</label><div class="gd-ctl"><select id="gd-if">' +
             '<option value="PDF">PDF (vector, editable, direct download)</option><option value="SVG">SVG (vector)</option>' +
             '<option value="PNG">PNG (picture)</option><option value="PRINT">PDF through the print window (fonts exactly as online)</option></select></div>' +
-            "<small>PDF and SVG: real text and shapes for Illustrator, downloaded straight away. Inter is embedded under its own name, " +
-            "so the text stays editable; titles are in Inter Bold (Alfabet's licence doesn't allow embedding it). " +
-            "Print window: Alfabet titles exactly as online, but Illustrator can't edit that text (choose Save as PDF).</small></div>" +
+            "<small>PDF and SVG: real text and shapes for Illustrator, downloaded straight away. All text is in Inter, embedded under its own name, " +
+            "so it stays editable (the Adobe Fonts licence doesn't allow embedding Acumin, so the file won't match the page font). " +
+            "Print window: fonts exactly as online, but Illustrator can't edit that text (choose Save as PDF).</small></div>" +
           '<div class="gd-row"><label for="gd-iu">Size unit</label><div class="gd-ctl"><select id="gd-iu">' +
             '<option value="px">px (as on screen)</option><option value="cm">cm</option><option value="in">inches</option></select></div>' +
             "<small>1 inch = 96 px: the graphic is laid out at this size (text sizes stay as set, in px).</small></div>" +

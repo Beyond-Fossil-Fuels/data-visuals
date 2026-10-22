@@ -57,10 +57,10 @@ var SETTINGS = {
   nowText: "Current status: {status}",         // Popup line with today's status, under the past status; {status} is filled in
   noDataText: "No data",                       // Popup text when a country has no status at that date
   // Text sizes:
-  titleSize: 32,                               // Main title size in px (shrinks on small screens)
+  titleSize: 23,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
-  footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
-  legendSize: 14,                              // Legend text size in px
+  footerSize: 10,                              // Footer (sources and notes) text size in px (never larger than the legend)
+  legendSize: 18,                              // Legend text size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
   panelTextSize: 16,                           // Panel text size in px (the popup uses the brand tooltip size)
   smallSize: 5,                                // Size of the zoomed box (or circle), in % of the map width
@@ -69,40 +69,40 @@ var SETTINGS = {
   padTop: 16,                                  // Space above the graphic in px
   padSides: 16,                                // Space left and right of the graphic in px
   padBottom: 12,                               // Space below the graphic in px
-  blockGap: 14,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
+  blockGap: 50,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
 
   // ---- Background ----
-  bgMode: "brand colour",                      // Page background, brand colour: the brand Page background; transparent: the website shows through
+  bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
 
   // ---- Legend and search ----
-  legendPos: "top-left corner",                // Legend position (on phones, corners and sides move above the map)
+  legendPos: "left of map",                    // Legend position (on phones, corners and sides move above the map)
   legendDir: "vertical",                       // Legend direction
-  legendGap: 5,                                // Space between legend items in px (between rows when vertical, between items when horizontal)
+  legendGap: 10,                               // Space between legend items in px (between rows when vertical, between items when horizontal)
   legendFilter: true,                          // Click a legend item to show only that status
-  searchPos: "top-right corner",               // Country search position
-  searchWidth: 140,                            // Search box width in px
+  searchPos: "left of map",                    // Country search position
+  searchWidth: 175,                            // Search box width in px
 
   // ---- Popup and panel ----
   tooltipShow: true,                           // Show a popup when hovering over a country (mouse only)
   tooltipWidth: 320,                           // Popup maximum width in px
-  statusStyle: "coloured text",                // Status in the popup and panel
+  statusStyle: "black text with colour dot",   // Status in the popup and panel
   pastStatus: true,                            // When the slider shows a past date, the popup gives that date's status and today's status
   panelPos: "side panel (right)",              // Panel opened by clicking a country or searching (on phones it goes below the map; hidden = no panel)
-  panelWidth: 340,                             // Panel width in px
+  panelWidth: 350,                             // Panel width in px
   panelBg: "#f4f4f4",                          // Side panel background
 
   // ---- Time slider ----
-  sliderPos: "below map",                      // Position (on phones, corners and sides move below the map)
+  sliderPos: "left of map",                    // Position (on phones, corners and sides move below the map)
   sliderStart: "latest",                       // Date shown when the map opens
-  sliderWidth: 520,                            // Width of the whole slider (button, track and date) in px
-  sliderLabelPos: "right",                     // Date label: right of the track or above it
-  sliderTicks: true,                           // Show a tick for each date with data
+  sliderWidth: 300,                            // Width of the whole slider (button, track and date) in px
+  sliderLabelPos: "above",                     // Date label: right of the track or above it
+  sliderTicks: false,                          // Show a tick for each date with data
   sliderYears: true,                           // Show the first and last year under the track
-  playStyle: "filled circle",                  // Play button style
+  playStyle: "outline circle",                 // Play button style
   playSize: 30,                                // Play button size in px
-  sliderThickness: 3,                          // Track thickness in px
+  sliderThickness: 2,                          // Track thickness in px
   sliderThumbStyle: "circle",                  // Handle style
-  sliderThumb: 16,                             // Handle size in px
+  sliderThumb: 12,                             // Handle size in px
   sliderColor: "#000000",                      // Button, handle and the track up to the date shown
   sliderRestColor: "#c8c8c8",                  // Track after the date shown
   playSpeed: 900,                              // Play: time per date, in milliseconds
@@ -135,19 +135,19 @@ var SETTINGS = {
   viewEast: 44,                                // View box: east edge (longitude)
   viewSouth: 34,                               // View box: south edge (latitude)
   viewNorth: 71,                               // View box: north edge (latitude)
-  mapZoom: 1,                                  // Zoom (1 = the view box fits the map area)
+  mapZoom: 1.13,                               // Zoom (1 = the view box fits the map area)
   mapShiftX: 0,                                // Move the map sideways, in % of its width: + right, - left
   mapShiftY: 0,                                // Move the map up or down, in % of its height: + down, - up
-  graphicHeight: 860,                          // Height of the whole graphic on wide screens, in px: the map gets whatever the title, legends and footer leave (the same for every map; 0 = use the share below)
+  graphicHeight: 650,                          // Height of the whole graphic on wide screens, in px: the map gets whatever the title, legends and footer leave (the same for every map; 0 = use the share below)
   mapHeight: 0.72,                             // Map height as a share of its width (when the graphic height is 0)
-  mapHeightPhone: 0.85,                        // Map height on phones, as a share of its width (phones = narrower than the brand stackBelow width)
+  mapHeightPhone: 0.88,                        // Map height on phones, as a share of its width (phones = narrower than the brand stackBelow width)
   mapZoomPhone: 1,                             // Extra zoom on phones (1 = same as wide screens)
 
   // ---- Map colours and borders ----
   noDataFill: "#dcdcdc",                       // BFF countries without data
   otherFill: "#eceef0",                        // Other countries (neighbours)
   borderColor: "#ffffff",                      // Country borders
-  borderWidth: 0.7,                            // Border width in px
+  borderWidth: 0.5,                            // Border width in px
   smallBoxColor: "#8a8a8a",                    // Zoomed box and its line
 
   // ---- Hover and selection ----

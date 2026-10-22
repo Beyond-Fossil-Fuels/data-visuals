@@ -67,10 +67,10 @@ var SETTINGS = {
   popupLabels: "general :: General information\nstatus :: Status:\nfuel :: Fuel type:\nowner :: Owner:\nco2 :: CO2 emissions (2025, Mt):\nfirstUnit :: Year commissioning first unit:\nlastUnit :: Year retirement last unit:\ncapacity :: Capacity (MW)\nplanned :: - Planned:\ncancelled :: - Cancelled or shelved:\nconstruction :: - Construction:\nopen :: - Open:\nretired :: - Retired since 2016:", // Popup wording, one line per row: key :: wording (rows with no data are left out)
   searchPlaceholder: "Search for a plant",     // Search box placeholder
   // Text sizes:
-  titleSize: 32,                               // Main title size in px (shrinks on small screens)
+  titleSize: 23,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
-  footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
-  legendSize: 14,                              // Legend text size in px
+  footerSize: 10,                              // Footer (sources and notes) text size in px (never larger than the legend)
+  legendSize: 18.5,                            // Legend text size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
   smallSize: 5,                                // Size of the zoomed box (or circle), in % of the map width
 
@@ -78,7 +78,7 @@ var SETTINGS = {
   padTop: 0,                                   // Space above the graphic in px
   padSides: 0,                                 // Space left and right of the graphic in px
   padBottom: 0,                                // Space below the graphic in px
-  blockGap: 14,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
+  blockGap: 30,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
 
   // ---- Background ----
   bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
@@ -86,9 +86,9 @@ var SETTINGS = {
   // ---- Legend and search ----
   legendPos: "top-left corner",                // Legend position (on phones, corners and sides move above the map)
   legendDir: "vertical",                       // Legend direction
-  legendGap: 5,                                // Space between legend items in px (between rows when vertical, between items when horizontal)
+  legendGap: 7,                                // Space between legend items in px (between rows when vertical, between items when horizontal)
   legendFilter: true,                          // Click a legend item to show only that status
-  searchPos: "top-right corner",               // Plant search position
+  searchPos: "top-left corner",                // Plant search position
   searchWidth: 180,                            // Search box width in px
 
   // ---- Popup ----
@@ -96,7 +96,7 @@ var SETTINGS = {
   tooltipWidth: 380,                           // Popup maximum width in px
   popupHeader: "coloured block",               // Popup header: coloured block (as in Flourish) or the name with a colour dot
   popupHeaderText: "automatic",                // Text colour on the coloured block (automatic: black or white, whichever reads better)
-  popupStatus: false,                          // Show the status (legend wording) in the popup (Flourish didn't)
+  popupStatus: true,                           // Show the status (legend wording) in the popup (Flourish didn't)
   noRetirementText: "not planned",             // Retirement year when a plant (not cancelled) has none (empty = leave the row out)
   popupLines: "#e6e6e6",                       // Lines between the popup rows
 
@@ -107,9 +107,9 @@ var SETTINGS = {
   bubbleScale: "area grows from the smallest size", // Size scale, grows from the smallest size: every value gets its own size; proportional: areas strictly match the values, small ones all get the smallest size
   bubbleOpacity: 1,                            // Bubble fill opacity
   bubbleStroke: "#ffffff",                     // Bubble outline colour
-  bubbleStrokeWidth: 0.75,                     // Bubble outline width in px
+  bubbleStrokeWidth: 0.4,                      // Bubble outline width in px
   bubbleHit: 8,                                // How close the pointer must be to a bubble to pick it, in px
-  highlightInner: "#000000",                   // Highlighted bubble: inner ring
+  highlightInner: "#ffffff",                   // Highlighted bubble: inner ring
   highlightOuter: "#ffffff",                   // Highlighted bubble: outer ring
   highlightWidth: 3,                           // Highlighted bubble: ring width in px
   sizeLegendPos: "hidden",                     // Size legend position (hidden = none)
@@ -123,14 +123,14 @@ var SETTINGS = {
   noDataShow: "BFF countries only",            // Countries without data, hidden: only countries with data; BFF countries only: also BFF countries with no data; all countries: neighbours too
   smallMode: "as they are",                    // Very small countries (list below), as they are: their real size; circle: a dot you can hover; zoomed box: an enlarged copy in a box
   smallList: "MT",                             // Very small countries, ISO codes separated by commas (e.g. MT, LU)
-  smallDX: 5,                                  // Zoomed box position sideways from the country, in % of the map width: + right
+  smallDX: 4.5,                                // Zoomed box position sideways from the country, in % of the map width: + right
   smallDY: -1.5,                               // Zoomed box position up or down from the country, in % of the map width: + down
 
   // ---- Inset (far-away area in a box) ----
   insetShow: false,                            // Show a far-away area (e.g. the Canary Islands) in a box in a corner of the map
-  insetPos: "bottom-left corner",              // Inset box position (at a point: centred on the longitude and latitude below)
+  insetPos: "at a point on the map",           // Inset box position (at a point: centred on the longitude and latitude below)
   insetLon: -9.5,                              // Inset box centre: longitude (e.g. -9.5 between Iberia and Ireland, -2 after Gibraltar)
-  insetLat: 46.5,                              // Inset box centre: latitude (e.g. 46.5 between Iberia and Ireland, 35.5 after Gibraltar)
+  insetLat: 46.6,                              // Inset box centre: latitude (e.g. 46.5 between Iberia and Ireland, 35.5 after Gibraltar)
   insetWidth: 14,                              // Inset box width in % of the map width
   insetWest: -18.5,                            // Inset area: west edge (longitude)
   insetEast: -13,                              // Inset area: east edge (longitude)
@@ -140,17 +140,17 @@ var SETTINGS = {
   // ---- Projection and view ----
   projection: "Natural Earth",                 // Map projection
   mapCentreLon: 0,                             // Central meridian (longitude); 0 matches Flourish, around 15 straightens Europe
-  viewWest: -10,                               // View box: west edge (longitude)
-  viewEast: 44,                                // View box: east edge (longitude)
-  viewSouth: 35,                               // View box: south edge (latitude)
+  viewWest: -27.5,                             // View box: west edge (longitude)
+  viewEast: 43,                                // View box: east edge (longitude)
+  viewSouth: 33.5,                             // View box: south edge (latitude)
   viewNorth: 66,                               // View box: north edge (latitude)
-  mapZoom: 1,                                  // Zoom (1 = the view box fits the map area)
+  mapZoom: 1.1,                                // Zoom (1 = the view box fits the map area)
   mapShiftX: 0,                                // Move the map sideways, in % of its width: + right, - left
-  mapShiftY: 0,                                // Move the map up or down, in % of its height: + down, - up
-  graphicHeight: 860,                          // Height of the whole graphic on wide screens, in px: the map gets whatever the title, legends and footer leave (the same for every map; 0 = use the share below)
+  mapShiftY: -1.5,                             // Move the map up or down, in % of its height: + down, - up
+  graphicHeight: 700,                          // Height of the whole graphic on wide screens, in px: the map gets whatever the title, legends and footer leave (the same for every map; 0 = use the share below)
   mapHeight: 0.72,                             // Map height as a share of its width (when the graphic height is 0)
-  mapHeightPhone: 0.85,                        // Map height on phones, as a share of its width (phones = narrower than the brand stackBelow width)
-  mapZoomPhone: 1,                             // Extra zoom on phones (1 = same as wide screens)
+  mapHeightPhone: 0.59,                        // Map height on phones, as a share of its width (phones = narrower than the brand stackBelow width)
+  mapZoomPhone: 0.96,                          // Extra zoom on phones (1 = same as wide screens)
 
   // ---- Map colours and borders ----
   noDataFill: "#e4e5e7",                       // BFF countries without data

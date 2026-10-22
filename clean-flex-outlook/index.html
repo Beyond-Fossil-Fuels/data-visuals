@@ -39,21 +39,21 @@ var SETTINGS = {
   footer: "Source: Report [\"Clean Flexibility: Opportunities in Europe\"](https://beyondfossilfuels.org/2026/02/23/clean-flexibility-supports-a-reliable-grid-without-fossil-fuels/) prepared by The Brattle Group and Acousmatics for BFF, February 2026", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
   notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
   // Text sizes:
-  titleSize: 32,                               // Main title size in px (shrinks on small screens)
+  titleSize: 23,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
-  footerSize: 14,                              // Footer (sources and notes) text size in px (never larger than the legend)
-  legendSize: 14,                              // Legend text size in px
-  axisSize: 14,                                // Axis label size in px
+  footerSize: 10,                              // Footer (sources and notes) text size in px (never larger than the legend)
+  legendSize: 18,                              // Legend text size in px
+  axisSize: 16,                                // Axis label size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
   subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
-  refSize: 16,                                 // Reference label size in px
-  endLabelSize: 16,                            // End label size in px
+  refSize: 16.5,                               // Reference label size in px
+  endLabelSize: 15.5,                          // End label size in px
 
   // ---- Spacing ----
   padTop: 0,                                   // Space above the graphic in px
   padSides: 0,                                 // Space left and right of the graphic in px
   padBottom: 0,                                // Space below the graphic in px
-  blockGap: 14,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
+  blockGap: 30,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
 
   // ---- Background ----
   bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
@@ -66,18 +66,15 @@ var SETTINGS = {
   // ---- Chart style (this graphic) ----
   showLegend: false,                           // Show a legend above the chart (the labels at the end of the areas already name them)
   endLabels: true,                             // Labels at the end of each area
-  endLabelWidth: 190,                          // Widest an end label gets before wrapping, in px
-  fillOpacity: 0.7,                            // How solid the areas are
-  lineWidthF2: 4,                              // Line thickness on top of each area in px
-  dotSizeF2: 6,                                // Dot size in px (0 = none)
-  yStep: 350,                                  // Gap between y-axis numbers (0 = automatic)
+  endLabelWidth: 105,                          // Widest an end label gets before wrapping, in px
+  fillOpacity: 0.85,                           // How solid the areas are
+  lineWidthF2: 3,                              // Line thickness on top of each area in px
+  dotSizeF2: 4.5,                              // Dot size in px (0 = none)
+  yStep: 230,                                  // Gap between y-axis numbers (0 = automatic)
 
   // ---- Layout ----
-  chartHeight: 0.6,                            // Chart height as a share of its width
-  minHeight: 360,                              // Smallest chart height in px (phones)
-
-  // ---- Brand overrides (this graphic only) ----
-  titleAlign: "left",                          // Main title alignment
+  chartHeight: 0.4,                            // Chart height as a share of its width
+  minHeight: 350,                              // Smallest chart height in px (phones)
 };
 // ==== SETTINGS END ====
 </script>
