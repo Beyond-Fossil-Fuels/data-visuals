@@ -26,7 +26,10 @@
   .g2-notes:empty { display: none; }
   .g2-sub { margin: 0 0 var(--dv-sub-gap, var(--dv-gap, 14px)); font-size: var(--g2-sub-size); line-height: 1.4; }
   .g2-sub:empty { display: none; }
-  .g2-size-note { font-size: 0.85em; color: #555; margin-top: 4px; max-width: 170px; line-height: 1.25; }
+  /* the size note sits to the right of the circles and their labels, one line per | in the setting */
+  .g2-size-row { display: flex; align-items: center; gap: 14px; }
+  .g2-size-row svg { flex: none; }
+  .g2-size-note { font-size: 0.85em; line-height: 1.3; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -92,7 +95,7 @@ var SETTINGS = {
   pointPosition: "label point (as in the R map)", // Where the symbols sit, label point: inside each country's main territory (Natural Earth, as in the R map); sheet coordinates: the Lat and Lon columns (capitals, as in Flourish)
   symbolGap: 1,                                // Space between the two circles side by side, in px
   sizeFloor: 1,                                // Symbols are sized strictly by area; totals below this many GW are drawn at this size (0 = use the bubble sizes below instead)
-  sizeFloorNote: "Under 1 GW shown at the 1 GW size", // Note next to the size legend (empty = none)
+  sizeFloorNote: "Countries under|1 GW are shown|at the smallest size", // Note to the right of the size legend; | starts a new line (empty = none)
   statusLegendPos: "above map",                // Operating / in development legend position
   legendDir: "horizontal",                     // Operating / in development legend direction
   legendGap: 14,                               // Space between legend items in px
@@ -447,7 +450,7 @@ var SETTINGS = {
         { key: "pointPosition", type: "select", options: POSITIONS, def: POSITIONS[0], help: "Where the symbols sit, label point: inside each country's main territory (Natural Earth, as in the R map); sheet coordinates: the Lat and Lon columns (capitals, as in Flourish)" },
         { key: "symbolGap",     type: "range", min: 0, max: 10, step: 0.5, def: 1, help: "Space between the two circles side by side, in px" },
         { key: "sizeFloor",     type: "range", min: 0, max: 5, step: 0.1, def: 1, help: "Symbols are sized strictly by area; totals below this many GW are drawn at this size (0 = use the bubble sizes below instead)" },
-        { key: "sizeFloorNote", type: "text", def: "Under 1 GW shown at the 1 GW size", help: "Note next to the size legend (empty = none)" },
+        { key: "sizeFloorNote", type: "text", def: "Countries under|1 GW are shown|at the smallest size", help: "Note to the right of the size legend; | starts a new line (empty = none)" },
         { key: "statusLegendPos", type: "select", options: DV.POSITIONS, def: "above map", help: "Operating / in development legend position" },
         { key: "legendDir",     type: "select", options: ["vertical", "horizontal"], def: "horizontal", help: "Operating / in development legend direction" },
         { key: "legendGap",     type: "range", min: 0, max: 40, step: 1, def: 14, help: "Space between legend items in px" },
@@ -536,8 +539,15 @@ var SETTINGS = {
         ui.sizeLegend = DV.bubbleLegend({ title: S.sizeLegendTitle, values: values, r: sym0.radius,
           fmt: function (v) { return DV.fmt(v, S.capacityUnit, 0); } });
         if (+S.sizeFloor > 0 && S.sizeFloorNote) {
-          var note = document.createElement("div"); note.className = "g2-size-note"; note.textContent = S.sizeFloorNote;
-          ui.sizeLegend.appendChild(note);
+          // circles and labels, then the note to their right
+          var row = document.createElement("div"); row.className = "g2-size-row";
+          var note = document.createElement("div"); note.className = "g2-size-note";
+          String(S.sizeFloorNote).split("|").forEach(function (line, i) {
+            if (i) note.appendChild(document.createElement("br"));
+            note.appendChild(document.createTextNode(line.trim()));
+          });
+          var circles = ui.sizeLegend.querySelector("svg");
+          ui.sizeLegend.insertBefore(row, circles); row.appendChild(circles); row.appendChild(note);
         }
       }
       var list = [[ui.importsLegend, S.importsLegendPos], [ui.statusLegend, S.statusLegendPos]];
