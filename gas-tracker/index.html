@@ -7,11 +7,10 @@
 <link rel="canonical" href="../new-gas-projects/">
 <script>
   /* This graphic has a new address: ../new-gas-projects/ (renamed 22 Oct 2026). Old embeds keep working:
-   * the address options (?frame=card, ?type=rows, ?design…) come along (the old units-only version opens on the units view), and dvfrom tells
+   * the address options (?frame=card, ?type=rows, ?design…) come along, and dvfrom tells
    * the graphic its old address, so the website's auto-height listener still finds this iframe. */
   (function () {
     var q = location.search.replace(/^\?/, "").split("&").filter(function (p) { return p && !/^dvfrom=/.test(p); });
-    if (!q.some(function (p) { return /^view=/.test(p); })) q.push("view=units");
     q.push("dvfrom=" + encodeURIComponent(location.href));
     window.location.replace("../new-gas-projects/?" + q.join("&") + location.hash);
   })();

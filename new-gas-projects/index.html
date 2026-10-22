@@ -29,8 +29,8 @@
   <h1 class="dv-title" id="dv-title"></h1>
   <div class="view-switch dv-control">
     <div class="seg" role="group" aria-label="Show the data as">
-      <button type="button" data-view="units" aria-pressed="true"></button>
-      <button type="button" data-view="capacity" aria-pressed="false"></button>
+      <button type="button" data-view="capacity" aria-pressed="true"></button>
+      <button type="button" data-view="units" aria-pressed="false"></button>
     </div>
   </div>
   <div class="dv-row" id="row">
@@ -57,8 +57,8 @@
 var SETTINGS = {
   // ---- Text ----
   title: "Tracking new gas projects",          // Main title
-  unitsLabel: "Number of units",               // Switch button: units view
   capacityLabel: "Capacity (GW)",              // Switch button: capacity view
+  unitsLabel: "Number of units",               // Switch button: units view
   leftTitle: "In development",                 // Heading above the left chart
   rightTitle: "Already left development since start of tracking", // Heading above the right chart
   footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Power plants tracked since {first} | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
@@ -200,8 +200,8 @@ var SETTINGS = {
     groups: [
       { name: "Text", fields: [
         { key: "title",         type: "text", def: "Tracking new gas projects", help: "Main title" },
-        { key: "unitsLabel",    type: "text", def: "Number of units", help: "Switch button: units view" },
         { key: "capacityLabel", type: "text", def: "Capacity (GW)", help: "Switch button: capacity view" },
+        { key: "unitsLabel",    type: "text", def: "Number of units", help: "Switch button: units view" },
         { key: "leftTitle",     type: "text", def: "In development", help: "Heading above the left chart" },
         { key: "rightTitle",    type: "text", def: "Already left development since start of tracking", help: "Heading above the right chart" },
         { key: "footer",        type: "text", def: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Power plants tracked since {first} | Last update: {timestamp}", help: "Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide" }
@@ -249,8 +249,9 @@ var SETTINGS = {
       charts.right = DV.chartBox(document.getElementById("chart-right"), S.rightTitle, legend(S, ctx.headers, RIGHT_KEYS));
 
       var buttons = document.querySelectorAll(".seg button");
-      buttons[0].textContent = S.unitsLabel;
-      buttons[1].textContent = S.capacityLabel;
+      // capacity first (Pending doc feedback), then units
+      document.querySelector('.seg button[data-view="capacity"]').textContent = S.capacityLabel;
+      document.querySelector('.seg button[data-view="units"]').textContent = S.unitsLabel;
       if (switchReady) return;
       switchReady = true;
       var row = document.getElementById("row");
