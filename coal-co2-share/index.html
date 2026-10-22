@@ -35,8 +35,8 @@
  * ================================================================ */
 var SETTINGS = {
   // ---- Text ----
-  title: "EU+UK: Relevance of CO2 from coal power relative to all GHG emissions", // Main title
-  subtitle: "CO2 emissions from coal power are in rapid decline, both in whole terms and as part of total greenhouse gas emissions.", // Subtitle under the title, one paragraph per line (empty = none)
+  title: "CO₂ from coal power and all other greenhouse gas emissions, EU+UK", // Main title
+  subtitle: "",                                // Subtitle under the title, one paragraph per line (empty = none)
   leftTitle: "Coal power CO2 emissions in relation to {all other GHG emissions}", // Heading above the bars; words in {braces} take the colour of all other GHG emissions
   rightTitle: "Coal power as share of all GHG emissions", // Heading above the area chart
   coalLabel: "Coal power CO2",                 // Tooltip: coal power
@@ -123,8 +123,7 @@ var SETTINGS = {
 
     groups: [
       DV.chartTextGroup({
-        title: "EU+UK: Relevance of CO2 from coal power relative to all GHG emissions",
-        subtitle: "CO2 emissions from coal power are in rapid decline, both in whole terms and as part of total greenhouse gas emissions.",
+        title: "CO₂ from coal power and all other greenhouse gas emissions, EU+UK",
         footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/data-and-maps/data/national-emissions-reported-to-the-unfccc-and-to-the-eu-greenhouse-gas-monitoring-mechanism-18), [UK Government](https://www.gov.uk/government/statistics/electricity-chapter-5-digest-of-united-kingdom-energy-statistics-dukes), [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: {timestamp}",
         extra: [
           { key: "leftTitle",  type: "text", def: "Coal power CO2 emissions in relation to {all other GHG emissions}", help: "Heading above the bars; words in {braces} take the colour of all other GHG emissions" },

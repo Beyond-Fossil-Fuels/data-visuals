@@ -45,8 +45,8 @@
  * ================================================================ */
 var SETTINGS = {
   // ---- Text ----
-  title: "CO2 emissions from coal power plants in Europe", // Main title
-  subtitle: "Coal is a disaster for climate change. While Europe is clearly heading towards a 2030 end to coal power, its many remaining plants still pump vast quantities of carbon dioxide into the air, heating our atmosphere. This map shows which countries emit the most, and how this has changed over time (2005-2025).", // Text under the title (empty = none)
+  title: "CO₂ emissions from coal power plants by country", // Main title
+  subtitle: "",                                // Text under the title (empty = none)
   footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/en/datahub/datahubitem-view/98f04097-26de-4fca-86c4-63834818c0c0), [Beyond Fossil Fuels](https://beyondfossilfuels.org/coal/) | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
   legendTitle: "CO2 emissions from coal power (Mt)", // Colour legend title (empty = none)
   valueText: "{value} Mt CO2 in {year}",       // Popup value line; {value} and {year} are filled in
@@ -345,7 +345,7 @@ var SETTINGS = {
     groups: [
       { name: "Text", fields: [
         { key: "title",        type: "text", def: "CO2 emissions from coal power plants in Europe", help: "Main title" },
-        { key: "subtitle",     type: "textarea", rows: 4, def: "Coal is a disaster for climate change. While Europe is clearly heading towards a 2030 end to coal power, its many remaining plants still pump vast quantities of carbon dioxide into the air, heating our atmosphere. This map shows which countries emit the most, and how this has changed over time (2005-2025).", help: "Text under the title (empty = none)" },
+        { key: "subtitle",     type: "textarea", rows: 4, def: "", help: "Text under the title (empty = none)" },
         { key: "subtitleSize", type: "range", min: 11, max: 28, step: 0.5, def: 17, help: "Text under the title: size in px" },
         { key: "footer",       type: "text", def: "Sources: [European Environment Agency](https://www.eea.europa.eu/en/datahub/datahubitem-view/98f04097-26de-4fca-86c4-63834818c0c0), [Beyond Fossil Fuels](https://beyondfossilfuels.org/coal/) | Last update: {timestamp}", help: "Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide" },
         { key: "legendTitle",  type: "text", def: "CO2 emissions from coal power (Mt)", help: "Colour legend title (empty = none)" },

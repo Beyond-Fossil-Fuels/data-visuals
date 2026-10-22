@@ -13,6 +13,7 @@
 <div class="dv" id="dv">
   <h1 class="dv-title" id="dv-title"></h1>
   <div class="dvc-sub" id="sub"></div>
+  <p class="dvc-hint dv-control" id="hint"></p>
   <div id="legend"></div>
   <div class="dvc-grid" id="grid">
     <div class="dvc-panel" id="p-existing"><h2 id="h-existing"></h2><svg id="s-existing"></svg><div class="dv-tooltip" id="t-existing"></div></div>
@@ -36,8 +37,9 @@
  * ================================================================ */
 var SETTINGS = {
   // ---- Text ----
-  title: "Share of capacity by status in Europe’s existing fleet and new plant projects", // Main title
-  subtitle: "Toggle individual statuses on/off by clicking the legend, and hover over bars to see capacity values.", // Subtitle under the title, one paragraph per line (empty = none)
+  title: "Share of gas power capacity by status and country", // Main title
+  subtitle: "",                                // Subtitle under the title, one paragraph per line (empty = none)
+  hint: "Click the legend to switch each status on or off, and hover over bars to see capacity values.", // Instruction line under the title (empty = none)
   pExisting: "Existing fleet",                 // Left panel heading
   pNew: "New plant projects",                  // Right panel heading
   unitLabel: "MW",                             // Unit in the tooltip
@@ -151,12 +153,12 @@ var SETTINGS = {
 
     groups: [
       DV.chartTextGroup({
-        title: "Share of capacity by status in Europe’s existing fleet and new plant projects",
-        subtitle: "Toggle individual statuses on/off by clicking the legend, and hover over bars to see capacity values.",
+        title: "Share of gas power capacity by status and country",
         footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Gas power plants tracked since 2023 | Last update: {timestamp}",
         notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.",
         subtitleSize: 17,
         extra: [
+          { key: "hint",       type: "text", def: "Click the legend to switch each status on or off, and hover over bars to see capacity values.", help: "Instruction line under the title (empty = none)" },
           { key: "pExisting",  type: "text", def: "Existing fleet", help: "Left panel heading" },
           { key: "pNew",       type: "text", def: "New plant projects", help: "Right panel heading" },
           { key: "unitLabel",  type: "text", def: "MW", help: "Unit in the tooltip" },
@@ -183,6 +185,7 @@ var SETTINGS = {
     build: function (ctx) {
       var S = ctx.S;
       DV.chartText(S);
+      document.getElementById("hint").textContent = S.hint || "";
       var keys = DV.byColumns(ctx.headers, STATUSES.map(col));
       var lg = DV.chartLegend({ items: keys.map(function (c) { var k = c.replace(" (MW)", ""); return { key: k, label: k, color: S[PALETTE_KEY[k]] }; }),
         toggle: S.legendToggle, hidden: hidden, onToggle: function () { ctx.rerender(); } });

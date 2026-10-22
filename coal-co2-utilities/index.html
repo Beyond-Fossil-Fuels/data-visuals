@@ -47,8 +47,8 @@
  * ================================================================ */
 var SETTINGS = {
   // ---- Text ----
-  title: "CO2 emissions by utility from coal power stations in the EU+UK", // Main title
-  subtitle: "Just seven utilities caused two-thirds of coal-based CO₂ emissions in 2025.", // Subtitle under the title, one paragraph per line (empty = none)
+  title: "CO₂ emissions from coal power stations by utility, EU+UK", // Main title
+  subtitle: "",                                // Subtitle under the title, one paragraph per line (empty = none)
   hint: "Click utility names below to toggle them off and on:", // Line above the legend (empty = none)
   mainCaption: "Utilities ranked by cumulative CO₂ emissions from coal power stations since {first}.", // Caption under the stacked bars; {first} = first year in the data
   smallCaption: "Utilities with the largest cumulative CO₂ emissions from coal power stations since {first}.", // Caption under the small charts; {first} = first year in the data
@@ -164,8 +164,7 @@ var SETTINGS = {
 
     groups: [
       DV.chartTextGroup({
-        title: "CO2 emissions by utility from coal power stations in the EU+UK",
-        subtitle: "Just seven utilities caused two-thirds of coal-based CO₂ emissions in 2025.",
+        title: "CO₂ emissions from coal power stations by utility, EU+UK",
         footer: "Source: [EU ETS](https://union-registry-data.ec.europa.eu/report/welcome), [UK ETS](https://reports.view-emissions-trading-registry.service.gov.uk/ets-reports.html), [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: {timestamp}",
         extra: [
           { key: "hint",       type: "text", def: "Click utility names below to toggle them off and on:", help: "Line above the legend (empty = none)" },

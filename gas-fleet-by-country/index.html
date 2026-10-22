@@ -16,6 +16,7 @@
 <div class="dv" id="dv">
   <h1 class="dv-title" id="dv-title"></h1>
   <div class="dvc-sub" id="sub"></div>
+  <p class="dvc-hint dv-control" id="hint"></p>
   <div id="views"></div>
   <div id="legend"></div>
   <div class="dvc-fade" id="grid"></div>
@@ -37,8 +38,9 @@
  * ================================================================ */
 var SETTINGS = {
   // ---- Text ----
-  title: "Europe’s existing fleet and new plant projects capacity", // Main title
-  subtitle: "Filter by project focus using the buttons below: show all statuses, new projects with cancellations, or existing fleet with retirements. Toggle individual statuses on/off by clicking the legend, and hover over bars to see capacity values.", // Subtitle under the title, one paragraph per line (empty = none)
+  title: "Gas power capacity by country: existing fleet and new plant projects", // Main title
+  subtitle: "",                                // Subtitle under the title, one paragraph per line (empty = none)
+  hint: "Filter the chart using the buttons below: show new gas plant projects with cancellations, the existing fleet with retirements, or both. Click the legend to switch each status on or off, and hover over bars to see capacity values.", // Instruction line under the title (empty = none)
   vBoth: "Both new and existing",              // Button: all statuses
   vExisting: "Existing fleet",                 // Button: existing fleet
   vNew: "New plant projects",                  // Button: new plant projects
@@ -172,12 +174,12 @@ var SETTINGS = {
 
     groups: [
       DV.chartTextGroup({
-        title: "Europe’s existing fleet and new plant projects capacity",
-        subtitle: "Filter by project focus using the buttons below: show all statuses, new projects with cancellations, or existing fleet with retirements. Toggle individual statuses on/off by clicking the legend, and hover over bars to see capacity values.",
+        title: "Gas power capacity by country: existing fleet and new plant projects",
         footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Gas power plants tracked since 2023 | Last update: {timestamp}",
         notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.",
         subtitleSize: 17,
         extra: [
+          { key: "hint",       type: "text", def: "Filter the chart using the buttons below: show new gas plant projects with cancellations, the existing fleet with retirements, or both. Click the legend to switch each status on or off, and hover over bars to see capacity values.", help: "Instruction line under the title (empty = none)" },
           { key: "vBoth",      type: "text", def: "Both new and existing", help: "Button: all statuses" },
           { key: "vExisting",  type: "text", def: "Existing fleet", help: "Button: existing fleet" },
           { key: "vNew",       type: "text", def: "New plant projects", help: "Button: new plant projects" },
@@ -217,6 +219,7 @@ var SETTINGS = {
     build: function (ctx) {
       var S = ctx.S;
       DV.chartText(S);
+      document.getElementById("hint").textContent = S.hint || "";
       document.documentElement.style.setProperty("--dvc-switch-on", S.switchColor);
       var vh = document.getElementById("views");
       vh.style.display = S.showButtons ? "" : "none";
