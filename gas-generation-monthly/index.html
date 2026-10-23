@@ -144,16 +144,16 @@ function draw() {
   var n = DATA.length, pad = Math.max(6, Math.min(14, W * 0.01));   // as DV.axisEdge: the axis reaches a little past the areas
   var x = function (i) { return m.l + pad + (iw - 2 * pad) * i / (n - 1); }, y = function (v) { return m.t + ih * (1 - v / 100); };
   var stacks = DATA.map(function (d) { var acc = 0; return LAYERS.map(function (l) { var lo = acc; acc += pct(d[l.key], d.total); return [lo, acc]; }); });
-  // solid areas, separated by thin white lines
-  LAYERS.forEach(function (l, j) {
-    var top = DATA.map(function (_, i) { return x(i) + "," + y(stacks[i][j][1]); });
-    var bot = DATA.map(function (_, i) { return x(i) + "," + y(stacks[i][j][0]); }).reverse();
-    el("polygon", { points: top.concat(bot).join(" "), fill: l.color, stroke: "#fff", "stroke-width": 0.6 });
-  });
-  // y axis: grid lines on top of the areas, styled like the x axis (axis colour at 35%), labels to the left
+  // y axis: grid lines behind the areas, styled like the x axis (axis colour at 35%), labels to the left
   [0, 25, 50, 75, 100].forEach(function (v) {
     if (v > 0) el("line", { x1: m.l, x2: m.l + iw, y1: y(v), y2: y(v), stroke: "#000", "stroke-opacity": 0.35 });
     var t = el("text", { x: m.l - 8, y: y(v), "text-anchor": "end", "dominant-baseline": "middle", "font-size": fs }); t.textContent = v + "%";
+  });
+  // areas at 98% opacity (the grid lines just show through), separated by thin white lines
+  LAYERS.forEach(function (l, j) {
+    var top = DATA.map(function (_, i) { return x(i) + "," + y(stacks[i][j][1]); });
+    var bot = DATA.map(function (_, i) { return x(i) + "," + y(stacks[i][j][0]); }).reverse();
+    el("polygon", { points: top.concat(bot).join(" "), fill: l.color, "fill-opacity": 0.98, stroke: "#fff", "stroke-width": 0.6 });
   });
   el("line", { x1: m.l, x2: m.l + iw, y1: y(0), y2: y(0), stroke: "#000", "stroke-opacity": 0.35 });
   // x axis: January of each year (and the last month when there is room), ticks and centred labels
