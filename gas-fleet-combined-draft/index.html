@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gas power capacity by country: installed, in development and stopped (draft)</title>
+<title>Gas power capacity by country: installed, in development, retired or cancelled (draft)</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,7 +39,7 @@
  * ================================================================ */
 var SETTINGS = {
   // ---- Text ----
-  title: "Gas power capacity by country: installed, in development and stopped", // Main title
+  title: "Gas power capacity by country: installed, in development, retired or cancelled", // Main title
   subtitle: "Switch between capacity in GW and shares by status. The share view shows, for each country, how much of its existing fleet has been retired and how much of its new plant projects has been cancelled.", // Subtitle under the title, one paragraph per line (empty = none)
   hint: "Click the legend to switch each status on or off, and hover over bars to see capacity values.", // Instruction line under the title (empty = none)
   vCapacity: "Capacity (GW)",                  // Button: capacity view
@@ -236,7 +236,7 @@ var SETTINGS = {
 
     groups: [
       DV.chartTextGroup({
-        title: "Gas power capacity by country: installed, in development and stopped",
+        title: "Gas power capacity by country: installed, in development, retired or cancelled",
         subtitle: "Switch between capacity in GW and shares by status. The share view shows, for each country, how much of its existing fleet has been retired and how much of its new plant projects has been cancelled.",
         footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Gas power plants tracked since 2023 | Last update: {timestamp}",
         notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.",
