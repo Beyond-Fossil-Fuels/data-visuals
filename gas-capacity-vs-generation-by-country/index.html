@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gas share of power capacity and electricity generation by country</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://use.typekit.net/fpb7yyu.css">
+<style>
+  /* DRAFT graphic: self-contained, no design mode, data built in (not from the Google Sheet). */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #fff; }
+  body { font-family: acumin-pro, Inter, Helvetica, sans-serif; color: #000; font-size: 14px; }
+  .dv { padding: 0; }
+  .frame-card .dv { padding: 30px; }
+  /* text sizes and fonts as the published graphics (Margherita's brand, measured at 1100 px on 23 Oct) */
+  .dv-title { font-family: acumin-pro, Inter, Helvetica, sans-serif; font-weight: 500; font-size: 22px; line-height: 1.15;
+    margin: 0 0 30px; letter-spacing: -0.01em; text-align: left; }
+  .draft { display: inline-block; vertical-align: middle; margin-left: 10px; font-family: inherit; font-size: 10px;
+    font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid #000; border-radius: 999px;
+    padding: 1px 7px; position: relative; top: -2px; }
+  .dv-sub { font-size: 14px; margin: 0 0 30px; max-width: 60em; }
+  .dv-hint { font-size: 12.4px; margin: 0 0 30px; }
+  .dv-footer { font-size: 10px; margin: 30px 0 0; }
+  .dv-notes p { font-size: 10px; margin: 2px 0 0; }
+  .dv-footer a, .dv-notes a { color: inherit; }
+  .tip { position: absolute; pointer-events: none; background: #fff; border: 1px solid #000; padding: 8px 10px;
+    font-size: 13px; line-height: 1.35; max-width: 300px; display: none; z-index: 5; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+  .tip b { display: block; margin-bottom: 4px; }
+  .tip .r { display: flex; gap: 8px; justify-content: space-between; }
+  .tip .r span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tip .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .tip .n { margin-top: 6px; font-size: 12px; color: #444; }
+  
+  .panel h2, .crow h2 { font-size: 15px; font-weight: 500; margin: 0 0 8px; line-height: 1.2; }
+  .track { position: relative; background: #ebe5dc; height: 100%; }
+  .fill { position: absolute; left: 0; top: 0; bottom: 0; }
+  .val { position: absolute; top: 50%; transform: translateY(-50%); padding-left: 6px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .val.in { transform: translate(-100%, -50%); padding: 0 6px 0 0; color: #fff; }
+
+  .sort { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 30px; font-size: 12.4px; }
+  .sort button { font: inherit; border: 1px solid #000; background: #fff; border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+  .sort button.on { background: #000; color: #fff; }
+  .crow { display: grid; grid-template-columns: minmax(90px, 170px) 1fr 1fr; gap: 0 18px; height: 26px; margin-bottom: 4px; }
+  .crow .lab { align-self: center; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .crow.head { height: auto; align-items: end; margin-bottom: 8px; }
+  .crow.europe { height: 34px; margin-bottom: 18px; }
+  .crow.europe .lab { font-weight: 500; font-size: 15px; }
+  .crow .val { font-size: 13px; }
+  @media (max-width: 549px) { .crow { grid-template-columns: 84px 1fr 1fr; gap: 0 8px; } .crow h2 { font-size: 14px; } .crow .lab { font-size: 12px; } }
+
+</style>
+</head>
+<body>
+<div class="dv" id="dv">
+  <h1 class="dv-title">Gas share of power capacity and electricity generation by country<span class="draft">Draft</span></h1>
+  <div class="sort"><span>Sort by:</span><button data-k="name" class="on">Country</button><button data-k="cap">Capacity share</button><button data-k="gen">Generation share</button></div>
+  <div id="rows"></div>
+  <p class="dv-footer">Sources: <a href="https://beyondfossilfuels.org/gas/" target="_blank" rel="noopener">Beyond Fossil Fuels</a> gas plant database, <a href="https://ember-energy.org/data/yearly-electricity-data/" target="_blank" rel="noopener">Ember yearly electricity data</a> | Gas power plants tracked since 2023 | Last update: October 2026</p>
+  <div class="dv-notes">
+    <p>Note: Gas capacity in October 2026 (Beyond Fossil Fuels, operating and mothballed plants), other capacity and all generation in 2025 (Ember). Countries are the 37 with Ember generation data; Albania and Ukraine are not included. The gas plant database covers plants of 15 MW or more, so small gas generators (as in Luxembourg) can show generation without capacity.</p>
+  </div>
+  <div class="tip" id="tip"></div>
+</div>
+<script src="../shared/brand.js"></script>
+<script>
+/* ---------- shared draft helpers ---------- */
+var PAL = (window.BRAND && BRAND.palette && BRAND.palette["Energy sources"]) || {};
+var GAS = PAL.gas || "#6D330C";
+if (/[?&]frame=card\b/.test(location.search)) document.documentElement.classList.add("frame-card");
+// EU style: space as thousands separator, point as decimal
+function fmt(v, d) {
+  var s = Math.abs(v).toFixed(d == null ? 1 : d), p = s.split(".");
+  p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return (v < 0 ? "-" : "") + p.join(".");
+}
+function pct(a, b) { return b ? a / b * 100 : 0; }
+// mix a hex colour with white (t = 0 keeps it, t = 1 gives white)
+function tint(hex, t) {
+  var n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(function (x) { return Math.round(x + (255 - x) * t); });
+  return "#" + c.map(function (x) { return ("0" + x.toString(16)).slice(-2); }).join("");
+}
+// mix a hex colour with black (t = 0 keeps it)
+function shade(hex, t) {
+  var n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(function (x) { return Math.round(x * (1 - t)); });
+  return "#" + c.map(function (x) { return ("0" + x.toString(16)).slice(-2); }).join("");
+}
+function links(s) { return s.replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>'); }
+var tipEl = document.getElementById("tip");
+function showTip(html, ev) {
+  tipEl.innerHTML = html; tipEl.style.display = "block";
+  var box = document.getElementById("dv").getBoundingClientRect(), tw = tipEl.offsetWidth, th = tipEl.offsetHeight;
+  var x = ev.clientX - box.left + 14, y = ev.clientY - box.top + 14;
+  if (x + tw > box.width) x = Math.max(0, ev.clientX - box.left - tw - 14);
+  if (y + th > box.height) y = Math.max(0, ev.clientY - box.top - th - 14);
+  tipEl.style.left = x + "px"; tipEl.style.top = y + "px";
+}
+function hideTip() { tipEl.style.display = "none"; }
+function row(color, label, value) {
+  return '<div class="r"><span>' + (color ? '<i class="sw" style="background:' + color + '"></i>' : "") + label + "</span><span>" + value + "</span></div>";
+}
+// tell the embedding page our height (same message as the other graphics)
+function postHeight() {
+  if (window.parent === window) return;
+  var h = Math.ceil(document.getElementById("dv").getBoundingClientRect().height);
+  window.parent.postMessage({ type: "dv-height", href: location.href, height: h }, "*");
+}
+if (window.ResizeObserver) new ResizeObserver(postHeight).observe(document.getElementById("dv"));
+window.addEventListener("load", postHeight);
+/* ---------- this graphic ---------- */
+// G9 (draft): gas share of power capacity vs electricity generation, Europe and each country, latest data.
+var DATA = {"2023": {"europe": {"name": "Europe", "capGas": 232.74, "capTot": 1334.88, "genGas": 633.56, "genTot": 3626.5}, "countries": [{"name": "Austria", "capGas": 5.08, "capTot": 32.18, "genGas": 7.5, "genTot": 70.98}, {"name": "Belgium", "capGas": 5.48, "capTot": 24.66, "genGas": 18.3, "genTot": 82.13}, {"name": "Bulgaria", "capGas": 1.8, "capTot": 15.19, "genGas": 1.94, "genTot": 40.08}, {"name": "Croatia", "capGas": 0.91, "capTot": 6.61, "genGas": 3.86, "genTot": 17.44}, {"name": "Cyprus", "capGas": 0.0, "capTot": 2.6, "genGas": 0.0, "genTot": 5.33}, {"name": "Czechia", "capGas": 1.7, "capTot": 19.02, "genGas": 3.68, "genTot": 75.8}, {"name": "Denmark", "capGas": 0.52, "capTot": 15.53, "genGas": 1.0, "genTot": 33.89}, {"name": "Estonia", "capGas": 0.45, "capTot": 3.3, "genGas": 0.02, "genTot": 5.74}, {"name": "Finland", "capGas": 1.71, "capTot": 23.7, "genGas": 0.66, "genTot": 81.52}, {"name": "France", "capGas": 8.49, "capTot": 145.01, "genGas": 30.02, "genTot": 518.75}, {"name": "Germany", "capGas": 30.07, "capTot": 233.4, "genGas": 76.66, "genTot": 506.72}, {"name": "Greece", "capGas": 6.11, "capTot": 25.95, "genGas": 15.98, "genTot": 48.93}, {"name": "Hungary", "capGas": 2.65, "capTot": 13.07, "genGas": 7.28, "genTot": 35.54}, {"name": "Ireland", "capGas": 4.24, "capTot": 11.56, "genGas": 15.35, "genTot": 31.54}, {"name": "Italy", "capGas": 41.29, "capTot": 114.32, "genGas": 119.02, "genTot": 261.55}, {"name": "Latvia", "capGas": 1.09, "capTot": 3.26, "genGas": 1.42, "genTot": 6.38}, {"name": "Lithuania", "capGas": 1.26, "capTot": 4.16, "genGas": 0.58, "genTot": 5.3}, {"name": "Luxembourg", "capGas": 0.0, "capTot": 0.73, "genGas": 0.09, "genTot": 1.41}, {"name": "Malta", "capGas": 0.36, "capTot": 0.78, "genGas": 2.01, "genTot": 2.35}, {"name": "Netherlands", "capGas": 14.11, "capTot": 52.87, "genGas": 46.09, "genTot": 119.96}, {"name": "Poland", "capGas": 3.18, "capTot": 59.49, "genGas": 16.49, "genTot": 165.52}, {"name": "Portugal", "capGas": 4.37, "capTot": 23.32, "genGas": 10.42, "genTot": 46.14}, {"name": "Romania", "capGas": 2.47, "capTot": 20.68, "genGas": 9.15, "genTot": 56.95}, {"name": "Slovakia", "capGas": 1.11, "capTot": 6.02, "genGas": 2.28, "genTot": 29.53}, {"name": "Slovenia", "capGas": 0.42, "capTot": 4.45, "genGas": 0.5, "genTot": 15.55}, {"name": "Spain", "capGas": 28.08, "capTot": 122.49, "genGas": 64.36, "genTot": 279.11}, {"name": "Sweden", "capGas": 0.93, "capTot": 52.3, "genGas": 0.16, "genTot": 166.05}, {"name": "United Kingdom", "capGas": 34.82, "capTot": 100.69, "genGas": 101.66, "genTot": 292.53}, {"name": "Türkiye", "capGas": 27.09, "capTot": 110.07, "genGas": 66.48, "genTot": 319.79}, {"name": "Norway", "capGas": 0.38, "capTot": 40.57, "genGas": 1.53, "genTot": 153.63}, {"name": "Switzerland", "capGas": 0.09, "capTot": 25.79, "genGas": 0.27, "genTot": 70.07}, {"name": "Moldova", "capGas": 1.59, "capTot": 3.41, "genGas": 5.44, "genTot": 6.35}, {"name": "Bosnia and Herzegovina", "capGas": 0.0, "capTot": 4.29, "genGas": 0.01, "genTot": 17.18}, {"name": "Kosovo", "capGas": 0.0, "capTot": 1.33, "genGas": 0.0, "genTot": 6.34}, {"name": "Montenegro", "capGas": 0.0, "capTot": 1.06, "genGas": 0.0, "genTot": 4.19}, {"name": "North Macedonia", "capGas": 0.28, "capTot": 2.66, "genGas": 1.38, "genTot": 6.9}, {"name": "Serbia", "capGas": 0.63, "capTot": 8.38, "genGas": 1.97, "genTot": 39.33}]}, "latest": {"europe": {"name": "Europe", "capGas": 244.93, "capTot": 1499.78, "genGas": 639.68, "genTot": 3733.1}, "countries": [{"name": "Austria", "capGas": 5.08, "capTot": 37.14, "genGas": 8.8, "genTot": 73.28}, {"name": "Belgium", "capGas": 6.04, "capTot": 25.71, "genGas": 13.04, "genTot": 66.88}, {"name": "Bulgaria", "capGas": 1.8, "capTot": 17.73, "genGas": 1.85, "genTot": 37.98}, {"name": "Croatia", "capGas": 0.91, "capTot": 7.56, "genGas": 2.76, "genTot": 14.7}, {"name": "Cyprus", "capGas": 0.16, "capTot": 3.05, "genGas": 0.0, "genTot": 5.91}, {"name": "Czechia", "capGas": 1.75, "capTot": 19.93, "genGas": 4.08, "genTot": 75.5}, {"name": "Denmark", "capGas": 0.81, "capTot": 16.44, "genGas": 0.13, "genTot": 34.53}, {"name": "Estonia", "capGas": 0.45, "capTot": 3.89, "genGas": 0.08, "genTot": 6.19}, {"name": "Finland", "capGas": 1.73, "capTot": 26.41, "genGas": 0.95, "genTot": 82.3}, {"name": "France", "capGas": 8.49, "capTot": 158.57, "genGas": 17.25, "genTot": 570.14}, {"name": "Germany", "capGas": 31.3, "capTot": 267.24, "genGas": 82.67, "genTot": 500.47}, {"name": "Greece", "capGas": 7.0, "capTot": 30.55, "genGas": 23.33, "genTot": 57.92}, {"name": "Hungary", "capGas": 2.7, "capTot": 15.39, "genGas": 8.15, "genTot": 40.24}, {"name": "Ireland", "capGas": 4.59, "capTot": 14.24, "genGas": 14.99, "genTot": 30.95}, {"name": "Italy", "capGas": 44.06, "capTot": 130.25, "genGas": 125.53, "genTot": 264.94}, {"name": "Latvia", "capGas": 1.09, "capTot": 3.84, "genGas": 1.65, "genTot": 6.33}, {"name": "Lithuania", "capGas": 1.26, "capTot": 7.39, "genGas": 1.48, "genTot": 8.88}, {"name": "Luxembourg", "capGas": 0.0, "capTot": 1.13, "genGas": 0.06, "genTot": 1.54}, {"name": "Malta", "capGas": 0.36, "capTot": 0.8, "genGas": 1.82, "genTot": 2.19}, {"name": "Netherlands", "capGas": 14.11, "capTot": 57.77, "genGas": 47.09, "genTot": 134.96}, {"name": "Poland", "capGas": 5.08, "capTot": 70.83, "genGas": 24.81, "genTot": 172.58}, {"name": "Portugal", "capGas": 4.37, "capTot": 26.47, "genGas": 8.42, "genTot": 51.14}, {"name": "Romania", "capGas": 2.61, "capTot": 23.96, "genGas": 8.43, "genTot": 49.78}, {"name": "Slovakia", "capGas": 1.11, "capTot": 6.84, "genGas": 3.28, "genTot": 29.09}, {"name": "Slovenia", "capGas": 0.53, "capTot": 5.08, "genGas": 0.97, "genTot": 14.88}, {"name": "Spain", "capGas": 28.68, "capTot": 138.52, "genGas": 62.06, "genTot": 287.97}, {"name": "Sweden", "capGas": 0.93, "capTot": 55.57, "genGas": 0.11, "genTot": 170.28}, {"name": "United Kingdom", "capGas": 37.04, "capTot": 109.39, "genGas": 90.91, "genTot": 292.31}, {"name": "Türkiye", "capGas": 27.94, "capTot": 124.07, "genGas": 78.36, "genTot": 353.86}, {"name": "Norway", "capGas": 0.38, "capTot": 41.33, "genGas": 0.9, "genTot": 160.84}, {"name": "Switzerland", "capGas": 0.09, "capTot": 28.88, "genGas": 0.27, "genTot": 65.02}, {"name": "Moldova", "capGas": 1.59, "capTot": 4.02, "genGas": 1.85, "genTot": 2.9}, {"name": "Bosnia and Herzegovina", "capGas": 0.0, "capTot": 4.89, "genGas": 0.0, "genTot": 14.52}, {"name": "Kosovo", "capGas": 0.0, "capTot": 1.33, "genGas": 0.0, "genTot": 5.87}, {"name": "Montenegro", "capGas": 0.0, "capTot": 1.14, "genGas": 0.0, "genTot": 2.46}, {"name": "North Macedonia", "capGas": 0.28, "capTot": 3.19, "genGas": 1.09, "genTot": 7.1}, {"name": "Serbia", "capGas": 0.63, "capTot": 9.26, "genGas": 2.51, "genTot": 36.67}]}};
+var L = DATA.latest;
+var sortBy = "name";
+function shares(d) { return { cap: pct(d.capGas, d.capTot), gen: pct(d.genGas, d.genTot) }; }
+function bar(share) {
+  return '<div class="track"><div class="fill" style="width:' + share + '%;background:' + GAS + '"></div><div class="val' + (share > 75 ? ' in' : '') + '" style="left:' + share + '%">' + fmt(share, 1) + "%</div></div>";
+}
+function tipFor(d) {
+  var s = shares(d);
+  return "<b>" + d.name + "</b>" +
+    row(GAS, "Gas capacity", fmt(d.capGas, 2) + " GW") + row("", "All capacity", fmt(d.capTot, 1) + " GW") + row("", "Gas share of capacity", fmt(s.cap, 1) + "%") +
+    '<div style="height:6px"></div>' +
+    row(GAS, "Gas generation", fmt(d.genGas, 2) + " TWh") + row("", "All generation", fmt(d.genTot, 1) + " TWh") + row("", "Gas share of generation", fmt(s.gen, 1) + "%") +
+    '<div class="n">Gas capacity: BFF, October 2026. Other capacity and all generation: Ember, 2025.</div>';
+}
+function line(d, cls) {
+  var s = shares(d), r = document.createElement("div");
+  r.className = "crow " + (cls || "");
+  r.innerHTML = '<div class="lab">' + d.name + "</div>" + bar(s.cap) + bar(s.gen);
+  var t = tipFor(d);
+  r.addEventListener("mousemove", function (ev) { showTip(t, ev); });
+  r.addEventListener("mouseleave", hideTip);
+  r.addEventListener("click", function (ev) { showTip(t, ev); });
+  return r;
+}
+function draw() {
+  var host = document.getElementById("rows"); host.innerHTML = "";
+  var head = document.createElement("div"); head.className = "crow head";
+  head.innerHTML = '<div class="lab"></div><h2>Share of installed power capacity</h2><h2>Share of electricity generation</h2>';
+  host.appendChild(head);
+  host.appendChild(line(L.europe, "europe"));
+  var list = L.countries.slice();
+  list.sort(function (a, b) {
+    if (sortBy === "name") return a.name.localeCompare(b.name);
+    var sa = shares(a), sb = shares(b);
+    return (sb[sortBy] - sa[sortBy]) || a.name.localeCompare(b.name);
+  });
+  list.forEach(function (d) { host.appendChild(line(d)); });
+}
+document.querySelectorAll(".sort button").forEach(function (b) {
+  b.addEventListener("click", function () {
+    sortBy = b.getAttribute("data-k");
+    document.querySelectorAll(".sort button").forEach(function (x) { x.classList.toggle("on", x === b); });
+    draw();
+  });
+});
+draw();
+
+</script>
+</body>
+</html>

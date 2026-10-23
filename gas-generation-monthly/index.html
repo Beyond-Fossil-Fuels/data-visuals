@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gas in Europe's monthly electricity mix, by country</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://use.typekit.net/fpb7yyu.css">
+<style>
+  /* DRAFT graphic: self-contained, no design mode, data built in (not from the Google Sheet). */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #fff; }
+  body { font-family: acumin-pro, Inter, Helvetica, sans-serif; color: #000; font-size: 14px; }
+  .dv { padding: 0; }
+  .frame-card .dv { padding: 30px; }
+  /* text sizes and fonts as the published graphics (Margherita's brand, measured at 1100 px on 23 Oct) */
+  .dv-title { font-family: acumin-pro, Inter, Helvetica, sans-serif; font-weight: 500; font-size: 22px; line-height: 1.15;
+    margin: 0 0 30px; letter-spacing: -0.01em; text-align: left; }
+  .draft { display: inline-block; vertical-align: middle; margin-left: 10px; font-family: inherit; font-size: 10px;
+    font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid #000; border-radius: 999px;
+    padding: 1px 7px; position: relative; top: -2px; }
+  .dv-sub { font-size: 14px; margin: 0 0 30px; max-width: 60em; }
+  .dv-hint { font-size: 12.4px; margin: 0 0 30px; }
+  .dv-footer { font-size: 10px; margin: 30px 0 0; }
+  .dv-notes p { font-size: 10px; margin: 2px 0 0; }
+  .dv-footer a, .dv-notes a { color: inherit; }
+  .tip { position: absolute; pointer-events: none; background: #fff; border: 1px solid #000; padding: 8px 10px;
+    font-size: 13px; line-height: 1.35; max-width: 300px; display: none; z-index: 5; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+  .tip b { display: block; margin-bottom: 4px; }
+  .tip .r { display: flex; gap: 8px; justify-content: space-between; }
+  .tip .r span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tip .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .tip .n { margin-top: 6px; font-size: 12px; color: #444; }
+  
+  .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 12.4px; margin: 0 0 10px; }
+  .tip { max-width: 340px; }
+  .tip .hr { border-top: 1px solid #000; margin: 6px 0; }
+  .tip .strong { font-weight: 700; }
+  .tip .sub { padding-left: 16px; }
+  .legend .it { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .legend i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  #panel { position: relative; }
+  #chart { display: block; overflow: visible; }
+  #chart text { font-family: acumin-pro, Inter, Helvetica, sans-serif; }
+  .tip small { color: #555; }
+
+</style>
+</head>
+<body>
+<div class="dv" id="dv">
+  <h1 class="dv-title">Gas in Europe's monthly electricity mix, by country<span class="draft">Draft</span></h1>
+  <p class="dv-hint">Share of Europe's electricity generation each month. Gas is split into the three largest gas generators over the period and all other countries. Hover over the chart for the figures.</p>
+  <div class="legend" id="legend"></div>
+  <div id="panel"><svg id="chart"></svg></div>
+  <p class="dv-footer">Source: <a href="https://ember-energy.org/data/monthly-electricity-data/" target="_blank" rel="noopener">Ember monthly electricity data</a>, as compiled for Beyond Fossil Fuels' quarterly reports | Last update: September 2026</p>
+  <div class="dv-notes">
+    <p>Note: Europe covers the EU27, the UK, Norway, Switzerland, Türkiye, Bosnia and Herzegovina, Montenegro and Serbia. Albania, Kosovo, Moldova, North Macedonia and Ukraine are not included, as their monthly data is incomplete. Missing recent months for Malta, Switzerland and Türkiye are filled from national sources. Other fossil fuels are mainly coal; other sources are nuclear, hydro, bioenergy and other renewables.</p>
+  </div>
+  <div class="tip" id="tip"></div>
+</div>
+<script src="../shared/brand.js"></script>
+<script>
+/* ---------- shared draft helpers ---------- */
+var PAL = (window.BRAND && BRAND.palette && BRAND.palette["Energy sources"]) || {};
+var GAS = PAL.gas || "#6D330C";
+if (/[?&]frame=card\b/.test(location.search)) document.documentElement.classList.add("frame-card");
+// EU style: space as thousands separator, point as decimal
+function fmt(v, d) {
+  var s = Math.abs(v).toFixed(d == null ? 1 : d), p = s.split(".");
+  p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return (v < 0 ? "-" : "") + p.join(".");
+}
+function pct(a, b) { return b ? a / b * 100 : 0; }
+// mix a hex colour with white (t = 0 keeps it, t = 1 gives white)
+function tint(hex, t) {
+  var n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(function (x) { return Math.round(x + (255 - x) * t); });
+  return "#" + c.map(function (x) { return ("0" + x.toString(16)).slice(-2); }).join("");
+}
+// mix a hex colour with black (t = 0 keeps it)
+function shade(hex, t) {
+  var n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(function (x) { return Math.round(x * (1 - t)); });
+  return "#" + c.map(function (x) { return ("0" + x.toString(16)).slice(-2); }).join("");
+}
+function links(s) { return s.replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>'); }
+var tipEl = document.getElementById("tip");
+function showTip(html, ev) {
+  tipEl.innerHTML = html; tipEl.style.display = "block";
+  var box = document.getElementById("dv").getBoundingClientRect(), tw = tipEl.offsetWidth, th = tipEl.offsetHeight;
+  var x = ev.clientX - box.left + 14, y = ev.clientY - box.top + 14;
+  if (x + tw > box.width) x = Math.max(0, ev.clientX - box.left - tw - 14);
+  if (y + th > box.height) y = Math.max(0, ev.clientY - box.top - th - 14);
+  tipEl.style.left = x + "px"; tipEl.style.top = y + "px";
+}
+function hideTip() { tipEl.style.display = "none"; }
+function row(color, label, value) {
+  return '<div class="r"><span>' + (color ? '<i class="sw" style="background:' + color + '"></i>' : "") + label + "</span><span>" + value + "</span></div>";
+}
+// tell the embedding page our height (same message as the other graphics)
+function postHeight() {
+  if (window.parent === window) return;
+  var h = Math.ceil(document.getElementById("dv").getBoundingClientRect().height);
+  window.parent.postMessage({ type: "dv-height", href: location.href, height: h }, "*");
+}
+if (window.ResizeObserver) new ResizeObserver(postHeight).observe(document.getElementById("dv"));
+window.addEventListener("load", postHeight);
+/* ---------- this graphic ---------- */
+// G10 (draft): monthly share of Europe's electricity generation by source, gas split into the three largest gas generators and the rest.
+var DATA = [{"m": "2023-01", "total": 317.13, "it": 9.981, "uk": 8.213, "de": 7.202, "gasOther": 29.429, "otherFossil": 57.15, "ws": 76.071, "other": 129.084}, {"m": "2023-02", "total": 288.469, "it": 9.772, "uk": 8.454, "de": 7.31, "gasOther": 33.118, "otherFossil": 52.759, "ws": 64.634, "other": 112.422}, {"m": "2023-03", "total": 302.344, "it": 9.541, "uk": 9.618, "de": 6.744, "gasOther": 27.277, "otherFossil": 49.35, "ws": 79.061, "other": 120.753}, {"m": "2023-04", "total": 268.546, "it": 8.439, "uk": 8.648, "de": 5.624, "gasOther": 20.957, "otherFossil": 39.836, "ws": 70.813, "other": 114.229}, {"m": "2023-05", "total": 262.387, "it": 7.51, "uk": 8.094, "de": 4.848, "gasOther": 20.42, "otherFossil": 34.665, "ws": 74.205, "other": 112.645}, {"m": "2023-06", "total": 256.59, "it": 8.498, "uk": 8.442, "de": 4.873, "gasOther": 22.09, "otherFossil": 35.169, "ws": 66.675, "other": 110.843}, {"m": "2023-07", "total": 278.762, "it": 11.634, "uk": 7.146, "de": 4.644, "gasOther": 26.836, "otherFossil": 39.059, "ws": 78.574, "other": 110.869}, {"m": "2023-08", "total": 275.195, "it": 8.926, "uk": 8.34, "de": 4.975, "gasOther": 30.084, "otherFossil": 42.263, "ws": 70.333, "other": 110.274}, {"m": "2023-09", "total": 264.384, "it": 9.951, "uk": 8.056, "de": 4.549, "gasOther": 26.523, "otherFossil": 42.963, "ws": 67.04, "other": 105.302}, {"m": "2023-10", "total": 278.363, "it": 9.787, "uk": 7.225, "de": 5.468, "gasOther": 23.387, "otherFossil": 45.25, "ws": 75.722, "other": 111.524}, {"m": "2023-11", "total": 295.487, "it": 8.068, "uk": 8.911, "de": 6.412, "gasOther": 23.388, "otherFossil": 48.241, "ws": 75.648, "other": 124.819}, {"m": "2023-12", "total": 313.971, "it": 9.995, "uk": 7.86, "de": 6.802, "gasOther": 25.547, "otherFossil": 48.247, "ws": 79.557, "other": 135.963}, {"m": "2024-01", "total": 335.071, "it": 10.208, "uk": 11.074, "de": 8.7, "gasOther": 29.333, "otherFossil": 48.33, "ws": 83.433, "other": 143.993}, {"m": "2024-02", "total": 296.206, "it": 8.741, "uk": 7.221, "de": 6.742, "gasOther": 21.472, "otherFossil": 42.206, "ws": 81.828, "other": 127.996}, {"m": "2024-03", "total": 298.935, "it": 7.772, "uk": 6.882, "de": 6.91, "gasOther": 23.275, "otherFossil": 42.424, "ws": 79.939, "other": 131.733}, {"m": "2024-04", "total": 273.351, "it": 6.073, "uk": 4.702, "de": 5.927, "gasOther": 14.863, "otherFossil": 31.869, "ws": 87.87, "other": 122.047}, {"m": "2024-05", "total": 267.685, "it": 6.082, "uk": 6.315, "de": 5.024, "gasOther": 16.26, "otherFossil": 32.387, "ws": 78.404, "other": 123.213}, {"m": "2024-06", "total": 267.417, "it": 7.353, "uk": 5.017, "de": 4.572, "gasOther": 18.234, "otherFossil": 34.69, "ws": 80.037, "other": 117.514}, {"m": "2024-07", "total": 291.68, "it": 11.313, "uk": 6.064, "de": 4.474, "gasOther": 24.25, "otherFossil": 39.159, "ws": 83.285, "other": 123.135}, {"m": "2024-08", "total": 282.862, "it": 11.027, "uk": 4.442, "de": 4.521, "gasOther": 25.41, "otherFossil": 39.71, "ws": 83.34, "other": 114.412}, {"m": "2024-09", "total": 269.257, "it": 9.811, "uk": 6.281, "de": 4.704, "gasOther": 21.627, "otherFossil": 38.709, "ws": 78.021, "other": 110.104}, {"m": "2024-10", "total": 284.668, "it": 8.712, "uk": 7.722, "de": 5.721, "gasOther": 21.672, "otherFossil": 43.942, "ws": 74.474, "other": 122.425}, {"m": "2024-11", "total": 301.008, "it": 11.104, "uk": 10.655, "de": 8.661, "gasOther": 33.06, "otherFossil": 49.263, "ws": 68.67, "other": 119.595}, {"m": "2024-12", "total": 320.156, "it": 11.294, "uk": 8.518, "de": 8.28, "gasOther": 33.91, "otherFossil": 48.509, "ws": 81.249, "other": 128.396}, {"m": "2025-01", "total": 337.666, "it": 11.685, "uk": 12.374, "de": 9.58, "gasOther": 35.046, "otherFossil": 49.915, "ws": 79.413, "other": 139.653}, {"m": "2025-02", "total": 304.527, "it": 11.719, "uk": 9.446, "de": 9.282, "gasOther": 32.655, "otherFossil": 48.565, "ws": 67.945, "other": 124.915}, {"m": "2025-03", "total": 305.8, "it": 10.019, "uk": 9.014, "de": 7.643, "gasOther": 25.122, "otherFossil": 43.306, "ws": 87.078, "other": 123.618}, {"m": "2025-04", "total": 270.962, "it": 6.777, "uk": 6.83, "de": 5.538, "gasOther": 19.341, "otherFossil": 33.964, "ws": 84.113, "other": 114.399}, {"m": "2025-05", "total": 270.447, "it": 5.543, "uk": 5.474, "de": 4.685, "gasOther": 18.214, "otherFossil": 29.249, "ws": 94.558, "other": 112.724}, {"m": "2025-06", "total": 274.021, "it": 8.09, "uk": 4.757, "de": 4.067, "gasOther": 19.708, "otherFossil": 29.929, "ws": 99.992, "other": 107.478}, {"m": "2025-07", "total": 291.489, "it": 10.114, "uk": 6.53, "de": 4.814, "gasOther": 28.141, "otherFossil": 38.157, "ws": 90.393, "other": 113.34}, {"m": "2025-08", "total": 279.379, "it": 8.129, "uk": 5.973, "de": 4.402, "gasOther": 26.232, "otherFossil": 35.204, "ws": 91.846, "other": 107.593}, {"m": "2025-09", "total": 272.028, "it": 9.421, "uk": 5.798, "de": 5.089, "gasOther": 22.365, "otherFossil": 34.864, "ws": 90.015, "other": 104.476}, {"m": "2025-10", "total": 290.44, "it": 9.7, "uk": 8.217, "de": 6.714, "gasOther": 28.245, "otherFossil": 40.614, "ws": 89.102, "other": 107.848}, {"m": "2025-11", "total": 303.637, "it": 11.563, "uk": 8.298, "de": 8.772, "gasOther": 29.739, "otherFossil": 45.157, "ws": 79.233, "other": 120.875}, {"m": "2025-12", "total": 322.868, "it": 13.79, "uk": 7.867, "de": 8.739, "gasOther": 36.61, "otherFossil": 44.461, "ws": 79.553, "other": 131.848}, {"m": "2026-01", "total": 352.265, "it": 14.655, "uk": 10.394, "de": 11.265, "gasOther": 40.933, "otherFossil": 50.483, "ws": 87.254, "other": 137.281}, {"m": "2026-02", "total": 306.987, "it": 10.425, "uk": 8.682, "de": 9.518, "gasOther": 25.228, "otherFossil": 42.333, "ws": 83.752, "other": 127.049}, {"m": "2026-03", "total": 309.972, "it": 9.339, "uk": 6.803, "de": 6.725, "gasOther": 19.807, "otherFossil": 41.289, "ws": 98.151, "other": 127.858}, {"m": "2026-04", "total": 278.156, "it": 6.592, "uk": 4.561, "de": 5.868, "gasOther": 16.467, "otherFossil": 31.098, "ws": 97.879, "other": 115.691}, {"m": "2026-05", "total": 272.369, "it": 6.748, "uk": 6.16, "de": 5.089, "gasOther": 17.329, "otherFossil": 28.878, "ws": 95.491, "other": 112.674}, {"m": "2026-06", "total": 281.683, "it": 9.149, "uk": 7.104, "de": 4.699, "gasOther": 19.028, "otherFossil": 30.45, "ws": 101.808, "other": 109.445}, {"m": "2026-07", "total": 300.054, "it": 12.357, "uk": 6.109, "de": 4.242, "gasOther": 22.116, "otherFossil": 37.502, "ws": 109.344, "other": 108.384}, {"m": "2026-08", "total": 292.451, "it": 11.414, "uk": 5.948, "de": 4.661, "gasOther": 24.032, "otherFossil": 39.222, "ws": 103.287, "other": 103.887}, {"m": "2026-09", "total": 281.406, "it": 11.303, "uk": 5.584, "de": 5.519, "gasOther": 20.674, "otherFossil": 39.936, "ws": 97.898, "other": 100.492}];
+var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+var MONTHS_LONG = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+function mlabel(m, long) { var p = m.split("-"); return (long ? MONTHS_LONG : MONTHS)[+p[1] - 1] + " " + p[0]; }
+// bottom to top
+var LAYERS = [
+  { key: "gasOther", label: "Gas: other countries", short: "Other countries", color: tint(GAS, 0.72), gas: true },
+  { key: "de", label: "Gas: Germany", short: "Germany", color: tint(GAS, 0.52), gas: true },
+  { key: "uk", label: "Gas: United Kingdom", short: "United Kingdom", color: tint(GAS, 0.3), gas: true },
+  { key: "it", label: "Gas: Italy", short: "Italy", color: tint(GAS, 0), gas: true },
+  { key: "otherFossil", label: "Other fossil fuels", color: "#000000" },
+  { key: "other", label: "Other sources", color: "#d9dde1" },
+  { key: "ws", label: "Wind and solar", color: PAL.solarAndWind || "#86e649" }
+];
+var BY = {}; LAYERS.forEach(function (l) { BY[l.key] = l; });
+
+// legend on top: only on narrow screens, where the labels next to the chart don't fit
+var lg = document.getElementById("legend");
+lg.innerHTML = LAYERS.slice().reverse().map(function (l) {
+  return '<span class="it"><i style="background:' + l.color + '"></i>' + l.label + "</span>";
+}).join("");
+
+var svg = document.getElementById("chart"), NS = "http://www.w3.org/2000/svg";
+function el(name, attrs, parent) { var e = document.createElementNS(NS, name); for (var k in attrs) e.setAttribute(k, attrs[k]); (parent || svg).appendChild(e); return e; }
+
+function draw() {
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  var W = document.getElementById("panel").clientWidth, narrow = W < 550;
+  lg.style.display = narrow ? "flex" : "none";
+  var H = Math.round(Math.max(300, Math.min(480, W * 0.5)));
+  var fs = Math.max(12.8, Math.min(16, 16 * W / 1100)), lgap = Math.ceil(fs * 0.5) + 3;   // as DV.axisLabelGap
+  var m = { t: 8, r: narrow ? Math.ceil(fs * 2) : 190, b: fs + 8 + lgap, l: Math.ceil(fs * 0.58 * 4 + 14) };
+  var iw = W - m.l - m.r, ih = H - m.t - m.b;
+  svg.setAttribute("width", W); svg.setAttribute("height", H); svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  var n = DATA.length, pad = Math.max(6, Math.min(14, W * 0.01));   // as DV.axisEdge: the axis reaches a little past the areas
+  var x = function (i) { return m.l + pad + (iw - 2 * pad) * i / (n - 1); }, y = function (v) { return m.t + ih * (1 - v / 100); };
+  var stacks = DATA.map(function (d) { var acc = 0; return LAYERS.map(function (l) { var lo = acc; acc += pct(d[l.key], d.total); return [lo, acc]; }); });
+  LAYERS.forEach(function (l, j) {
+    var top = DATA.map(function (_, i) { return x(i) + "," + y(stacks[i][j][1]); });
+    var bot = DATA.map(function (_, i) { return x(i) + "," + y(stacks[i][j][0]); }).reverse();
+    el("polygon", { points: top.concat(bot).join(" "), fill: l.color, stroke: "#fff", "stroke-width": 0.6 });
+  });
+  // y axis: grid lines above 0 in the grid colour, the 0 line as the axis (35%), labels to the left
+  var GRID = (window.BRAND && BRAND.gridColor) || "#eceef0";
+  [0, 25, 50, 75, 100].forEach(function (v) {
+    if (v > 0) el("line", { x1: m.l, x2: m.l + iw, y1: y(v), y2: y(v), stroke: GRID, "stroke-opacity": 0.6 });
+    var t = el("text", { x: m.l - 8, y: y(v), "text-anchor": "end", "dominant-baseline": "middle", "font-size": fs }); t.textContent = v + "%";
+  });
+  el("line", { x1: m.l, x2: m.l + iw, y1: y(0), y2: y(0), stroke: "#000", "stroke-opacity": 0.35 });
+  // x axis: January of each year (and the last month when there is room), ticks and centred labels
+  var lastJan = 0; DATA.forEach(function (d, i) { if (d.m.slice(5) === "01") lastJan = i; });
+  var showLast = x(n - 1) - x(lastJan) > fs * (narrow ? 4.5 : 6.5);
+  DATA.forEach(function (d, i) {
+    if (d.m.slice(5) === "01" || (i === n - 1 && showLast)) {
+      el("line", { x1: x(i), x2: x(i), y1: y(0), y2: y(0) + 5, stroke: "#000", "stroke-opacity": 0.35 });
+      var t = el("text", { x: x(i), y: y(0) + fs + lgap, "text-anchor": "middle", "font-size": fs });
+      t.textContent = (narrow && i !== 0 && i !== n - 1) ? d.m.slice(0, 4) : mlabel(d.m);
+    }
+  });
+  // labels to the right of the chart, at the middle of each band in the last month, pushed apart so they don't overlap
+  if (!narrow) {
+    var last = stacks[n - 1], gap = 17;
+    var labs = LAYERS.map(function (l, j) { return { l: l, want: y((last[j][0] + last[j][1]) / 2) }; });
+    labs.sort(function (a, b) { return a.want - b.want; });
+    labs.forEach(function (o, k) { o.y = k ? Math.max(o.want, labs[k - 1].y + gap) : Math.max(o.want, m.t + 6); });
+    var bottom = m.t + ih - 4;
+    for (var k = labs.length - 1; k >= 0; k--) labs[k].y = Math.min(labs[k].y, k === labs.length - 1 ? bottom : labs[k + 1].y - gap);
+    var x0 = x(n - 1), lfs = Math.max(12, Math.min(14, fs * 0.85));
+    labs.forEach(function (o) {
+      var c = o.l.color, txt = /^#(d|c|e|f|8)/i.test(c) ? shade(c, 0.45) : c;
+      el("polyline", { points: (x0 + 2) + "," + o.want + " " + (x0 + 10) + "," + o.want + " " + (x0 + 16) + "," + o.y, fill: "none", stroke: txt, "stroke-width": 0.8 });
+      var t = el("text", { x: x0 + 20, y: o.y, "dominant-baseline": "middle", "font-size": lfs, "font-weight": 600, fill: txt }); t.textContent = o.l.label;
+    });
+  }
+  // hover
+  var guide = el("line", { y1: m.t, y2: m.t + ih, stroke: "#000", "stroke-width": 1, visibility: "hidden" });
+  var hit = el("rect", { x: m.l, y: m.t, width: iw, height: ih, fill: "transparent", style: "cursor:crosshair" });
+  function share(d, k) { return fmt(pct(d[k], d.total), 1) + "% <small>(" + fmt(d[k], 1) + " TWh)</small>"; }
+  function at(ev) {
+    var r = svg.getBoundingClientRect(), i = Math.round((ev.clientX - r.left - m.l) / iw * (n - 1));
+    i = Math.max(0, Math.min(n - 1, i));
+    var d = DATA[i]; d.gas = d.it + d.uk + d.de + d.gasOther;
+    guide.setAttribute("x1", x(i)); guide.setAttribute("x2", x(i)); guide.setAttribute("visibility", "visible");
+    var h = "<b>" + mlabel(d.m, true) + "</b>" +
+      row(BY.ws.color, BY.ws.label, share(d, "ws")) +
+      row(BY.other.color, BY.other.label, share(d, "other")) +
+      row(BY.otherFossil.color, BY.otherFossil.label, share(d, "otherFossil")) +
+      '<div class="hr"></div>' +
+      '<div class="r strong"><span><i class="sw" style="background:' + GAS + '"></i>Gas, all countries</span><span>' + share(d, "gas") + "</span></div>" +
+      ["it", "uk", "de", "gasOther"].map(function (k) { return '<div class="r sub"><span><i class="sw" style="background:' + BY[k].color + '"></i>' + BY[k].short + "</span><span>" + share(d, k) + "</span></div>"; }).join("") +
+      '<div class="hr"></div>' +
+      row("", "Total generation", fmt(d.total, 1) + " TWh");
+    showTip(h, ev);
+  }
+  hit.addEventListener("mousemove", at);
+  hit.addEventListener("click", at);
+  hit.addEventListener("mouseleave", function () { guide.setAttribute("visibility", "hidden"); hideTip(); });
+}
+draw();
+window.addEventListener("resize", draw);
+
+</script>
+</body>
+</html>
