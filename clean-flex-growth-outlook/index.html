@@ -82,7 +82,7 @@ var SETTINGS = {
   fillOpacity: 0.85,                           // How solid the areas are
   lineWidthF2: 3,                              // Line thickness on top of each area in px
   dotSizeF2: 4.5,                              // Dot size in px (0 = none)
-  yStep: 230,                                  // Gap between y-axis numbers (0 = automatic)
+  yStep: 350,                                  // Gap between y-axis numbers (0 = automatic)
 
   // ---- Layout ----
   chartHeight: 0.4,                            // Chart height as a share of its width
@@ -179,7 +179,7 @@ var SETTINGS = {
         lineWidth: S.lineWidthF2, dotSize: S.dotSizeF2 * (narrow ? 0.7 : 1), yMax: ax.max, tickStep: ax.step,
         fmtY: function (v) { return DV.fmt(v, u, 0); },
         endLabels: S.endLabels ? { width: narrow ? Math.min(S.endLabelWidth, w * 0.3) : S.endLabelWidth, size: ctx.sz(S.endLabelSize, 11), weight: S.endLabelWeight } : null,
-        refs: S.refShow ? [{ y: S.refValue, label: S.refLabel, size: ctx.sz(S.refSize, 11), weight: S.refWeight }] : null,
+        refs: S.refShow ? [{ y: S.refValue, label: S.refLabel, size: ctx.sz(S.refSize, 11), weight: S.refWeight, axisLabel: DV.fmt(S.refValue, u, 0) }] : null,
         tooltip: function (i) {
           var h = "<b>" + rows[i].Year + "</b>" + (rows[i][ctx.P] && ctx.P !== "Year" ? '<div class="r"><span>' + rows[i][ctx.P] + "</span></div>" : "");
           // only the total: the split by technology was read off the report's figure, so it isn't exact

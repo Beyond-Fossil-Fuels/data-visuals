@@ -510,6 +510,8 @@
     });
     if (o.refs) o.refs.forEach(function (r) {
       el("line", { x1: m.left, x2: m.left + iw, y1: y(r.y), y2: y(r.y), stroke: r.color || "#000", "stroke-width": 1, "stroke-dasharray": "4 3" }, svg);
+      // optional: the reference value next to the y-axis numbers (r.axisLabel = text, e.g. "253 GW")
+      if (r.axisLabel) el("text", { x: m.left - padY, y: y(r.y), "text-anchor": "end", "dominant-baseline": "middle", "font-size": fs, fill: S.axisColor }, svg).textContent = r.axisLabel;
       if (!r.label) return;
       var rsz = r.size || fs, rt = el("text", { x: m.left + iw - 4, y: y(r.y) + rsz * 1.25, "text-anchor": "end", "font-size": rsz,
         "font-weight": r.weight || 700, fill: r.color || S.headingColor }, svg);
