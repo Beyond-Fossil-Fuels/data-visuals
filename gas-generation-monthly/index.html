@@ -144,17 +144,21 @@ function draw() {
   var n = DATA.length, pad = Math.max(6, Math.min(14, W * 0.01));   // as DV.axisEdge: the axis reaches a little past the areas
   var x = function (i) { return m.l + pad + (iw - 2 * pad) * i / (n - 1); }, y = function (v) { return m.t + ih * (1 - v / 100); };
   var stacks = DATA.map(function (d) { var acc = 0; return LAYERS.map(function (l) { var lo = acc; acc += pct(d[l.key], d.total); return [lo, acc]; }); });
+  // y axis as F2 (DV.lines): grid lines above 0 in the brand grid colour, behind the areas; labels to the left
+  var GRID = (window.BRAND && BRAND.gridColor) || "#eceef0";
+  [0, 25, 50, 75, 100].forEach(function (v) {
+    if (v > 0) el("line", { x1: m.l, x2: m.l + iw, y1: y(v), y2: y(v), stroke: GRID });
+    var t = el("text", { x: m.l - 8, y: y(v), "text-anchor": "end", "dominant-baseline": "middle", "font-size": fs }); t.textContent = v + "%";
+  });
+  // areas as F2: fill at F2's opacity (0.85), then a solid line in the area's colour along each top edge, no dots
+  var AREA_OPACITY = 0.85, LINE_W = narrow ? 2 : 3, tops = [];
   LAYERS.forEach(function (l, j) {
     var top = DATA.map(function (_, i) { return x(i) + "," + y(stacks[i][j][1]); });
     var bot = DATA.map(function (_, i) { return x(i) + "," + y(stacks[i][j][0]); }).reverse();
-    el("polygon", { points: top.concat(bot).join(" "), fill: l.color, stroke: "#fff", "stroke-width": 0.6 });
+    el("polygon", { points: top.concat(bot).join(" "), fill: l.color, "fill-opacity": AREA_OPACITY });
+    tops.push({ pts: top.join(" "), color: l.color });
   });
-  // y axis: grid lines above 0 in the grid colour, the 0 line as the axis (35%), labels to the left
-  var GRID = (window.BRAND && BRAND.gridColor) || "#eceef0";
-  [0, 25, 50, 75, 100].forEach(function (v) {
-    if (v > 0) el("line", { x1: m.l, x2: m.l + iw, y1: y(v), y2: y(v), stroke: GRID, "stroke-opacity": 0.6 });
-    var t = el("text", { x: m.l - 8, y: y(v), "text-anchor": "end", "dominant-baseline": "middle", "font-size": fs }); t.textContent = v + "%";
-  });
+  tops.forEach(function (t) { el("polyline", { points: t.pts, fill: "none", stroke: t.color, "stroke-width": LINE_W, "stroke-linejoin": "round", "stroke-linecap": "round" }); });
   el("line", { x1: m.l, x2: m.l + iw, y1: y(0), y2: y(0), stroke: "#000", "stroke-opacity": 0.35 });
   // x axis: January of each year (and the last month when there is room), ticks and centred labels
   var lastJan = 0; DATA.forEach(function (d, i) { if (d.m.slice(5) === "01") lastJan = i; });
