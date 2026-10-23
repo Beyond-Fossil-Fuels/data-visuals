@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gas fleet by country: capacity and share by status (draft)</title>
+<title>Gas power capacity by country: installed, in development and stopped (draft)</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,10 +11,6 @@
 <link rel="stylesheet" href="../shared/v1/charts.css">
 <style>
   #grid { display: grid; column-gap: var(--dvc-gap-x, 24px); row-gap: 20px; }
-  /* a group heading over the capacity panels and over the share panels */
-  /* the panels are narrow: a popup that isn't showing takes no room (it would stick out of the last panel) */
-  #grid .dv-tooltip:not(.on) { display: none; }
-  #grid .grp { font-size: var(--dv-legend-size); font-weight: 600; color: var(--dv-heading); border-bottom: 1px solid #d9d9d9; padding-bottom: 4px; align-self: end; }
 </style>
 </head>
 <body>
@@ -22,6 +18,7 @@
   <h1 class="dv-title" id="dv-title"></h1>
   <div class="dvc-sub" id="sub"></div>
   <p class="dvc-hint dv-control" id="hint"></p>
+  <div id="views"></div>
   <div id="legend"></div>
   <div class="dvc-fade" id="grid"></div>
   <p class="dv-footer" id="dv-footer"></p>
@@ -42,16 +39,16 @@
  * ================================================================ */
 var SETTINGS = {
   // ---- Text ----
-  title: "Europe's gas power fleet by country: how much is installed, planned and already stopped", // Main title
-  subtitle: "Left: capacity in GW. Right: the same capacity as shares, showing how much of each country's fleet and planned projects has already been retired or cancelled.", // Subtitle under the title, one paragraph per line (empty = none)
+  title: "Gas power capacity by country: installed, in development and stopped", // Main title
+  subtitle: "Switch between capacity in GW and shares by status. The share view shows, for each country, how much of its existing fleet has been retired and how much of its new plant projects has been cancelled.", // Subtitle under the title, one paragraph per line (empty = none)
   hint: "Click the legend to switch each status on or off, and hover over bars to see capacity values.", // Instruction line under the title (empty = none)
-  gCapacity: "Capacity (GW)",                  // Heading over the capacity panels
-  gShares: "Share by status",                  // Heading over the share panels
-  pInstalled: "Installed",                     // Panel heading: installed
-  pDev: "In development",                      // Panel heading: in development
-  pCancRet: "Cancelled & Retired",             // Panel heading: cancelled and retired
-  pShareExisting: "Existing fleet",            // Panel heading: share of the existing fleet
-  pShareNew: "New plant projects",             // Panel heading: share of new plant projects
+  vCapacity: "Capacity (GW)",                  // Button: capacity view
+  vShare: "Share by status (%)",               // Button: share view
+  pInstalled: "Installed",                     // Panel heading: installed (capacity view)
+  pDev: "In development",                      // Panel heading: in development (capacity view)
+  pCancRet: "Cancelled & Retired",             // Panel heading: cancelled and retired (capacity view)
+  pShareExisting: "Existing fleet",            // Panel heading: existing fleet (share view)
+  pShareNew: "New plant projects",             // Panel heading: new plant projects (share view)
   unitLabel: "MW",                             // Unit in the tooltip (the sheet's unit)
   axisUnit: "GW",                              // Unit on the axis and after the bars (values divided by 1,000)
   totalLabel: "Total",                         // Tooltip: total
@@ -67,7 +64,7 @@ var SETTINGS = {
   subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
   labelSize: 14,                               // Country name size in px
   totalSize: 12,                               // Size of the totals after the bars in px
-  insideSize: 12,                              // Size of the shares inside segments in px
+  insideSize: 12.5,                            // Size of the shares inside segments in px
 
   // ---- Spacing ----
   padTop: 0,                                   // Space above the graphic in px
@@ -88,23 +85,25 @@ var SETTINGS = {
   // ---- Background ----
   bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
 
-  // ---- Legend ----
+  // ---- Buttons and legend ----
+  showButtons: true,                           // Show the view buttons
+  buttonsAlign: "center",                      // View buttons alignment
+  switchColor: "#fef751",                      // Background of the selected view button
   legendToggle: true,                          // Clicking a legend item hides or shows that status
   legendPos: "center",                         // Legend alignment
 
   // ---- Bars ----
-  sortBy: "first panel",                       // Country order (all panels): largest installed capacity first, or as in the sheet, or A to Z
+  sortBy: "first panel",                       // Country order in the capacity view: largest total in the first panel first, or as in the sheet, or A to Z (the share view sorts each panel by its shares)
   rowHeight: 25,                               // Height of each country's row in px (G6 uses the same)
   barGap: 0.15,                                // Space between bars, as a share of the row
   labelWeight: 700,                            // Country name boldness
   showTotals: true,                            // Show each bar's total after it (off = values in the tooltip only)
   totalDecimals: 1,                            // Decimals of the totals after the bars
-  insideLabels: true,                          // Share panels: show the share inside segments wide enough for it
+  insideLabels: true,                          // Share view: show the share inside segments wide enough for it
   panelBg: "#ffffff",                          // Panel background
 
   // ---- Layout ----
   panelGap: 24,                                // Space between panels in px
-  groupGap: 44,                                // Space between the capacity panels and the share panels in px
 };
 // ==== SETTINGS END ====
 </script>
@@ -113,10 +112,13 @@ var SETTINGS = {
 <script>
 (function () {
   /* ------------------------------------------------------------------
-   * DRAFT (gas drafts): G5 and G6 in one graphic, one row per country.
-   * Capacity panels (GW, one shared scale): installed, in development, cancelled & retired (as G5's
-   * "both" view, no buttons); then share panels (%): existing fleet and new plant projects (as G6).
-   * Sheet tab "G5+G6": Country, then each status "(MW)". Countries sorted by installed capacity.
+   * DRAFT (gas drafts): G5 and G6 as one graphic with two views (buttons):
+   *   capacity: capacity in GW by status, panels installed / in development / cancelled & retired
+   *             (G5's "both" view: one shared scale, countries sorted by the first panel's total);
+   *   share:    the same capacity as shares by status, panels existing fleet / new plant projects
+   *             (G6: each panel sorted by its shares).
+   * Sheet tab "G5+G6": Country, then each status "(MW)" in legend order (one row per country).
+   * ?view=share opens on the share view.
    * ------------------------------------------------------------------ */
   var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
   var FALLBACK = [
@@ -177,8 +179,53 @@ var SETTINGS = {
     { title: "pShareExisting", keys: ["Operating", "Mothballed", "Retired"] },
     { title: "pShareNew", keys: ["Announced", "Pre-construction", "Construction", "Shelved", "Cancelled"] }
   ];
+  var view = /[?&]view=share\b/.test(location.search) ? "share" : "capacity";
   var hidden = {};
   var col = function (s) { return s + " (MW)"; };
+
+  // Share view: two panels side by side (one above the other when narrow), each sorted by the share of its
+  // first status, then the next…; countries with nothing in a panel go last, A to Z (as G6)
+  function renderShares(ctx) {
+    var S = ctx.S, P = ctx.P, un = S.unitLabel;
+    var W = ctx.root.clientWidth - S.padSides * 2, gap = S.panelGap, stacked = ctx.stacked || W < 640;
+    var lsz = ctx.sz(S.labelSize, 11), lw = 0;
+    ctx.data.forEach(function (d) { lw = Math.max(lw, DV.textWidth(d[P], lsz, S.labelWeight)); });
+    lw += 10;
+    var pw = stacked ? W : (W - gap) / 2;
+    var grid = document.getElementById("grid"); DV.clear(grid);
+    grid.style.setProperty("--dvc-gap-x", gap + "px");
+    grid.style.gridTemplateColumns = stacked ? "1fr" : "repeat(2, " + pw + "px)";
+    SHARES.forEach(function (p) {
+      var keys = p.keys.filter(function (k) { return !hidden[k]; });
+      var tot = function (d) { return keys.reduce(function (a, k) { return a + d[col(k)]; }, 0); };
+      var rows = ctx.data.slice().sort(function (a, b) {
+        var ta = tot(a), tb = tot(b);
+        if (!ta || !tb) return ta ? -1 : tb ? 1 : a[P].localeCompare(b[P]);
+        for (var i = 0; i < keys.length; i++) {
+          var dd = b[col(keys[i])] / tb - a[col(keys[i])] / ta;
+          if (Math.abs(dd) > 1e-9) return dd;
+        }
+        return a[P].localeCompare(b[P]);
+      });
+      var d = document.createElement("div"); d.className = "dvc-panel";
+      var h = document.createElement("h2"); h.textContent = S[p.title]; h.style.paddingLeft = lw + "px"; d.appendChild(h);
+      var svg = DV.el("svg", {}, d), tip = document.createElement("div"); tip.className = "dv-tooltip"; d.appendChild(tip);
+      grid.appendChild(d);
+      var series = keys.map(function (k) { return { key: col(k), label: k, color: S[PALETTE_KEY[k]] }; });
+      DV.hbars({ S: S, svg: svg, tip: tip, width: pw, rows: rows,
+        label: function (r) { return r[P]; }, labelW: lw, labelSize: lsz, labelWeight: S.labelWeight, percent: true,
+        series: series, xMax: 100, tickStep: 50, grid: true, bg: S.panelBg, rowH: S.rowHeight, gap: S.barGap,
+        sep: S.panelBg, sepWidth: 0.75, fmtX: function (v) { return v + "%"; },
+        inside: S.insideLabels ? function (v, pct) { return DV.fmt(pct, "", 0) + "%"; } : null, insideSize: ctx.sz(S.insideSize, 10), insideAlign: "center",
+        tooltip: function (i) {
+          var r = rows[i], t = tot(r), html = "<b>" + r[P] + "</b>";
+          series.forEach(function (s) {
+            html += DV.tipRow(s.color, s.label, DV.fmt(r[s.key], un, 0) + " (" + DV.fmt(t ? r[s.key] / t * 100 : 0, "", 0) + "%)");
+          });
+          return html + DV.tipRow("", S.totalLabel, DV.fmt(t, un, 0), "t");
+        } });
+    });
+  }
 
   DV.create({
     sheetId: SHEET_ID,
@@ -189,31 +236,34 @@ var SETTINGS = {
 
     groups: [
       DV.chartTextGroup({
-        title: "Europe's gas power fleet by country: how much is installed, planned and already stopped",
-        subtitle: "Left: capacity in GW. Right: the same capacity as shares, showing how much of each country's fleet and planned projects has already been retired or cancelled.",
+        title: "Gas power capacity by country: installed, in development and stopped",
+        subtitle: "Switch between capacity in GW and shares by status. The share view shows, for each country, how much of its existing fleet has been retired and how much of its new plant projects has been cancelled.",
         footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Gas power plants tracked since 2023 | Last update: {timestamp}",
         notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.",
         subtitleSize: 18,
         extra: [
           { key: "hint",       type: "text", def: "Click the legend to switch each status on or off, and hover over bars to see capacity values.", help: "Instruction line under the title (empty = none)" },
-          { key: "gCapacity",  type: "text", def: "Capacity (GW)", help: "Heading over the capacity panels" },
-          { key: "gShares",    type: "text", def: "Share by status", help: "Heading over the share panels" },
-          { key: "pInstalled", type: "text", def: "Installed", help: "Panel heading: installed" },
-          { key: "pDev",       type: "text", def: "In development", help: "Panel heading: in development" },
-          { key: "pCancRet",   type: "text", def: "Cancelled & Retired", help: "Panel heading: cancelled and retired" },
-          { key: "pShareExisting", type: "text", def: "Existing fleet", help: "Panel heading: share of the existing fleet" },
-          { key: "pShareNew",  type: "text", def: "New plant projects", help: "Panel heading: share of new plant projects" },
+          { key: "vCapacity",  type: "text", def: "Capacity (GW)", help: "Button: capacity view" },
+          { key: "vShare",     type: "text", def: "Share by status (%)", help: "Button: share view" },
+          { key: "pInstalled", type: "text", def: "Installed", help: "Panel heading: installed (capacity view)" },
+          { key: "pDev",       type: "text", def: "In development", help: "Panel heading: in development (capacity view)" },
+          { key: "pCancRet",   type: "text", def: "Cancelled & Retired", help: "Panel heading: cancelled and retired (capacity view)" },
+          { key: "pShareExisting", type: "text", def: "Existing fleet", help: "Panel heading: existing fleet (share view)" },
+          { key: "pShareNew",  type: "text", def: "New plant projects", help: "Panel heading: new plant projects (share view)" },
           { key: "unitLabel",  type: "text", def: "MW", help: "Unit in the tooltip (the sheet's unit)" },
           { key: "axisUnit",   type: "text", def: "GW", help: "Unit on the axis and after the bars (values divided by 1,000)" },
           { key: "totalLabel", type: "text", def: "Total", help: "Tooltip: total" }
         ]
       }),
-      { name: "Legend", fields: [
+      { name: "Buttons and legend", fields: [
+        { key: "showButtons",  type: "check", def: true, help: "Show the view buttons" },
+        { key: "buttonsAlign", type: "select", options: ["left", "center", "right"], def: "center", help: "View buttons alignment" },
+        { key: "switchColor",  type: "color", def: "#fef751", help: "Background of the selected view button" },
         { key: "legendToggle", type: "check", def: true, help: "Clicking a legend item hides or shows that status" },
         { key: "legendPos",    type: "select", options: ["left", "center", "right"], def: "center", help: "Legend alignment" }
       ]},
       { name: "Bars", fields: [
-        { key: "sortBy",       type: "select", options: ["first panel", "sheet order", "alphabetical"], def: "first panel", help: "Country order (all panels): largest installed capacity first, or as in the sheet, or A to Z" },
+        { key: "sortBy",       type: "select", options: ["first panel", "sheet order", "alphabetical"], def: "first panel", help: "Country order in the capacity view: largest total in the first panel first, or as in the sheet, or A to Z (the share view sorts each panel by its shares)" },
         { key: "rowHeight",    type: "range", min: 14, max: 40, step: 1, def: 25, help: "Height of each country's row in px (G6 uses the same)" },
         { key: "barGap",       type: "range", min: 0, max: 0.6, step: 0.02, def: 0.15, help: "Space between bars, as a share of the row" },
         { key: "labelSize",    type: "range", min: 9, max: 22, step: 0.5, def: 14, help: "Country name size in px" },
@@ -221,13 +271,12 @@ var SETTINGS = {
         { key: "showTotals",   type: "check", def: true, help: "Show each bar's total after it (off = values in the tooltip only)" },
         { key: "totalDecimals", type: "range", min: 0, max: 2, step: 1, def: 1, help: "Decimals of the totals after the bars" },
         { key: "totalSize",    type: "range", min: 8, max: 18, step: 0.5, def: 12, help: "Size of the totals after the bars in px" },
-        { key: "insideLabels", type: "check", def: true, help: "Share panels: show the share inside segments wide enough for it" },
-        { key: "insideSize",   type: "range", min: 8, max: 18, step: 0.5, def: 12, help: "Size of the shares inside segments in px" },
+        { key: "insideLabels", type: "check", def: true, help: "Share view: show the share inside segments wide enough for it" },
+        { key: "insideSize",   type: "range", min: 8, max: 18, step: 0.5, def: 12.5, help: "Size of the shares inside segments in px" },
         { key: "panelBg",      type: "color", def: "#f8f8f8", help: "Panel background" }
       ]},
       { name: "Layout", fields: [
-        { key: "panelGap", type: "range", min: 0, max: 80, step: 2, def: 20, help: "Space between panels in px" },
-        { key: "groupGap", type: "range", min: 0, max: 120, step: 2, def: 44, help: "Space between the capacity panels and the share panels in px" }
+        { key: "panelGap", type: "range", min: 0, max: 80, step: 2, def: 24, help: "Space between panels in px" }
       ]}
     ],
 
@@ -235,6 +284,16 @@ var SETTINGS = {
       var S = ctx.S;
       DV.chartText(S);
       document.getElementById("hint").textContent = S.hint || "";
+      document.documentElement.style.setProperty("--dvc-switch-on", S.switchColor);
+      var vh = document.getElementById("views");
+      vh.style.display = S.showButtons ? "" : "none";
+      DV.viewButtons({ el: vh, value: view, style: "pill", ariaLabel: "Capacity or shares",
+        items: [{ key: "capacity", label: S.vCapacity }, { key: "share", label: S.vShare }],
+        onChange: function (k) {
+          view = k;
+          var g = document.getElementById("grid"); g.classList.add("fading");
+          setTimeout(function () { ctx.rerender(); g.classList.remove("fading"); }, 180);
+        } });
       var keys = DV.byColumns(ctx.headers, STATUSES.map(col));
       var lg = DV.chartLegend({ items: keys.map(function (c) { var k = c.replace(" (MW)", ""); return { key: k, label: k, color: S[PALETTE_KEY[k]] }; }),
         toggle: S.legendToggle, hidden: hidden, onToggle: function () { ctx.rerender(); } });
@@ -245,7 +304,8 @@ var SETTINGS = {
     render: function (ctx) {
       var S = ctx.S, P = ctx.P, un = S.unitLabel;
       DV.chartSizes(ctx);
-      var panels = CAPACITY, n = panels.length + SHARES.length;
+      if (view === "share") { renderShares(ctx); return; }
+      var panels = CAPACITY, n = panels.length;
       var sumOf = function (d, keys) { return keys.reduce(function (a, k) { return a + (hidden[k] ? 0 : d[col(k)]); }, 0); };
       var rows = ctx.data.slice();
       if (S.sortBy === "alphabetical") rows.sort(function (a, b) { return a[P].localeCompare(b[P]); });
@@ -254,47 +314,35 @@ var SETTINGS = {
         rows = rows.map(function (d, i) { return { d: d, i: i }; })
           .sort(function (a, b) { return (sumOf(b.d, first) - sumOf(a.d, first)) || a.i - b.i; }).map(function (o) { return o.d; });
       }
-      // capacity bars and axis in GW (the sheet is in MW); tooltips keep MW
+      // bars and axis in GW (the sheet is in MW); the tooltip keeps MW
       var K = 1000, au = S.axisUnit;
       var rowsK = rows.map(function (d) { var o = {}; o[P] = d[P]; STATUSES.forEach(function (s) { o[col(s)] = d[col(s)] / K; }); o.src = d; return o; });
       var xMax = 0;
       panels.forEach(function (p) { rowsK.forEach(function (d) { xMax = Math.max(xMax, sumOf(d, PANEL[p])); }); });
-      var W = ctx.root.clientWidth - S.padSides * 2, gap = S.panelGap, ggap = S.groupGap;
+      var W = ctx.root.clientWidth - S.padSides * 2, gap = S.panelGap;
       var lsz = ctx.sz(S.labelSize, 11), lw = 0;
       rows.forEach(function (d) { lw = Math.max(lw, DV.textWidth(d[P], lsz, S.labelWeight)); });
       lw += 10;
-      var stacked = ctx.stacked || W < 900;
+      var stacked = ctx.stacked || W < 640;
+      // room after the bars for the longest total, the same in every panel so they share one scale
       var tsz = ctx.sz(S.totalSize, 10), fmtT = function (v) { return DV.fmt(v, au, S.totalDecimals); };
       var room = S.showTotals ? DV.textWidth(fmtT(xMax), tsz, 400) + 10 : 4;
-      // five panels side by side: the label column, then equal panels; the share panels after a wider gap
-      // columns: label + panel, panel, panel, spacer (ggap - gap), panel, panel; five gaps between the six columns
-      var pw = stacked ? W - lw : (W - lw - gap * 4 - ggap) / n;
+      var pw = stacked ? W - lw : (W - lw - gap * (n - 1)) / n;
+      // the axis ends just past the longest bar (no empty stretch up to the next round number)
       var ax = DV.niceAxis(xMax || 1, Math.max(2, Math.floor((pw - room) / 90)), false);
       var lastTick = DV.ticks(ax.max, ax.step).pop();
       var grid = document.getElementById("grid"); DV.clear(grid);
       grid.style.setProperty("--dvc-gap-x", gap + "px");
-      grid.style.gridTemplateColumns = stacked ? "1fr" :
-        (lw + pw) + "px " + pw + "px " + pw + "px " + (ggap - gap) + "px " + pw + "px " + pw + "px";
-      // group headings over the capacity panels and the share panels (side by side only)
-      if (!stacked) {
-        var g1 = document.createElement("div"); g1.className = "grp"; g1.textContent = S.gCapacity;
-        g1.style.gridColumn = "1 / span 3"; g1.style.marginLeft = lw + "px"; grid.appendChild(g1);
-        var g2 = document.createElement("div"); g2.className = "grp"; g2.textContent = S.gShares;
-        g2.style.gridColumn = "5 / span 2"; grid.appendChild(g2);
-      }
-      var panelBox = function (title, withLabels, col0) {
+      grid.style.gridTemplateColumns = stacked ? "1fr" : (lw + pw) + "px repeat(" + (n - 1) + ", " + pw + "px)";
+      panels.forEach(function (p, pi) {
+        var withLabels = stacked || pi === 0;
         var d = document.createElement("div"); d.className = "dvc-panel";
-        if (col0 && !stacked) d.style.gridColumn = col0;
-        var h = document.createElement("h2"); h.textContent = title; h.style.paddingLeft = (withLabels ? lw : 0) + "px";
+        var h = document.createElement("h2"); h.textContent = S[TITLE[p]]; h.style.paddingLeft = (withLabels ? lw : 0) + "px";
         d.appendChild(h);
         var svg = DV.el("svg", {}, d), tip = document.createElement("div"); tip.className = "dv-tooltip"; d.appendChild(tip);
         grid.appendChild(d);
-        return { svg: svg, tip: tip };
-      };
-      panels.forEach(function (p, pi) {
-        var withLabels = stacked || pi === 0, box = panelBox(S[TITLE[p]], withLabels, String(pi + 1));
         var series = PANEL[p].filter(function (k) { return !hidden[k]; }).map(function (k) { return { key: col(k), label: k, color: S[PALETTE_KEY[k]] }; });
-        DV.hbars({ S: S, svg: box.svg, tip: box.tip, width: withLabels ? lw + pw : pw, rows: rowsK,
+        DV.hbars({ S: S, svg: svg, tip: tip, width: withLabels ? lw + pw : pw, rows: rowsK,
           label: withLabels ? function (r) { return r[P]; } : null, labelW: lw, labelSize: lsz, labelWeight: S.labelWeight,
           series: series, xMax: ax.max, tickStep: ax.step, grid: true, bg: S.panelBg, rowH: S.rowHeight, gap: S.barGap,
           sep: S.panelBg, sepWidth: 0.75, fmtX: function (v) { return DV.fmt(v, v === lastTick ? au : "", 0); }, right: room,
@@ -303,25 +351,6 @@ var SETTINGS = {
             var r = rowsK[i].src, html = "<b>" + r[P] + "</b>", t = 0;
             series.forEach(function (s) { t += r[s.key]; html += DV.tipRow(s.color, s.label, DV.fmt(r[s.key], un, 0)); });
             return html + (series.length > 1 ? DV.tipRow("", S.totalLabel, DV.fmt(t, un, 0), "t") : "");
-          } });
-      });
-      // the share panels (as G6), in the same country order
-      SHARES.forEach(function (p, pi) {
-        var box = panelBox((stacked ? S.gShares + ": " : "") + S[p.title], stacked, String(5 + pi));
-        var keys = p.keys.filter(function (k) { return !hidden[k]; });
-        var tot = function (d) { return keys.reduce(function (a, k) { return a + d[col(k)]; }, 0); };
-        var series = keys.map(function (k) { return { key: col(k), label: k, color: S[PALETTE_KEY[k]] }; });
-        DV.hbars({ S: S, svg: box.svg, tip: box.tip, width: stacked ? lw + pw : pw, rows: rows,
-          label: stacked ? function (r) { return r[P]; } : null, labelW: lw, labelSize: lsz, labelWeight: S.labelWeight, percent: true,
-          series: series, xMax: 100, tickStep: 50, grid: true, bg: S.panelBg, rowH: S.rowHeight, gap: S.barGap,
-          sep: S.panelBg, sepWidth: 0.75, fmtX: function (v) { return v + "%"; },
-          inside: S.insideLabels ? function (v, pct) { return DV.fmt(pct, "", 0) + "%"; } : null, insideSize: ctx.sz(S.insideSize, 10), insideAlign: "center",
-          tooltip: function (i) {
-            var r = rows[i], t = tot(r), html = "<b>" + r[P] + "</b>";
-            series.forEach(function (s) {
-              html += DV.tipRow(s.color, s.label, DV.fmt(r[s.key], un, 0) + " (" + DV.fmt(t ? r[s.key] / t * 100 : 0, "", 0) + "%)");
-            });
-            return html + DV.tipRow("", S.totalLabel, DV.fmt(t, un, 0), "t");
           } });
       });
     }
