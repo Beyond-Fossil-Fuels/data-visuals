@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gas fleet by country: capacity and share by status (draft)</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="../shared/v1/core.css">
+<link rel="stylesheet" href="../shared/v1/charts.css">
+<style>
+  #grid { display: grid; column-gap: var(--dvc-gap-x, 24px); row-gap: 20px; }
+  /* a group heading over the capacity panels and over the share panels */
+  /* the panels are narrow: a popup that isn't showing takes no room (it would stick out of the last panel) */
+  #grid .dv-tooltip:not(.on) { display: none; }
+  #grid .grp { font-size: var(--dv-legend-size); font-weight: 600; color: var(--dv-heading); border-bottom: 1px solid #d9d9d9; padding-bottom: 4px; align-self: end; }
+</style>
+</head>
+<body>
+<div class="dv" id="dv">
+  <h1 class="dv-title" id="dv-title"></h1>
+  <div class="dvc-sub" id="sub"></div>
+  <p class="dvc-hint dv-control" id="hint"></p>
+  <div id="legend"></div>
+  <div class="dvc-fade" id="grid"></div>
+  <p class="dv-footer" id="dv-footer"></p>
+  <div class="dvc-notes" id="notes"></div>
+</div>
+
+<script src="../shared/brand.js"></script>
+<script>
+// ==== SETTINGS START ====
+/* ================================================================
+ * DESIGN SETTINGS FOR THIS GRAPHIC
+ * Change any value below to restyle this graphic. Colours are hex
+ * codes, sizes are in pixels. Keep the quotes and the comma on each line.
+ * Fonts, text colours and palette colours are shared by all graphics:
+ * they live in shared/brand.js.
+ * Easier: open this page with ?design at the end of its address to
+ * adjust everything with sliders, then download the result.
+ * ================================================================ */
+var SETTINGS = {
+  // ---- Text ----
+  title: "Europe's gas power fleet by country: how much is installed, planned and already stopped", // Main title
+  subtitle: "Left: capacity in GW. Right: the same capacity as shares, showing how much of each country's fleet and planned projects has already been retired or cancelled.", // Subtitle under the title, one paragraph per line (empty = none)
+  hint: "Click the legend to switch each status on or off, and hover over bars to see capacity values.", // Instruction line under the title (empty = none)
+  gCapacity: "Capacity (GW)",                  // Heading over the capacity panels
+  gShares: "Share by status",                  // Heading over the share panels
+  pInstalled: "Installed",                     // Panel heading: installed
+  pDev: "In development",                      // Panel heading: in development
+  pCancRet: "Cancelled & Retired",             // Panel heading: cancelled and retired
+  pShareExisting: "Existing fleet",            // Panel heading: share of the existing fleet
+  pShareNew: "New plant projects",             // Panel heading: share of new plant projects
+  unitLabel: "MW",                             // Unit in the tooltip (the sheet's unit)
+  axisUnit: "GW",                              // Unit on the axis and after the bars (values divided by 1,000)
+  totalLabel: "Total",                         // Tooltip: total
+  footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Gas power plants tracked since 2023 | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
+  notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.", // Notes under the footer, one paragraph per line; links as [text](https://…)
+  // Text sizes:
+  titleSize: 23,                               // Main title size in px (shrinks on small screens)
+  headingSize: 21,                             // Chart heading (subtitle) size in px
+  footerSize: 10,                              // Footer (sources and notes) text size in px (never larger than the legend)
+  legendSize: 18,                              // Legend text size in px
+  axisSize: 16,                                // Axis label size in px
+  tooltipSize: 14,                             // Tooltip (popup) text size in px
+  subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
+  labelSize: 14,                               // Country name size in px
+  totalSize: 12,                               // Size of the totals after the bars in px
+  insideSize: 12,                              // Size of the shares inside segments in px
+
+  // ---- Spacing ----
+  padTop: 0,                                   // Space above the graphic in px
+  padSides: 0,                                 // Space left and right of the graphic in px
+  padBottom: 0,                                // Space below the graphic in px
+  blockGap: 30,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
+  spaceTitle: -1,                              // Space under the title in px (-1 = the block gap)
+  spaceSubtitle: -1,                           // Space under the subtitle and instruction lines in px (-1 = standard)
+  spaceControls: -1,                           // Space between the legend, search box, time slider and buttons in px (-1 = standard)
+  spaceChart: -1,                              // Space between the legend or controls and the chart or map in px (-1 = standard)
+  spaceFooter: -1,                             // Space above the footer in px (-1 = the block gap)
+  notesPhone: "folded on phones",              // Notes under the footer (folded behind a Show notes button on phones only, at every width, or never; the source line always shows)
+
+  // ---- Axis labels ----
+  axisLabelGap: -1,                            // Space between the axis labels and the chart in px (-1 = standard; bar and line charts)
+  xEdgeLabels: "centred",                      // First and last x-axis labels: centred under their bar or year, or kept inside the chart so they never touch the y-axis numbers
+
+  // ---- Background ----
+  bgMode: "white",                             // Page background, brand colour: the brand Page background; transparent: the website shows through
+
+  // ---- Legend ----
+  legendToggle: true,                          // Clicking a legend item hides or shows that status
+  legendPos: "center",                         // Legend alignment
+
+  // ---- Bars ----
+  sortBy: "first panel",                       // Country order (all panels): largest installed capacity first, or as in the sheet, or A to Z
+  rowHeight: 25,                               // Height of each country's row in px (G6 uses the same)
+  barGap: 0.15,                                // Space between bars, as a share of the row
+  labelWeight: 700,                            // Country name boldness
+  showTotals: true,                            // Show each bar's total after it (off = values in the tooltip only)
+  totalDecimals: 1,                            // Decimals of the totals after the bars
+  insideLabels: true,                          // Share panels: show the share inside segments wide enough for it
+  panelBg: "#ffffff",                          // Panel background
+
+  // ---- Layout ----
+  panelGap: 24,                                // Space between panels in px
+  groupGap: 44,                                // Space between the capacity panels and the share panels in px
+};
+// ==== SETTINGS END ====
+</script>
+<script src="../shared/v1/core.js"></script>
+<script src="../shared/v1/charts.js"></script>
+<script>
+(function () {
+  /* ------------------------------------------------------------------
+   * DRAFT (gas drafts): G5 and G6 in one graphic, one row per country.
+   * Capacity panels (GW, one shared scale): installed, in development, cancelled & retired (as G5's
+   * "both" view, no buttons); then share panels (%): existing fleet and new plant projects (as G6).
+   * Sheet tab "G5+G6": Country, then each status "(MW)". Countries sorted by installed capacity.
+   * ------------------------------------------------------------------ */
+  var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
+  var FALLBACK = [
+    "Country\tOperating (MW)\tMothballed (MW)\tRetired (MW)\tAnnounced (MW)\tPre-construction (MW)\tConstruction (MW)\tShelved (MW)\tCancelled (MW)",
+    "Italy\t44478\t967\t800\t350\t3350\t1776\t1680\t7620",
+    "United Kingdom\t35667\t1367\t552\t4429\t10818\t2158\t1239\t2034",
+    "Germany\t27083\t4087\t622\t10130\t5728\t1675\t2730\t365",
+    "Spain\t28550\t137\t0\t70\t0\t0\t0\t0",
+    "Türkiye\t26787\t1157\t0\t0\t0\t0\t0\t1776",
+    "Netherlands\t13530\t578\t0\t0\t500\t0\t0\t0",
+    "France\t8318\t163\t0\t0\t627\t0\t0\t0",
+    "Ukraine\t4589\t3675\t0\t260\t0\t309\t0\t0",
+    "Greece\t6996\t0\t147\t144\t2256\t973\t1316\t0",
+    "Belgium\t6168\t43\t145\t0\t900\t870\t0\t4065",
+    "Austria\t4836\t240\t0\t0\t0\t0\t0\t0",
+    "Poland\t4998\t40\t0\t1384\t5137\t4945\t0\t0",
+    "Ireland\t4504\t106\t0\t0\t4984\t1628\t90\t0",
+    "Portugal\t4369\t0\t0\t0\t0\t0\t0\t0",
+    "Romania\t2712\t501\t0\t462\t2746\t2384\t189\t295",
+    "Hungary\t2607\t0\t0\t0\t0\t1540\t0\t0",
+    "Bulgaria\t1142\t660\t0\t276\t1069\t0\t0\t1000",
+    "Czech Republic\t1697\t0\t0\t800\t2109\t304\t0\t0",
+    "Finland\t1545\t129\t0\t0\t0\t0\t0\t0",
+    "Moldova\t1590\t0\t0\t0\t305\t0\t0\t0",
+    "Lithuania\t1151\t110\t0\t0\t0\t0\t0\t150",
+    "Latvia\t1087\t0\t0\t0\t0\t0\t0\t0",
+    "Slovakia\t1017\t58\t0\t0\t0\t0\t0\t0",
+    "Sweden\t834\t100\t0\t0\t0\t0\t0\t0",
+    "Croatia\t833\t78\t0\t0\t983\t150\t85\t0",
+    "Denmark\t807\t0\t75\t0\t0\t0\t0\t0",
+    "Serbia\t602\t32\t0\t350\t500\t0\t0\t860",
+    "Estonia\t196\t250\t0\t0\t100\t0\t0\t0",
+    "Slovenia\t421\t0\t0\t0\t0\t110\t0\t0",
+    "Norway\t229\t150\t0\t220\t0\t0\t0\t0",
+    "Malta\t358\t0\t0\t0\t0\t0\t0\t0",
+    "Switzerland\t0\t336\t0\t0\t0\t0\t0\t0",
+    "North Macedonia\t280\t0\t0\t0\t700\t0\t105\t0",
+    "Bosnia & Herzegovina\t0\t0\t0\t238\t0\t0\t1515\t0",
+    "Kosovo\t0\t0\t0\t0\t0\t0\t0\t0",
+    "Montenegro\t0\t0\t0\t0\t400\t0\t0\t0",
+    "Albania\t0\t0\t0\t350\t0\t170\t0\t0",
+    "Cyprus\t0\t0\t0\t0\t0\t420\t0\t0",
+    "Luxembourg\t0\t0\t0\t0\t0\t0\t0\t0"
+  ].join("\n");
+  var STATUSES = ["Operating", "Mothballed", "Retired", "Announced", "Pre-construction", "Construction", "Shelved", "Cancelled"];
+  var PALETTE_KEY = { "Operating": "gasOperating", "Mothballed": "gasMothballed", "Retired": "gasRetired", "Announced": "gasAnnounced",
+    "Pre-construction": "gasPreConstruction", "Construction": "gasConstruction", "Shelved": "gasShelved", "Cancelled": "gasCancelled" };
+  var PANEL = {
+    installed: ["Operating", "Mothballed"],
+    dev: ["Announced", "Pre-construction", "Construction", "Shelved"],
+    cancRet: ["Retired", "Cancelled"],
+    retired: ["Retired"],
+    cancelled: ["Cancelled"]
+  };
+  var CAPACITY = ["installed", "dev", "cancRet"];
+  var TITLE = { installed: "pInstalled", dev: "pDev", cancRet: "pCancRet" };
+  var SHARES = [
+    { title: "pShareExisting", keys: ["Operating", "Mothballed", "Retired"] },
+    { title: "pShareNew", keys: ["Announced", "Pre-construction", "Construction", "Shelved", "Cancelled"] }
+  ];
+  var hidden = {};
+  var col = function (s) { return s + " (MW)"; };
+
+  DV.create({
+    sheetId: SHEET_ID,
+    sheetTab: "G5+G6",
+    graphicId: "G5",
+    fallback: FALLBACK,
+    columns: STATUSES.map(col),
+
+    groups: [
+      DV.chartTextGroup({
+        title: "Europe's gas power fleet by country: how much is installed, planned and already stopped",
+        subtitle: "Left: capacity in GW. Right: the same capacity as shares, showing how much of each country's fleet and planned projects has already been retired or cancelled.",
+        footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Gas power plants tracked since 2023 | Last update: {timestamp}",
+        notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.",
+        subtitleSize: 18,
+        extra: [
+          { key: "hint",       type: "text", def: "Click the legend to switch each status on or off, and hover over bars to see capacity values.", help: "Instruction line under the title (empty = none)" },
+          { key: "gCapacity",  type: "text", def: "Capacity (GW)", help: "Heading over the capacity panels" },
+          { key: "gShares",    type: "text", def: "Share by status", help: "Heading over the share panels" },
+          { key: "pInstalled", type: "text", def: "Installed", help: "Panel heading: installed" },
+          { key: "pDev",       type: "text", def: "In development", help: "Panel heading: in development" },
+          { key: "pCancRet",   type: "text", def: "Cancelled & Retired", help: "Panel heading: cancelled and retired" },
+          { key: "pShareExisting", type: "text", def: "Existing fleet", help: "Panel heading: share of the existing fleet" },
+          { key: "pShareNew",  type: "text", def: "New plant projects", help: "Panel heading: share of new plant projects" },
+          { key: "unitLabel",  type: "text", def: "MW", help: "Unit in the tooltip (the sheet's unit)" },
+          { key: "axisUnit",   type: "text", def: "GW", help: "Unit on the axis and after the bars (values divided by 1,000)" },
+          { key: "totalLabel", type: "text", def: "Total", help: "Tooltip: total" }
+        ]
+      }),
+      { name: "Legend", fields: [
+        { key: "legendToggle", type: "check", def: true, help: "Clicking a legend item hides or shows that status" },
+        { key: "legendPos",    type: "select", options: ["left", "center", "right"], def: "center", help: "Legend alignment" }
+      ]},
+      { name: "Bars", fields: [
+        { key: "sortBy",       type: "select", options: ["first panel", "sheet order", "alphabetical"], def: "first panel", help: "Country order (all panels): largest installed capacity first, or as in the sheet, or A to Z" },
+        { key: "rowHeight",    type: "range", min: 14, max: 40, step: 1, def: 25, help: "Height of each country's row in px (G6 uses the same)" },
+        { key: "barGap",       type: "range", min: 0, max: 0.6, step: 0.02, def: 0.15, help: "Space between bars, as a share of the row" },
+        { key: "labelSize",    type: "range", min: 9, max: 22, step: 0.5, def: 14, help: "Country name size in px" },
+        { key: "labelWeight",  type: "select", options: [300, 400, 500, 600, 700, 800, 900], def: 700, help: "Country name boldness" },
+        { key: "showTotals",   type: "check", def: true, help: "Show each bar's total after it (off = values in the tooltip only)" },
+        { key: "totalDecimals", type: "range", min: 0, max: 2, step: 1, def: 1, help: "Decimals of the totals after the bars" },
+        { key: "totalSize",    type: "range", min: 8, max: 18, step: 0.5, def: 12, help: "Size of the totals after the bars in px" },
+        { key: "insideLabels", type: "check", def: true, help: "Share panels: show the share inside segments wide enough for it" },
+        { key: "insideSize",   type: "range", min: 8, max: 18, step: 0.5, def: 12, help: "Size of the shares inside segments in px" },
+        { key: "panelBg",      type: "color", def: "#f8f8f8", help: "Panel background" }
+      ]},
+      { name: "Layout", fields: [
+        { key: "panelGap", type: "range", min: 0, max: 80, step: 2, def: 20, help: "Space between panels in px" },
+        { key: "groupGap", type: "range", min: 0, max: 120, step: 2, def: 44, help: "Space between the capacity panels and the share panels in px" }
+      ]}
+    ],
+
+    build: function (ctx) {
+      var S = ctx.S;
+      DV.chartText(S);
+      document.getElementById("hint").textContent = S.hint || "";
+      var keys = DV.byColumns(ctx.headers, STATUSES.map(col));
+      var lg = DV.chartLegend({ items: keys.map(function (c) { var k = c.replace(" (MW)", ""); return { key: k, label: k, color: S[PALETTE_KEY[k]] }; }),
+        toggle: S.legendToggle, hidden: hidden, onToggle: function () { ctx.rerender(); } });
+      lg.classList.add("dvc-" + S.legendPos);
+      var host = document.getElementById("legend"); DV.clear(host); host.appendChild(lg);
+    },
+
+    render: function (ctx) {
+      var S = ctx.S, P = ctx.P, un = S.unitLabel;
+      DV.chartSizes(ctx);
+      var panels = CAPACITY, n = panels.length + SHARES.length;
+      var sumOf = function (d, keys) { return keys.reduce(function (a, k) { return a + (hidden[k] ? 0 : d[col(k)]); }, 0); };
+      var rows = ctx.data.slice();
+      if (S.sortBy === "alphabetical") rows.sort(function (a, b) { return a[P].localeCompare(b[P]); });
+      else if (S.sortBy === "first panel") {
+        var first = PANEL[panels[0]];
+        rows = rows.map(function (d, i) { return { d: d, i: i }; })
+          .sort(function (a, b) { return (sumOf(b.d, first) - sumOf(a.d, first)) || a.i - b.i; }).map(function (o) { return o.d; });
+      }
+      // capacity bars and axis in GW (the sheet is in MW); tooltips keep MW
+      var K = 1000, au = S.axisUnit;
+      var rowsK = rows.map(function (d) { var o = {}; o[P] = d[P]; STATUSES.forEach(function (s) { o[col(s)] = d[col(s)] / K; }); o.src = d; return o; });
+      var xMax = 0;
+      panels.forEach(function (p) { rowsK.forEach(function (d) { xMax = Math.max(xMax, sumOf(d, PANEL[p])); }); });
+      var W = ctx.root.clientWidth - S.padSides * 2, gap = S.panelGap, ggap = S.groupGap;
+      var lsz = ctx.sz(S.labelSize, 11), lw = 0;
+      rows.forEach(function (d) { lw = Math.max(lw, DV.textWidth(d[P], lsz, S.labelWeight)); });
+      lw += 10;
+      var stacked = ctx.stacked || W < 900;
+      var tsz = ctx.sz(S.totalSize, 10), fmtT = function (v) { return DV.fmt(v, au, S.totalDecimals); };
+      var room = S.showTotals ? DV.textWidth(fmtT(xMax), tsz, 400) + 10 : 4;
+      // five panels side by side: the label column, then equal panels; the share panels after a wider gap
+      // columns: label + panel, panel, panel, spacer (ggap - gap), panel, panel; five gaps between the six columns
+      var pw = stacked ? W - lw : (W - lw - gap * 4 - ggap) / n;
+      var ax = DV.niceAxis(xMax || 1, Math.max(2, Math.floor((pw - room) / 90)), false);
+      var lastTick = DV.ticks(ax.max, ax.step).pop();
+      var grid = document.getElementById("grid"); DV.clear(grid);
+      grid.style.setProperty("--dvc-gap-x", gap + "px");
+      grid.style.gridTemplateColumns = stacked ? "1fr" :
+        (lw + pw) + "px " + pw + "px " + pw + "px " + (ggap - gap) + "px " + pw + "px " + pw + "px";
+      // group headings over the capacity panels and the share panels (side by side only)
+      if (!stacked) {
+        var g1 = document.createElement("div"); g1.className = "grp"; g1.textContent = S.gCapacity;
+        g1.style.gridColumn = "1 / span 3"; g1.style.marginLeft = lw + "px"; grid.appendChild(g1);
+        var g2 = document.createElement("div"); g2.className = "grp"; g2.textContent = S.gShares;
+        g2.style.gridColumn = "5 / span 2"; grid.appendChild(g2);
+      }
+      var panelBox = function (title, withLabels, col0) {
+        var d = document.createElement("div"); d.className = "dvc-panel";
+        if (col0 && !stacked) d.style.gridColumn = col0;
+        var h = document.createElement("h2"); h.textContent = title; h.style.paddingLeft = (withLabels ? lw : 0) + "px";
+        d.appendChild(h);
+        var svg = DV.el("svg", {}, d), tip = document.createElement("div"); tip.className = "dv-tooltip"; d.appendChild(tip);
+        grid.appendChild(d);
+        return { svg: svg, tip: tip };
+      };
+      panels.forEach(function (p, pi) {
+        var withLabels = stacked || pi === 0, box = panelBox(S[TITLE[p]], withLabels, String(pi + 1));
+        var series = PANEL[p].filter(function (k) { return !hidden[k]; }).map(function (k) { return { key: col(k), label: k, color: S[PALETTE_KEY[k]] }; });
+        DV.hbars({ S: S, svg: box.svg, tip: box.tip, width: withLabels ? lw + pw : pw, rows: rowsK,
+          label: withLabels ? function (r) { return r[P]; } : null, labelW: lw, labelSize: lsz, labelWeight: S.labelWeight,
+          series: series, xMax: ax.max, tickStep: ax.step, grid: true, bg: S.panelBg, rowH: S.rowHeight, gap: S.barGap,
+          sep: S.panelBg, sepWidth: 0.75, fmtX: function (v) { return DV.fmt(v, v === lastTick ? au : "", 0); }, right: room,
+          total: S.showTotals ? function (d, i, t) { return fmtT(t); } : null, totalSize: tsz, totalWeight: 400,
+          tooltip: function (i) {
+            var r = rowsK[i].src, html = "<b>" + r[P] + "</b>", t = 0;
+            series.forEach(function (s) { t += r[s.key]; html += DV.tipRow(s.color, s.label, DV.fmt(r[s.key], un, 0)); });
+            return html + (series.length > 1 ? DV.tipRow("", S.totalLabel, DV.fmt(t, un, 0), "t") : "");
+          } });
+      });
+      // the share panels (as G6), in the same country order
+      SHARES.forEach(function (p, pi) {
+        var box = panelBox((stacked ? S.gShares + ": " : "") + S[p.title], stacked, String(5 + pi));
+        var keys = p.keys.filter(function (k) { return !hidden[k]; });
+        var tot = function (d) { return keys.reduce(function (a, k) { return a + d[col(k)]; }, 0); };
+        var series = keys.map(function (k) { return { key: col(k), label: k, color: S[PALETTE_KEY[k]] }; });
+        DV.hbars({ S: S, svg: box.svg, tip: box.tip, width: stacked ? lw + pw : pw, rows: rows,
+          label: stacked ? function (r) { return r[P]; } : null, labelW: lw, labelSize: lsz, labelWeight: S.labelWeight, percent: true,
+          series: series, xMax: 100, tickStep: 50, grid: true, bg: S.panelBg, rowH: S.rowHeight, gap: S.barGap,
+          sep: S.panelBg, sepWidth: 0.75, fmtX: function (v) { return v + "%"; },
+          inside: S.insideLabels ? function (v, pct) { return DV.fmt(pct, "", 0) + "%"; } : null, insideSize: ctx.sz(S.insideSize, 10), insideAlign: "center",
+          tooltip: function (i) {
+            var r = rows[i], t = tot(r), html = "<b>" + r[P] + "</b>";
+            series.forEach(function (s) {
+              html += DV.tipRow(s.color, s.label, DV.fmt(r[s.key], un, 0) + " (" + DV.fmt(t ? r[s.key] / t * 100 : 0, "", 0) + "%)");
+            });
+            return html + DV.tipRow("", S.totalLabel, DV.fmt(t, un, 0), "t");
+          } });
+      });
+    }
+  });
+})();
+</script>
+</body>
+</html>

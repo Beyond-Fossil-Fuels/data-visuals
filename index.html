@@ -173,6 +173,9 @@
       title: "Gas power capacity by country: existing fleet and new plant projects", height: 1300 },
     { id: "G6", name: "Europe's existing fleet and new plant projects capacity (%)", section: "Gas data tool page", slug: "gas-share-of-capacity-by-status", tab: "G5+G6",
       title: "Share of gas power capacity by status and country", height: 1300 },
+    // drafts: shown in their own section, without a design mode link (draft: true)
+    { id: "G5+G6", name: "Gas fleet by country: capacity and share (draft)", section: "Gas drafts", slug: "gas-fleet-combined-draft", tab: "G5+G6",
+      title: "Europe's gas power fleet by country: how much is installed, planned and already stopped", height: 1300, draft: true },
     { id: "R1", name: "Europe power mix", section: "Renewables", slug: "europe-power-mix", tab: "R1",
       title: "Share of total electricity generation in Europe by source, 2015 to 2025", height: 800 },
     // one above the other is now the default layout (?type=rows still works; the side-by-side R2.1 is retired)
@@ -372,7 +375,7 @@
         "</div>" +
         '<div class="actions">' +
           '<a class="btn" href="' + esc(g.src) + '" target="_blank" rel="noopener">Open</a>' +
-          '<a class="btn" href="' + esc(g.slug) + "/" + (g.query ? esc(g.query) + "&amp;design" : "?design") + '" target="_blank" rel="noopener">Design mode</a>' +
+          (g.draft ? "" : '<a class="btn" href="' + esc(g.slug) + "/" + (g.query ? esc(g.query) + "&amp;design" : "?design") + '" target="_blank" rel="noopener">Design mode</a>') +
         "</div></div>" +
       '<div class="toolbar">' +
         '<div class="tgroup"><span>Preview width</span><div class="widths">' +
