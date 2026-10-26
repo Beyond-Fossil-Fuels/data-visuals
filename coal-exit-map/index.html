@@ -119,10 +119,10 @@ var SETTINGS = {
   noDataShow: "hidden",                        // Countries without data, hidden: only countries with data; BFF countries only: also BFF countries with no data; all countries: neighbours too
   smallMode: "zoomed box",                     // Very small countries (list below), as they are: their real size; circle: a dot you can hover; zoomed box: an enlarged copy in a box
   smallList: "MT",                             // Very small countries, ISO codes separated by commas (e.g. MT, LU)
-  smallSize: 5,                                // Zoomed box size (width and height, also the circle size), in % of the map width
-  smallDX: 5,                                  // Zoomed box position sideways from the country, in % of the map width: + right
-  smallDY: -1.5,                               // Zoomed box position up or down from the country, in % of the map width: + down
-  smallPad: 14,                                // Zoomed box: space between the country and the box edge, in % of the box (lower = the country fills more of the box)
+  smallSize: 3.25,                             // Zoomed box size (width and height, also the circle size), in % of the map width
+  smallPad: 3,                                 // Zoomed box: space between the country and the box edge, in % of the box (lower = the country fills more of the box)
+  smallDX: -4,                                 // Zoomed box position sideways from the country, in % of the map width: + right
+  smallDY: -0.5,                               // Zoomed box position up or down from the country, in % of the map width: + down
 
   // ---- Inset (far-away area in a box) ----
   insetShow: false,                            // Show a far-away area (e.g. the Canary Islands) in a box in a corner of the map
@@ -421,7 +421,7 @@ var SETTINGS = {
         { key: "panelBg",      type: "color", def: "#f4f4f4", help: "Side panel background" },
         { key: "panelTextSize", type: "range", min: 11, max: 24, step: 0.5, def: 16, help: "Panel text size in px (the popup uses the brand tooltip size)" }
       ]}
-    ].concat(DV.sliderGroup(), DV.mapGroups({ viewSouth: 32 })),
+    ].concat(DV.sliderGroup(), DV.mapGroups({ viewSouth: 32, smallSize: 3.25, smallPad: 3, smallDX: -4, smallDY: -0.5 })),
 
     build: function (ctx) {
       var S = ctx.S;
