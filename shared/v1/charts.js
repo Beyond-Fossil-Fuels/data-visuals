@@ -217,7 +217,8 @@
    *       xEvery (label every n bars; default: as many as fit, first bar first),
    *       xLabelAt: fn(i) -> true to show (overrides xEvery),
    *       yAxis (default true), yTickCount (small multiples), sep (colour between segments),
-   *       tooltip: fn(i) -> html, compact (smaller margins for small multiples) }
+   *       tooltip: fn(i) -> html, compact (smaller margins for small multiples),
+ *       edgeScale (axis overhang past the outer bars, 1 = standard), xLabelDy (move the x labels, px; negative = up) }
    * Returns { x(i) left edge, bw, band, y(v), m, iw, ih }.
    * ------------------------------------------------------------------ */
   DV.bars = function (o) {
@@ -233,7 +234,8 @@
       bottom: o.xAxis === false ? 2 : fs + 6 + padX, left: o.yAxis === false ? 2 : longest + padY + 2 };
     var iw = Math.max(1, W - m.left - m.right), gap = o.gap == null ? 0.2 : o.gap;
     // the axis line reaches a little past the first and last bar (DV.axisEdge; the space between bars counts)
-    var edge = o.edge != null ? o.edge : Math.max(0, DV.axisEdge(W) - iw / Math.max(1, n) * gap / 2);
+    // (o.edgeScale shortens or lengthens that overhang, e.g. 0.5 for small multiples)
+    var edge = o.edge != null ? o.edge : Math.max(0, DV.axisEdge(W) * (o.edgeScale != null ? o.edgeScale : 1) - iw / Math.max(1, n) * gap / 2);
     var band = (iw - 2 * edge) / Math.max(1, n), bw = band * (1 - gap);
     // every label shown (xEvery: 1) but they don't fit side by side: slant them
     var widest = 0;
@@ -279,7 +281,7 @@
           if (i === 0) { anchor = "start"; tx = x(0); }
           else if (i === n - 1) { anchor = "end"; tx = Math.min(W, x(i) + bw); }
         }
-        el("text", { x: o.xAlign === "start" ? x(i) : tx, y: y(0) + fs + padX, "text-anchor": anchor, "font-size": fs, fill: S.axisColor }, g)
+        el("text", { x: o.xAlign === "start" ? x(i) : tx, y: y(0) + fs + padX + (o.xLabelDy || 0), "text-anchor": anchor, "font-size": fs, fill: S.axisColor }, g)
           .textContent = o.label(d, i);
       });
     }

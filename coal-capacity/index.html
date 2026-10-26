@@ -415,14 +415,26 @@ var SETTINGS = {
       var cbox = document.getElementById("countries");
       cbox.style.setProperty("--cc-cols", cbox.clientWidth < 360 ? Math.min(2, S.countryCols) : S.countryCols);
       var tip = document.getElementById("t-countries");
+      // country charts: always three y-axis values (0, one step, two steps), with a step that reads well
+      function threeTicks(max) {
+        var p = Math.pow(10, Math.floor(Math.log(max / 2) / Math.LN10) - 1), mult = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8];
+        for (var k = 0; k < 4; k++, p *= 10) for (var j = 0; j < mult.length; j++) {
+          var st = +(mult[j] * p).toPrecision(6);
+          if (st % 1) continue;   // whole numbers only: the labels have no decimals
+          if (2 * st >= max - 1e-9) return { max: 2 * st, step: st };
+        }
+        return DV.niceAxis(max, 2);
+      }
       countries.forEach(function (c) {
         var cw = c.svg.parentNode.clientWidth, n = c.name;
         var cr = rows.map(function (r) { return { Year: r.Year, h: r.hist ? r.src[n] : 0, p: r.hist ? 0 : r.src[n], v: r.src[n], hist: r.hist }; });
         var src = S.fixedScale ? all : rows.map(function (r) { return r.src; });
-        var a = DV.niceAxis(Math.max.apply(null, src.map(function (d) { return d[n]; })) || 1, 2);
+        var a = threeTicks(Math.max.apply(null, src.map(function (d) { return d[n]; })) || 1);
         var last = cr.length - 1, mid = Math.round(last / 2);
+        // axis labels one px smaller than the country name, x labels moved up to match
+        var headPx = parseFloat(getComputedStyle(c.svg.parentNode.querySelector("h3")).fontSize) || 12;
         DV.bars({ S: S, svg: c.svg, tip: tip, width: cw, height: S.smallHeight, rows: cr, top: 4,
-          fs: DV.axisFs({ axisSize: S.smallAxisSize }, cw),
+          fs: Math.min(DV.axisFs({ axisSize: S.smallAxisSize }, cw), headPx - 1), edgeScale: 0.5, xLabelDy: -2,
           label: function (d) { return d.Year; }, xLabelAt: function (i) { return i === 0 || i === last || (i === mid && cw > 150); },
           gap: 0.18, series: [{ key: "h", color: S.capacityHistoric }, { key: "p", color: S.capacityProjected }],
           yMax: a.max, tickStep: a.step, fmtY: function (x) { return DV.fmt(x, un, 0); },
