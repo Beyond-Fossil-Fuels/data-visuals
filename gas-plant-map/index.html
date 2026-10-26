@@ -73,7 +73,7 @@ var SETTINGS = {
   footerSize: 10,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 18,                              // Legend text size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
-  smallSize: 5,                                // Size of the zoomed box (or circle), in % of the map width
+  smallSize: 3.25,                                // Size of the zoomed box (or circle), in % of the map width
 
   // ---- Spacing ----
   padTop: 0,                                   // Space above the graphic in px
@@ -127,21 +127,24 @@ var SETTINGS = {
   mapDetail: 1,                                // Coastline detail, share of points kept (1 = all, lower = smoother)
   mapMinIsland: 0,                             // Hide islands smaller than this, in km² (0 = show all; for scale: Mallorca is about 3,600, Rhodes 1,400)
   noDataShow: "BFF countries only",            // Countries without data, hidden: only countries with data; BFF countries only: also BFF countries with no data; all countries: neighbours too
-  smallMode: "as they are",                    // Very small countries (list below), as they are: their real size; circle: a dot you can hover; zoomed box: an enlarged copy in a box
+  smallMode: "zoomed box",                    // Very small countries (list below), as they are: their real size; circle: a dot you can hover; zoomed box: an enlarged copy in a box
   smallList: "MT",                             // Very small countries, ISO codes separated by commas (e.g. MT, LU)
-  smallDX: 5,                                  // Zoomed box position sideways from the country, in % of the map width: + right
-  smallDY: -1.5,                               // Zoomed box position up or down from the country, in % of the map width: + down
+  smallPad: 3,                                 // Zoomed box: space between the country and the box edge, in % of the box (lower = the country fills more of the box)
+  smallDX: -4,                                  // Zoomed box position sideways from the country, in % of the map width: + right
+  smallDY: -0.5,                               // Zoomed box position up or down from the country, in % of the map width: + down
 
   // ---- Inset (far-away area in a box) ----
   insetShow: true,                             // Show a far-away area (e.g. the Canary Islands) in a box in a corner of the map
   insetPos: "at a point on the map",           // Inset box position (at a point: centred on the longitude and latitude below)
-  insetLon: -11,                               // Inset box centre: longitude (e.g. -9.5 between Iberia and Ireland, -2 after Gibraltar)
-  insetLat: 46.2,                              // Inset box centre: latitude (e.g. 46.5 between Iberia and Ireland, 35.5 after Gibraltar)
+  insetLon: 3.5,                               // Inset box centre: longitude (e.g. -9.5 between Iberia and Ireland, -2 after Gibraltar)
+  insetLat: 36.5,                              // Inset box centre: latitude (e.g. 46.5 between Iberia and Ireland, 35.5 after Gibraltar)
   insetWidth: 16,                              // Inset box width in % of the map width
-  insetWest: -18.3,                            // Inset area: west edge (longitude)
-  insetEast: -13.3,                            // Inset area: east edge (longitude)
-  insetSouth: 27.5,                            // Inset area: south edge (latitude)
-  insetNorth: 29.5,                            // Inset area: north edge (latitude)
+  insetScale: 1,                               // Inset size as a multiple of the main map's scale (1 = same scale as the map; keeps the box in proportion at every width; 0 = use the width above)
+  insetPad: 2,                                 // Inset: space between the area and the box edge, in px (lower = tighter)
+  insetWest: -18,                            // Inset area: west edge (longitude)
+  insetEast: -13.6,                            // Inset area: east edge (longitude)
+  insetSouth: 27.6,                            // Inset area: south edge (latitude)
+  insetNorth: 29.2,                            // Inset area: north edge (latitude)
 
   // ---- Projection and view ----
   projection: "Natural Earth",                 // Map projection

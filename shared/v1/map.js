@@ -311,7 +311,14 @@
       var W = +S.insetWest, E = +S.insetEast, So = +S.insetSouth, N = +S.insetNorth;
       if (!(E > W && N > So)) return;
       var area = { type: "MultiPoint", coordinates: [[W, So], [E, So], [W, N], [E, N], [(W + E) / 2, So], [(W + E) / 2, N], [W, (So + N) / 2], [E, (So + N) / 2]] };
-      var bw = Math.max(50, (+S.insetWidth || 14) / 100 * o.width), pad = 4;
+      // box width: S.insetScale > 0 draws the area at that many times the main map's scale, so the box keeps its size
+      // relative to the map at every screen width; otherwise S.insetWidth in % of the map width.
+      // S.insetPad: space between the area and the box edge, in px
+      var pad = S.insetPad == null ? 4 : Math.max(0, +S.insetPad), bw;
+      if (+S.insetScale > 0) {
+        var mb = d3.geoPath(o.projection).bounds(area);
+        bw = Math.max(30, (mb[1][0] - mb[0][0]) * +S.insetScale + pad * 2);
+      } else bw = Math.max(50, (+S.insetWidth || 14) / 100 * o.width);
       var p = d3.geoAzimuthalEqualArea().rotate([-(W + E) / 2, -(So + N) / 2]).fitWidth(bw - pad * 2, area);
       var bnd = d3.geoPath(p).bounds(area), bh = bnd[1][1] - bnd[0][1] + pad * 2;
       var pos = S.insetPos || "bottom-left corner", m = 2, x0, y0;
@@ -340,6 +347,7 @@
 
     // Small countries: a circle on top, or a zoomed copy in a box with a line to the real place
     function drawSmall(o) {
+      view.smallBoxes = [];
       var mode = S.smallMode || "as they are";
       if (mode === "as they are") return;
       var ids = String(S.smallList || "").split(/[\s,;]+/).map(DV.isoCode).filter(Boolean);
@@ -370,6 +378,9 @@
         var c0 = d3.geoCentroid(f), pad = size * DV.clamp(S.smallPad == null ? 14 : +S.smallPad, 0, 45) / 100;
         var pz = d3.geoAzimuthalEqualArea().rotate([-c0[0], -c0[1]])
           .fitExtent([[bx + pad, by + pad], [bx + size - pad, by + size - pad]], f);
+        // bubbles on this country (e.g. Malta's plants) are drawn in the box, not at the real place
+        var gb = d3.geoBounds(f);
+        view.smallBoxes.push({ W: gb[0][0] - 0.05, E: gb[1][0] + 0.05, S: gb[0][1] - 0.05, N: gb[1][1] + 0.05, proj: pz });
         var clipId = "dvm-small-clip-" + f.id + "-" + Math.round(bx) + "-" + Math.round(by);
         var cp = DV.el("clipPath", { id: clipId }, gSmall);
         DV.el("rect", { x: bx, y: by, width: size, height: size, rx: 2 }, cp);
@@ -390,7 +401,8 @@
       DV.clear(gBub); bubbleList = []; bubbleEls = {};
       (list || []).slice().sort(function (a, b) { return b.r - a.r; }).forEach(function (b) {
         var ins = view.inset, inInset = ins && b.lon >= ins.W && b.lon <= ins.E && b.lat >= ins.S && b.lat <= ins.N;
-        var xy = (inInset ? ins.proj : view.projection)([b.lon, b.lat]);
+        var box = (view.smallBoxes || []).filter(function (q) { return b.lon >= q.W && b.lon <= q.E && b.lat >= q.S && b.lat <= q.N; })[0];
+        var xy = (box ? box.proj : inInset ? ins.proj : view.projection)([b.lon, b.lat]);
         if (!xy || !(b.r > 0)) return;
         var cx = xy[0] + (b.dx || 0), cy = xy[1] + (b.dy || 0), R = b.r * bubbleScale();
         var pie = b.slices && b.slices.filter(function (sl) { return sl.value > 0; });
@@ -892,6 +904,8 @@
         { key: "insetLon",   type: "range", min: -40, max: 60, step: 0.5, def: -9.5, help: "Inset box centre: longitude (e.g. -9.5 between Iberia and Ireland, -2 after Gibraltar)" },
         { key: "insetLat",   type: "range", min: 25, max: 75, step: 0.5, def: 46.5, help: "Inset box centre: latitude (e.g. 46.5 between Iberia and Ireland, 35.5 after Gibraltar)" },
         { key: "insetWidth", type: "range", min: 6, max: 40, step: 0.5, def: 14, help: "Inset box width in % of the map width" },
+        { key: "insetScale", type: "range", min: 0, max: 4, step: 0.05, def: 0, help: "Inset size as a multiple of the main map's scale (1 = same scale as the map; keeps the box in proportion at every width; 0 = use the width above)" },
+        { key: "insetPad",   type: "range", min: 0, max: 20, step: 1, def: 4, help: "Inset: space between the area and the box edge, in px (lower = tighter)" },
         { key: "insetWest",  type: "range", min: -40, max: 60, step: 0.1, def: -18.5, help: "Inset area: west edge (longitude)" },
         { key: "insetEast",  type: "range", min: -40, max: 60, step: 0.1, def: -13, help: "Inset area: east edge (longitude)" },
         { key: "insetSouth", type: "range", min: 20, max: 80, step: 0.1, def: 27.4, help: "Inset area: south edge (latitude)" },
