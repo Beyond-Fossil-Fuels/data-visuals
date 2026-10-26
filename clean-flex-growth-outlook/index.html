@@ -103,10 +103,10 @@ var SETTINGS = {
   var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
   var FALLBACK = [
     "Scenario\tYear\tPumped hydro\tDemand-side response\tFlexibility-enabled EVs\tBehind-the-meter batteries\tUtility-scale battery storage",
-    "National Trends Scenatio Baseline\t2030\t52.8\t43.4\t0\t0\t44.9",
-    "Global ambition Scenario\t2035\t56.6\t45.3\t107.5\t83\t60",
-    "Global ambition Scenario\t2040\t60.4\t51\t184.9\t126.5\t86.4",
-    "Global ambition Scenario\t2050\t67.9\t52.8\t277.3\t188.7\t120.4"
+    "National Trends Scenario Baseline\t2030\t53\t43\t0\t0\t46",
+    "Global ambition Scenario\t2035\t57\t45\t109\t82\t61",
+    "Global ambition Scenario\t2040\t61\t50\t186\t126\t87",
+    "Global ambition Scenario\t2050\t67\t54\t277\t190\t120"
   ].join("\n");
   var PALETTE_KEY = { "Pumped hydro": "skyBlue", "Demand-side response": "green", "Flexibility-enabled EVs": "coral",
     "Behind-the-meter batteries": "darkBlue", "Utility-scale battery storage": "lavender" };
@@ -182,8 +182,9 @@ var SETTINGS = {
         refs: S.refShow ? [{ y: S.refValue, label: S.refLabel, size: ctx.sz(S.refSize, 11), weight: S.refWeight, axisLabel: DV.fmt(S.refValue, u, 0) }] : null,
         tooltip: function (i) {
           var h = "<b>" + rows[i].Year + "</b>" + (rows[i][ctx.P] && ctx.P !== "Year" ? '<div class="r"><span>' + rows[i][ctx.P] + "</span></div>" : "");
-          // only the total: the split by technology was read off the report's figure, so it isn't exact
-          return h + DV.tipRow("", S.totalLabel, DV.fmt(tot[i], u, 0));
+          // each technology (top of the stack first, as the legend), then the total: figures from The Brattle Group
+          keys.forEach(function (k) { h += DV.tipRow(S[PALETTE_KEY[k]], k, DV.fmt(rows[i][k], u, 0)); });
+          return h + DV.tipRow("", S.totalLabel, DV.fmt(tot[i], u, 0), "t");
         } });
     }
   });
