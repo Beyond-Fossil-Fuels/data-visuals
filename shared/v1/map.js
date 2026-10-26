@@ -344,16 +344,10 @@
         }
         DV.el("rect", { x: bx, y: by, width: size, height: size, fill: S.pageBg && S.pageBg !== "transparent" ? S.pageBg : "#fff", stroke: S.smallBoxColor,
           "stroke-width": 0.8, rx: 2 }, gSmall);
-        // S.smallPad: space between the country and the box edge (% of the box); S.smallZoom: enlarges (or shrinks) the
-        // country around its centre after it is fitted, anything past the box edge is cut off
+        // S.smallPad: space between the country and the box edge (% of the box)
         var c0 = d3.geoCentroid(f), pad = size * DV.clamp(S.smallPad == null ? 14 : +S.smallPad, 0, 45) / 100;
         var pz = d3.geoAzimuthalEqualArea().rotate([-c0[0], -c0[1]])
           .fitExtent([[bx + pad, by + pad], [bx + size - pad, by + size - pad]], f);
-        var zoom = +S.smallZoom > 0 ? +S.smallZoom : 1;
-        if (zoom !== 1) {
-          var t = pz.translate(), mid = [bx + size / 2, by + size / 2];
-          pz.scale(pz.scale() * zoom).translate([mid[0] + (t[0] - mid[0]) * zoom, mid[1] + (t[1] - mid[1]) * zoom]);
-        }
         var clipId = "dvm-small-clip-" + f.id + "-" + Math.round(bx) + "-" + Math.round(by);
         var cp = DV.el("clipPath", { id: clipId }, gSmall);
         DV.el("rect", { x: bx, y: by, width: size, height: size, rx: 2 }, cp);
@@ -864,9 +858,8 @@
         { key: "noDataShow",   type: "select", options: ["hidden", "BFF countries only", "all countries"], def: "hidden", help: "Countries without data, hidden: only countries with data; BFF countries only: also BFF countries with no data; all countries: neighbours too" },
         { key: "smallMode",    type: "select", options: ["as they are", "circle", "zoomed box"], def: "zoomed box", help: "Very small countries (list below), as they are: their real size; circle: a dot you can hover; zoomed box: an enlarged copy in a box" },
         { key: "smallList",    type: "text", def: "MT", help: "Very small countries, ISO codes separated by commas (e.g. MT, LU)" },
-        { key: "smallSize",    type: "range", min: 1, max: 20, step: 0.25, def: 5, help: "Zoomed box size: its width (and height) in % of the map width (also the circle size)" },
+        { key: "smallSize",    type: "range", min: 1, max: 20, step: 0.25, def: 5, help: "Zoomed box size (width and height, also the circle size), in % of the map width" },
         { key: "smallPad",     type: "range", min: 0, max: 45, step: 1, def: 14, help: "Zoomed box: space between the country and the box edge, in % of the box (lower = the country fills more of the box)" },
-        { key: "smallZoom",    type: "range", min: 0.5, max: 3, step: 0.05, def: 1, help: "Zoomed box: extra zoom on the country (1 = fitted to the box; above 1, anything past the box edge is cut off)" },
         { key: "smallDX",      type: "range", min: -20, max: 20, step: 0.5, def: 5, help: "Zoomed box position sideways from the country, in % of the map width: + right" },
         { key: "smallDY",      type: "range", min: -20, max: 20, step: 0.5, def: -1.5, help: "Zoomed box position up or down from the country, in % of the map width: + down" }
       ]},

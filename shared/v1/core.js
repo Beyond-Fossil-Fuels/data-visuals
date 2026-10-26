@@ -105,7 +105,7 @@
   ];
   // A text size: a range setting whose name ends in "Size", other than sizes of dots, icons and other shapes.
   // In design mode these are all listed together, under the Text section, as plain number boxes.
-  var NOT_TEXT = /^(dot|icon|play|flag|bubble|thumb|symbol|pie|circle|marker(?!Size$)|slider)/i;
+  var NOT_TEXT = /^(dot|icon|play|flag|bubble|thumb|symbol|pie|circle|marker(?!Size$)|slider|smallSize$)/i;   // smallSize: the maps' zoomed box, not text
   function isTextSize(f) { return f.type === "range" && /Size$/.test(f.key) && !NOT_TEXT.test(f.key); }
   DV.isTextSize = isTextSize;
   function withBaseGroups(groups, cfg) {
