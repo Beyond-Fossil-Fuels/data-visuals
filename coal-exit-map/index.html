@@ -63,7 +63,6 @@ var SETTINGS = {
   legendSize: 18,                              // Legend text size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
   panelTextSize: 16,                           // Panel text size in px (the popup uses the brand tooltip size)
-  smallSize: 5,                                // Size of the zoomed box (or circle), in % of the map width
 
   // ---- Spacing ----
   padTop: 16,                                  // Space above the graphic in px
@@ -120,6 +119,7 @@ var SETTINGS = {
   noDataShow: "hidden",                        // Countries without data, hidden: only countries with data; BFF countries only: also BFF countries with no data; all countries: neighbours too
   smallMode: "zoomed box",                     // Very small countries (list below), as they are: their real size; circle: a dot you can hover; zoomed box: an enlarged copy in a box
   smallList: "MT",                             // Very small countries, ISO codes separated by commas (e.g. MT, LU)
+  smallSize: 5,                                // Zoomed box size: its width (and height) in % of the map width (also the circle size)
   smallDX: 5,                                  // Zoomed box position sideways from the country, in % of the map width: + right
   smallDY: -1.5,                               // Zoomed box position up or down from the country, in % of the map width: + down
   smallPad: 14,                                // Zoomed box: space between the country and the box edge, in % of the box (lower = the country fills more of the box)

@@ -321,7 +321,7 @@
       var mode = S.smallMode || "as they are";
       if (mode === "as they are") return;
       var ids = String(S.smallList || "").split(/[\s,;]+/).map(DV.isoCode).filter(Boolean);
-      var unit = o.width / 100, size = Math.max(26, (S.smallSize || 5) * unit);
+      var unit = o.width / 100, size = Math.max(14, (S.smallSize || 5) * unit);   // never below 14 px
       o.features.forEach(function (f) {
         if (ids.indexOf(f.id) < 0 || !view.paths[f.id] || view.paths[f.id].style.display === "none") return;
         var at = o.projection(f.properties && f.properties.lx != null ? [f.properties.lx, f.properties.ly] : d3.geoCentroid(f));
@@ -864,7 +864,7 @@
         { key: "noDataShow",   type: "select", options: ["hidden", "BFF countries only", "all countries"], def: "hidden", help: "Countries without data, hidden: only countries with data; BFF countries only: also BFF countries with no data; all countries: neighbours too" },
         { key: "smallMode",    type: "select", options: ["as they are", "circle", "zoomed box"], def: "zoomed box", help: "Very small countries (list below), as they are: their real size; circle: a dot you can hover; zoomed box: an enlarged copy in a box" },
         { key: "smallList",    type: "text", def: "MT", help: "Very small countries, ISO codes separated by commas (e.g. MT, LU)" },
-        { key: "smallSize",    type: "range", min: 2, max: 15, step: 0.5, def: 5, help: "Size of the zoomed box (or circle), in % of the map width" },
+        { key: "smallSize",    type: "range", min: 1, max: 20, step: 0.25, def: 5, help: "Zoomed box size: its width (and height) in % of the map width (also the circle size)" },
         { key: "smallPad",     type: "range", min: 0, max: 45, step: 1, def: 14, help: "Zoomed box: space between the country and the box edge, in % of the box (lower = the country fills more of the box)" },
         { key: "smallZoom",    type: "range", min: 0.5, max: 3, step: 0.05, def: 1, help: "Zoomed box: extra zoom on the country (1 = fitted to the box; above 1, anything past the box edge is cut off)" },
         { key: "smallDX",      type: "range", min: -20, max: 20, step: 0.5, def: 5, help: "Zoomed box position sideways from the country, in % of the map width: + right" },
