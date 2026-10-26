@@ -47,7 +47,8 @@ var SETTINGS = {
   // ---- Text ----
   title: "CO₂ emissions from coal power plants by country", // Main title
   subtitle: "",                                // Text under the title (empty = none)
-  footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/en/datahub/datahubitem-view/98f04097-26de-4fca-86c4-63834818c0c0), [Beyond Fossil Fuels](https://beyondfossilfuels.org/coal/) | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
+  hint: "Move the slider or press play to see how emissions changed over time since 2005. Hover over or tap a country for its figures.", // Instruction line above the map (empty = none)
+  footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/en/datahub/datahubitem-view/98f04097-26de-4fca-86c4-63834818c0c0), [Beyond Fossil Fuels](https://beyondfossilfuels.org/data/coal-power-plant/)", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
   legendTitle: "CO₂ emissions from coal power (Mt)", // Colour legend title (empty = none)
   valueText: "{value} Mt CO₂ in {year}",       // Popup value line; {value} and {year} are filled in
   noDataText: "CO₂ emissions from coal power in {year} were not available", // Popup line when there's no value; {year} is filled in
@@ -320,7 +321,8 @@ var SETTINGS = {
     close.setAttribute("aria-label", "Close"); close.innerHTML = "&times;";
     var body = document.createElement("div");
     panel.appendChild(close); panel.appendChild(body);
-    ui = { layout: layout, view: view, panel: panel, panelBody: body, panelOpen: false };
+    var hint = document.createElement("p"); hint.className = "dvm-hint dv-control";
+    ui = { layout: layout, view: view, panel: panel, panelBody: body, panelOpen: false, hint: hint };
     close.addEventListener("click", function () { select(ctx, null); });
     view.onHover = function (id) {
       var r = state.byId[id];
@@ -355,8 +357,9 @@ var SETTINGS = {
       { name: "Text", fields: [
         { key: "title",        type: "text", def: "CO₂ emissions from coal power plants by country", help: "Main title" },
         { key: "subtitle",     type: "textarea", rows: 4, def: "", help: "Text under the title (empty = none)" },
+        { key: "hint",         type: "text", def: "Move the slider or press play to see how emissions changed over time since 2005. Hover over or tap a country for its figures.", help: "Instruction line above the map (empty = none)" },
         { key: "subtitleSize", type: "range", min: 11, max: 28, step: 0.5, def: 17, help: "Text under the title: size in px" },
-        { key: "footer",       type: "text", def: "Sources: [European Environment Agency](https://www.eea.europa.eu/en/datahub/datahubitem-view/98f04097-26de-4fca-86c4-63834818c0c0), [Beyond Fossil Fuels](https://beyondfossilfuels.org/coal/) | Last update: {timestamp}", help: "Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide" },
+        { key: "footer",       type: "text", def: "Sources: [European Environment Agency](https://www.eea.europa.eu/en/datahub/datahubitem-view/98f04097-26de-4fca-86c4-63834818c0c0), [Beyond Fossil Fuels](https://beyondfossilfuels.org/data/coal-power-plant/)", help: "Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide" },
         { key: "legendTitle",  type: "text", def: "CO₂ emissions from coal power (Mt)", help: "Colour legend title (empty = none)" },
         { key: "valueText",    type: "text", def: "{value} Mt CO₂ in {year}", help: "Popup value line; {value} and {year} are filled in" },
         { key: "noDataText",   type: "text", def: "CO₂ emissions from coal power in {year} were not available", help: "Popup line when there's no value; {year} is filled in" },
@@ -399,6 +402,7 @@ var SETTINGS = {
       st.setProperty("--dvm-panel-bg", S.panelBg);
       st.setProperty("--dvm-panel-size", S.panelTextSize + "px");
       document.getElementById("subtitle").innerHTML = DV.linkify(S.subtitle || "");
+      ui.hint.textContent = S.hint || "";
       var last = state.dates.length ? state.dates[state.dates.length - 1].label : "";
       document.getElementById("dv-footer").innerHTML = DV.linkify(DV.fillFooter(S.footer, ctx, { last: last }));
 
@@ -439,6 +443,7 @@ var SETTINGS = {
       var S = ctx.S, narrow = ctx.stacked;
       ctx.root.style.setProperty("--c3-sub-size", ctx.sz(S.subtitleSize, 14) + "px");
       ui.layout.place([
+        [ui.hint, S.hint ? "above map" : "hidden"],   // instruction line first, above the slider
         [ui.slider, state.dates.length > 1 ? S.sliderPos : "hidden"],
         [ui.legend, S.legendPos],
         [ui.search, S.searchPos],
