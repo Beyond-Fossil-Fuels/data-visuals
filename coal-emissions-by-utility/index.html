@@ -52,7 +52,7 @@ var SETTINGS = {
   subtitle: "",                                // Subtitle under the title, one paragraph per line (empty = none)
   hint: "Click utility names below to toggle them off and on:", // Line above the legend (empty = none)
   mainCaption: "Utilities ranked by cumulative emissions.", // Caption under the stacked bars; {first} = first year in the data
-  smallCaption: "The largest emitters, each on its own scale.", // Caption under the small charts; {first} = first year in the data
+  smallCaption: "Largest emitters first, each chart on its own scale.", // Caption under the small charts; {first} = first year in the data
   tooltipRank: true,                           // Tooltip lists the utilities by that year's emissions, with their rank (false = cumulative order)
   cumulativeLabel: "Total since {first}",       // Small chart tooltip: the utility's cumulative emissions; {first} = first year in the data
   note: "In 2025, just seven utilities were responsible for over two-thirds of coal emissions.", // Note next to the highlighted bar (empty = none)
@@ -184,7 +184,7 @@ var SETTINGS = {
         extra: [
           { key: "hint",       type: "text", def: "Click utility names below to toggle them off and on:", help: "Line above the legend (empty = none)" },
           { key: "mainCaption", type: "text", def: "Utilities ranked by cumulative emissions.", help: "Caption under the stacked bars; {first} = first year in the data" },
-          { key: "smallCaption", type: "text", def: "The largest emitters, each on its own scale.", help: "Caption under the small charts; {first} = first year in the data" },
+          { key: "smallCaption", type: "text", def: "Largest emitters first, each chart on its own scale.", help: "Caption under the small charts; {first} = first year in the data" },
           { key: "tooltipRank", type: "check", def: true, help: "Tooltip lists the utilities by that year's emissions, with their rank (off = cumulative order)" },
           { key: "cumulativeLabel", type: "text", def: "Total since {first}", help: "Small chart tooltip: the utility's cumulative emissions; {first} = first year in the data" },
           { key: "note",       type: "text", def: "In 2025, just seven utilities were responsible for over two-thirds of coal emissions.", help: "Note next to the highlighted bar (empty = none)" },
