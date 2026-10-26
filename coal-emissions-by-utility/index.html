@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="../shared/v1/charts.css">
 <style>
   .small-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px; }
-  #cap-small { text-align: left; }
+  #cap-main, #cap-small { text-align: left; }
 </style>
 </head>
 <body>
@@ -54,6 +54,7 @@ var SETTINGS = {
   mainCaption: "Utilities ranked by cumulative emissions.", // Caption under the stacked bars; {first} = first year in the data
   smallCaption: "The largest emitters, each on its own scale.", // Caption under the small charts; {first} = first year in the data
   tooltipRank: true,                           // Tooltip lists the utilities by that year's emissions, with their rank (false = cumulative order)
+  cumulativeLabel: "Total since {first}",       // Small chart tooltip: the utility's cumulative emissions; {first} = first year in the data
   note: "In 2025, just seven utilities were responsible for over two-thirds of coal emissions.", // Note next to the highlighted bar (empty = none)
   unitLabel: "Mt",                             // Unit after the numbers
   totalLabel: "Total",                         // Tooltip: total
@@ -185,6 +186,7 @@ var SETTINGS = {
           { key: "mainCaption", type: "text", def: "Utilities ranked by cumulative emissions.", help: "Caption under the stacked bars; {first} = first year in the data" },
           { key: "smallCaption", type: "text", def: "The largest emitters, each on its own scale.", help: "Caption under the small charts; {first} = first year in the data" },
           { key: "tooltipRank", type: "check", def: true, help: "Tooltip lists the utilities by that year's emissions, with their rank (off = cumulative order)" },
+          { key: "cumulativeLabel", type: "text", def: "Total since {first}", help: "Small chart tooltip: the utility's cumulative emissions; {first} = first year in the data" },
           { key: "note",       type: "text", def: "In 2025, just seven utilities were responsible for over two-thirds of coal emissions.", help: "Note next to the highlighted bar (empty = none)" },
           { key: "unitLabel",  type: "text", def: "Mt", help: "Unit after the numbers" },
           { key: "totalLabel", type: "text", def: "Total", help: "Tooltip: total" }
@@ -278,6 +280,7 @@ var SETTINGS = {
       var tip = document.getElementById("t-small");
       smalls.forEach(function (sm) {
         var sw = sm.svg.parentNode.clientWidth, k = sm.u.key;
+        var cum = rows.reduce(function (t, d) { return t + (+d[k] || 0); }, 0);   // the utility's total over all years
         var a = DV.threeTicks(Math.max.apply(null, rows.map(function (d) { return d[k]; })) || 1);
         // a label every 5 years where they fit side by side, otherwise every 10, or 20 on the narrowest charts
         // as the C5 country charts: axis labels one px smaller than the heading, x labels 2 px up
@@ -288,7 +291,8 @@ var SETTINGS = {
           label: function (d) { return d[P]; }, xLabelAt: function (i) { return +rows[i][P] % every === 0; },
           gap: 0.2, series: [{ key: k, color: sm.u.color }], yMax: a.max, tickStep: a.step, top: 4, fs: fs, xLabelDy: -2, edgeScale: 0.5,
           fmtY: function (v) { return DV.fmt(v, un, 0); },
-          tooltip: function (i) { return "<b>" + sm.u.label + ", " + rows[i][P] + "</b>" + DV.tipRow(sm.u.color, "CO₂", DV.fmt(rows[i][k], un, 1)); } });
+          tooltip: function (i) { return "<b>" + sm.u.label + ", " + rows[i][P] + "</b>" + DV.tipRow(sm.u.color, "CO₂", DV.fmt(rows[i][k], un, 1)) +
+            DV.tipRow("", S.cumulativeLabel.replace(/\{first\}/g, rows[0][P]), DV.fmt(cum, un, 1)); } });
       });
       // side by side: the stacked bars end level with the last row of small charts, at any width
       if (!ctx.stacked && S.matchHeights) {
