@@ -117,6 +117,13 @@
       w / 2 + (t[0] - w / 2) * z + (S.mapShiftX || 0) / 100 * w,
       h / 2 + (t[1] - h / 2) * z + (S.mapShiftY || 0) / 100 * h
     ]);
+    // S.mapAlign: where the view box sits when the map area is wider than it (wide screens with a fixed graphic height):
+    // centred (default), or against the left or right side of the map area (then moved by S.mapShiftX as usual)
+    if (S.mapAlign === "left" || S.mapAlign === "right") {
+      var b = d3.geoPath(p).bounds({ type: "MultiPoint", coordinates: pts }), t2 = p.translate();
+      var dx = S.mapAlign === "left" ? -b[0][0] : w - b[1][0];
+      if ((b[1][0] - b[0][0]) < w) p.translate([t2[0] + dx, t2[1]]);
+    }
     return p;
   };
 
@@ -882,6 +889,7 @@
         { key: "viewSouth",    type: "range", min: 20, max: 50, step: 0.5, def: 34, help: "View box: south edge (latitude)" },
         { key: "viewNorth",    type: "range", min: 50, max: 85, step: 0.5, def: 71, help: "View box: north edge (latitude)" },
         { key: "mapZoom",      type: "range", min: 0.5, max: 3, step: 0.01, def: 1, help: "Zoom (1 = the view box fits the map area)" },
+        { key: "mapAlign",     type: "select", options: ["centre", "left", "right"], def: "centre", help: "Where the map sits when its area is wider than the view box (wide screens): centre, or against the left or right side" },
         { key: "mapShiftX",    type: "range", min: -50, max: 50, step: 0.5, def: 0, help: "Move the map sideways, in % of its width: + right, - left" },
         { key: "mapShiftY",    type: "range", min: -50, max: 50, step: 0.5, def: 0, help: "Move the map up or down, in % of its height: + down, - up" },
         { key: "graphicHeight", type: "range", min: 0, max: 1600, step: 10, def: 860, help: "Height of the whole graphic on wide screens, in px: the map gets whatever the title, legends and footer leave (the same for every map; 0 = use the share below)" },
