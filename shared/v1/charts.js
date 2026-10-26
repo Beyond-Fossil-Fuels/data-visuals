@@ -25,6 +25,16 @@
     return t;
   }
   DV.ticks = ticks;
+  // Small multiples: always three y-axis values (0, step, 2 steps), whole-number steps that read well
+  DV.threeTicks = function (max) {
+    var p = Math.pow(10, Math.floor(Math.log(max / 2) / Math.LN10) - 1), mult = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8];
+    for (var k = 0; k < 4; k++, p *= 10) for (var j = 0; j < mult.length; j++) {
+      var st = +(mult[j] * p).toPrecision(6);
+      if (st % 1) continue;   // whole numbers only: the labels have no decimals
+      if (2 * st >= max - 1e-9) return { max: 2 * st, step: st };
+    }
+    return DV.niceAxis(max, 2);
+  };
   // Axis text size: set by the whole graphic's width (DV.chartSizes), so every panel of a graphic uses the same size
   DV.axisFs = function (S, width) { return S.axisSize * DV.clamp((DV.graphicWidth || width) / 700, 0.8, 1); };
   // Axis for a data maximum: about n ticks; fixedStep > 0 forces the step; roundUp ends on a tick

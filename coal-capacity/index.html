@@ -95,7 +95,8 @@ var SETTINGS = {
   smallHeight: 100,                            // Height of each country chart in px
 
   // ---- Layout ----
-  chartHeight: 0.95,                           // Main chart height as a share of its width
+  chartHeight: 0.95,                           // Main chart height as a share of its width (phones, or when not matched)
+  matchHeights: true,                          // Side by side: stretch the main chart so it ends level with the country charts
   chartGap: 40,                                // Space between the two halves in px
 
   // ---- Time slider ----
@@ -333,7 +334,8 @@ var SETTINGS = {
         { key: "smallAxisSize", type: "range", min: 8, max: 22, step: 0.5, def: 12, help: "Axis label size in the country charts, in px" }
       ]},
       { name: "Layout", fields: [
-        { key: "chartHeight", type: "range", min: 0.4, max: 1.6, step: 0.02, def: 0.95, help: "Main chart height as a share of its width" },
+        { key: "chartHeight", type: "range", min: 0.4, max: 1.6, step: 0.02, def: 0.95, help: "Main chart height as a share of its width (phones, or when not matched)" },
+        { key: "matchHeights", type: "check", def: true, help: "Side by side: stretch the main chart so it ends level with the country charts" },
         { key: "chartGap",    type: "range", min: 0, max: 100, step: 2, def: 40, help: "Space between the two halves in px" }
       ]}
     ].concat(sliderFields),
@@ -406,30 +408,23 @@ var SETTINGS = {
           DV.tipRow(r.hist ? S.ligniteHistoric : S.ligniteProjected, LIG, fmt(d[LIG])) +
           DV.tipRow("", "Total", fmt(d[HARD] + d[LIG]), "t");
       };
-      DV.bars({ S: S, svg: document.getElementById("s-main"), tip: document.getElementById("t-main"), width: w, height: h, rows: rows,
+      function drawMain(hh) {
+      DV.bars({ S: S, svg: document.getElementById("s-main"), tip: document.getElementById("t-main"), width: w, height: hh, rows: rows,
         label: function (d) { return d.Year; }, gap: S.barGap, sep: S.pageBg === "transparent" ? "#fff" : S.pageBg,
         series: [{ key: "hh", color: S.hardCoalHistoric }, { key: "hp", color: S.hardCoalProjected },
           { key: "lh", color: S.ligniteHistoric }, { key: "lp", color: S.ligniteProjected }],
         yMax: ax.max, tickStep: ax.step, fmtY: function (x) { return DV.fmt(x, un, 0); }, tooltip: tipMain });
+      }
+      drawMain(h);
 
       var cbox = document.getElementById("countries");
       cbox.style.setProperty("--cc-cols", cbox.clientWidth < 360 ? Math.min(2, S.countryCols) : S.countryCols);
       var tip = document.getElementById("t-countries");
-      // country charts: always three y-axis values (0, one step, two steps), with a step that reads well
-      function threeTicks(max) {
-        var p = Math.pow(10, Math.floor(Math.log(max / 2) / Math.LN10) - 1), mult = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8];
-        for (var k = 0; k < 4; k++, p *= 10) for (var j = 0; j < mult.length; j++) {
-          var st = +(mult[j] * p).toPrecision(6);
-          if (st % 1) continue;   // whole numbers only: the labels have no decimals
-          if (2 * st >= max - 1e-9) return { max: 2 * st, step: st };
-        }
-        return DV.niceAxis(max, 2);
-      }
       countries.forEach(function (c) {
         var cw = c.svg.parentNode.clientWidth, n = c.name;
         var cr = rows.map(function (r) { return { Year: r.Year, h: r.hist ? r.src[n] : 0, p: r.hist ? 0 : r.src[n], v: r.src[n], hist: r.hist }; });
         var src = S.fixedScale ? all : rows.map(function (r) { return r.src; });
-        var a = threeTicks(Math.max.apply(null, src.map(function (d) { return d[n]; })) || 1);
+        var a = DV.threeTicks(Math.max.apply(null, src.map(function (d) { return d[n]; })) || 1);
         var last = cr.length - 1, mid = Math.round(last / 2);
         // axis labels one px smaller than the country name, x labels moved up to match
         var headPx = parseFloat(getComputedStyle(c.svg.parentNode.querySelector("h3")).fontSize) || 12;
@@ -443,6 +438,11 @@ var SETTINGS = {
             return "<b>" + n + ", " + d.Year + "</b>" + DV.tipRow(d.hist ? S.capacityHistoric : S.capacityProjected, d.hist ? S.lHist : S.lProj, fmt(d.v));
           } });
       });
+      // side by side: the main chart ends level with the last row of country charts, at any width
+      if (!ctx.stacked && S.matchHeights) {
+        var gap = cbox.getBoundingClientRect().bottom - document.getElementById("s-main").getBoundingClientRect().bottom;
+        if (Math.abs(gap) > 1) drawMain(DV.clamp(h + gap, 240, 1400));
+      }
     }
   });
 })();
