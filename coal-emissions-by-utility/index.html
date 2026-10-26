@@ -48,11 +48,12 @@
  * ================================================================ */
 var SETTINGS = {
   // ---- Text ----
-  title: "CO₂ emissions from coal power stations by utility, EU+UK", // Main title
+  title: "CO₂ emissions from coal power stations by utility since 2005, EU+UK", // Main title
   subtitle: "",                                // Subtitle under the title, one paragraph per line (empty = none)
   hint: "Click utility names below to toggle them off and on:", // Line above the legend (empty = none)
-  mainCaption: "Utilities ranked by cumulative CO₂ emissions from coal power stations since {first}.", // Caption under the stacked bars; {first} = first year in the data
-  smallCaption: "Utilities with the largest cumulative CO₂ emissions from coal power stations since {first}.", // Caption under the small charts; {first} = first year in the data
+  mainCaption: "Utilities ranked by cumulative emissions.", // Caption under the stacked bars; {first} = first year in the data
+  smallCaption: "The largest emitters, each on its own scale.", // Caption under the small charts; {first} = first year in the data
+  tooltipRank: true,                           // Tooltip lists the utilities by that year's emissions, with their rank (false = cumulative order)
   note: "In 2025, just seven utilities were responsible for over two-thirds of coal emissions.", // Note next to the highlighted bar (empty = none)
   unitLabel: "Mt",                             // Unit after the numbers
   totalLabel: "Total",                         // Tooltip: total
@@ -177,12 +178,13 @@ var SETTINGS = {
 
     groups: [
       DV.chartTextGroup({
-        title: "CO₂ emissions from coal power stations by utility, EU+UK",
+        title: "CO₂ emissions from coal power stations by utility since 2005, EU+UK",
         footer: "Source: [EU ETS](https://union-registry-data.ec.europa.eu/report/welcome), [UK ETS](https://reports.view-emissions-trading-registry.service.gov.uk/ets-reports.html), [Beyond Fossil Fuels](https://beyondfossilfuels.org/data/coal-power-plant/) | Last update: {timestamp}",
         extra: [
           { key: "hint",       type: "text", def: "Click utility names below to toggle them off and on:", help: "Line above the legend (empty = none)" },
-          { key: "mainCaption", type: "text", def: "Utilities ranked by cumulative CO₂ emissions from coal power stations since {first}.", help: "Caption under the stacked bars; {first} = first year in the data" },
-          { key: "smallCaption", type: "text", def: "Utilities with the largest cumulative CO₂ emissions from coal power stations since {first}.", help: "Caption under the small charts; {first} = first year in the data" },
+          { key: "mainCaption", type: "text", def: "Utilities ranked by cumulative emissions.", help: "Caption under the stacked bars; {first} = first year in the data" },
+          { key: "smallCaption", type: "text", def: "The largest emitters, each on its own scale.", help: "Caption under the small charts; {first} = first year in the data" },
+          { key: "tooltipRank", type: "check", def: true, help: "Tooltip lists the utilities by that year's emissions, with their rank (off = cumulative order)" },
           { key: "note",       type: "text", def: "In 2025, just seven utilities were responsible for over two-thirds of coal emissions.", help: "Note next to the highlighted bar (empty = none)" },
           { key: "unitLabel",  type: "text", def: "Mt", help: "Unit after the numbers" },
           { key: "totalLabel", type: "text", def: "Total", help: "Tooltip: total" }
@@ -253,8 +255,15 @@ var SETTINGS = {
         highlight: S.highlightLast ? { index: last, color: S.highlightColor } : null,
         yMax: ax.max, tickStep: ax.step, fmtY: function (v) { return DV.fmt(v, un, 0); },
         tooltip: function (i) {
-          var html = "<b>" + rows[i][P] + "</b>";
-          shown.forEach(function (u) { html += DV.tipRow(u.color, u.label, DV.fmt(rows[i][u.key], un, 1)); });
+          var html = "<b>" + rows[i][P] + "</b>", d = rows[i];
+          if (S.tooltipRank) {
+            // that year's ranking: rank among all named utilities (hidden ones still count), largest first, Other last
+            var named = us.filter(function (u) { return !u.other; }).slice().sort(function (a, b) { return d[b.key] - d[a.key]; });
+            named.forEach(function (u, r) {
+              if (!hidden[u.key]) html += DV.tipRow(u.color, (r + 1) + ". " + u.label, DV.fmt(d[u.key], un, 1));
+            });
+            shown.filter(function (u) { return u.other; }).forEach(function (u) { html += DV.tipRow(u.color, u.label, DV.fmt(d[u.key], un, 1)); });
+          } else shown.forEach(function (u) { html += DV.tipRow(u.color, u.label, DV.fmt(d[u.key], un, 1)); });
           return html + DV.tipRow("", S.totalLabel, DV.fmt(tot[i], un, 1), "t");
         } });
       if (S.note) {
