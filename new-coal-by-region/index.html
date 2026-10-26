@@ -39,6 +39,7 @@ var SETTINGS = {
   hint: "Click each status below to toggle them off and on", // Line above the legend (empty = none)
   heading: "{region} (~{total} GW)",           // Panel headings; {region} and {total} (largest total, GW) are filled in
   unitLabel: "GW",                             // Unit in the tooltip
+  totalLabel: "Total",                         // Tooltip: total capacity of all statuses
   footer: "Source: [Beyond Fossil Fuels](https://beyondfossilfuels.org/data/coal-power-plant/) | Coal power plant projects tracked since Jan 2016 | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
   notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
   // Text sizes:
@@ -247,7 +248,8 @@ var SETTINGS = {
         extra: [
           { key: "hint",    type: "text", def: "Click each status below to toggle them off and on", help: "Line above the legend (empty = none)" },
           { key: "heading", type: "text", def: "{region} (~{total} GW)", help: "Panel headings; {region} and {total} (largest total, GW) are filled in" },
-          { key: "unitLabel", type: "text", def: "GW", help: "Unit in the tooltip" }
+          { key: "unitLabel", type: "text", def: "GW", help: "Unit in the tooltip" },
+          { key: "totalLabel", type: "text", def: "Total", help: "Tooltip: total capacity of all statuses" }
         ]
       }),
       { name: "Bars", fields: [
@@ -340,7 +342,9 @@ var SETTINGS = {
               if (hidden[k]) return;
               html += DV.tipRow(S[PALETTE_KEY[k]], k, DV.fmt(d[k], u, 2) + " (" + DV.fmt(tot ? d[k] / tot * 100 : 0, "", 0) + "%)");
             });
-            return html;
+            // total of all statuses (hidden ones included): how the region's capacity changes over time, compare the "~… GW" heading
+            var all = legendOrder.reduce(function (a, k) { return a + (+d[k] || 0); }, 0);
+            return html + DV.tipRow("", S.totalLabel, DV.fmt(all, u, 2), "t");
           } });
       });
     }
