@@ -67,7 +67,8 @@ var SETTINGS = {
   tooltipSize: 14,                             // Tooltip (popup) text size in px
   subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
   noteSize: 15,                                // Note size in px
-  smallHeadingSize: 19,                        // Small chart heading size in px
+  smallHeadingSize: 17,                        // Small chart heading size in px
+  smallAxisSize: 12,                           // Axis label size in the small charts, in px (never larger than the heading minus 1 px)
 
   // ---- Spacing ----
   padTop: 0,                                   // Space above the graphic in px
@@ -197,7 +198,8 @@ var SETTINGS = {
       ]},
       { name: "Small charts", fields: [
         { key: "showSmall",        type: "check", def: true, help: "Show the small charts for each utility" },
-        { key: "smallHeadingSize", type: "range", min: 10, max: 30, step: 0.5, def: 19, help: "Small chart heading size in px" },
+        { key: "smallHeadingSize", type: "range", min: 10, max: 30, step: 0.5, def: 17, help: "Small chart heading size in px" },
+        { key: "smallAxisSize", type: "range", min: 8, max: 22, step: 0.5, def: 12, help: "Axis label size in the small charts, in px (never larger than the heading minus 1 px)" },
         { key: "smallHeight",      type: "range", min: 60, max: 260, step: 5, def: 110, help: "Height of each small chart in px" }
       ]},
       { name: "Layout", fields: [
@@ -223,7 +225,7 @@ var SETTINGS = {
       if (!S.showSmall) return;
       us.filter(function (u) { return !u.other; }).forEach(function (u) {
         var d = document.createElement("div"); d.className = "dvc-panel";
-        var h = document.createElement("h3"); h.textContent = u.label; h.style.textAlign = "center"; d.appendChild(h);
+        var h = document.createElement("h3"); h.textContent = u.label; d.appendChild(h);
         smalls.push({ u: u, svg: DV.el("svg", {}, d) });
         small.appendChild(d);
       });
@@ -264,11 +266,13 @@ var SETTINGS = {
         var sw = sm.svg.parentNode.clientWidth, k = sm.u.key;
         var a = DV.niceAxis(Math.max.apply(null, rows.map(function (d) { return d[k]; })), 2);
         // a label every 5 years where they fit side by side, otherwise every 10, or 20 on the narrowest charts
-        var fs = DV.axisFs(S, sw), plot = sw - DV.textWidth(DV.fmt(a.max, "Mt", 0), fs) - 8 - 2 * DV.axisEdge(sw);
+        // as the C5 country charts: axis labels one px smaller than the heading, x labels 2 px up
+        var headPx = parseFloat(getComputedStyle(sm.svg.parentNode.querySelector("h3")).fontSize) || 12;
+        var fs = Math.min(DV.axisFs({ axisSize: S.smallAxisSize }, sw), headPx - 1), plot = sw - DV.textWidth(DV.fmt(a.max, "Mt", 0), fs) - 8 - 2 * DV.axisEdge(sw);
         var every = [5, 10, 20].filter(function (e) { return e * plot / rows.length >= DV.textWidth("2020", fs) + 10; })[0] || 20;
         DV.bars({ S: S, svg: sm.svg, tip: tip, width: sw, height: S.smallHeight, rows: rows,
           label: function (d) { return d[P]; }, xLabelAt: function (i) { return +rows[i][P] % every === 0; },
-          gap: 0.2, series: [{ key: k, color: sm.u.color }], yMax: a.max, tickStep: a.step, top: 4,
+          gap: 0.2, series: [{ key: k, color: sm.u.color }], yMax: a.max, tickStep: a.step, top: 4, fs: fs, xLabelDy: -2,
           fmtY: function (v) { return DV.fmt(v, un, 0); },
           tooltip: function (i) { return "<b>" + sm.u.label + ", " + rows[i][P] + "</b>" + DV.tipRow(sm.u.color, "CO₂", DV.fmt(rows[i][k], un, 1)); } });
       });
