@@ -72,7 +72,10 @@
    * islands smaller than S.mapMinIsland km² (a country always keeps its largest part). */
   DV.mapShapes = function (topo, S) {
     var detail = DV.clamp(+S.mapDetail || 1, 0.01, 1), minKm2 = +S.mapMinIsland || 0;
-    var key = topo.file + "|" + detail + "|" + minKm2;
+    // S.mapHideOutside: drop parts of countries that lie wholly outside the view box (e.g. the Canaries and Madeira
+    // showing up beside a map that is aligned right), 1 degree of margin
+    var box = S.mapHideOutside ? [S.viewWest - 1, S.viewEast + 1, S.viewSouth - 1, S.viewNorth + 1] : null;
+    var key = topo.file + "|" + detail + "|" + minKm2 + "|" + (box ? box.join(",") : "");
     if (shapeCache[key]) return shapeCache[key];
     var t = topo;
     if (detail < 1) {
@@ -85,6 +88,15 @@
         var areas = g.coordinates.map(polyArea), biggest = Math.max.apply(null, areas);
         var kept = g.coordinates.filter(function (p, i) { return areas[i] >= minKm2 || areas[i] === biggest; });
         g = { type: "MultiPolygon", coordinates: kept };
+      }
+      if (g && box) {
+        var polys = g.type === "Polygon" ? [g.coordinates] : g.type === "MultiPolygon" ? g.coordinates : null;
+        if (polys) {
+          var inside = polys.filter(function (pl) {
+            return pl[0].some(function (c) { return c[0] >= box[0] && c[0] <= box[1] && c[1] >= box[2] && c[1] <= box[3]; });
+          });
+          g = inside.length ? { type: "MultiPolygon", coordinates: inside } : null;
+        }
       }
       return { type: "Feature", id: f.id, properties: f.properties, geometry: g };
     }).filter(function (f) { return f.geometry; });
@@ -119,9 +131,12 @@
     ]);
     // S.mapAlign: where the view box sits when the map area is wider than it (wide screens with a fixed graphic height):
     // centred (default), or against the left or right side of the map area (then moved by S.mapShiftX as usual)
-    if (S.mapAlign === "left" || S.mapAlign === "right") {
+    // ?align=left|centre|right in the embed address overrides it, so one graphic can sit differently in two website modules
+    var urlAlign = /[?&]align=(left|centre|center|right)\b/i.exec(location.search), align = urlAlign ? urlAlign[1].toLowerCase() : S.mapAlign;
+    if (align === "center") align = "centre";
+    if (align === "left" || align === "right") {
       var b = d3.geoPath(p).bounds({ type: "MultiPoint", coordinates: pts }), t2 = p.translate();
-      var dx = S.mapAlign === "left" ? -b[0][0] : w - b[1][0];
+      var dx = align === "left" ? -b[0][0] : w - b[1][0];
       if ((b[1][0] - b[0][0]) < w) p.translate([t2[0] + dx, t2[1]]);
     }
     return p;
@@ -861,6 +876,7 @@
       { name: "Map shapes", fields: [
         { key: "geometry",     type: "select", options: Object.keys(DV.GEOMETRY), def: "Medium (Natural Earth 50m)", help: "Country shapes, Simple: few islands and smooth coasts; Detailed: what Flourish used" },
         { key: "mapDetail",    type: "range", min: 0.02, max: 1, step: 0.01, def: 1, help: "Coastline detail, share of points kept (1 = all, lower = smoother)" },
+        { key: "mapHideOutside", type: "check", def: false, help: "Hide land wholly outside the view box (e.g. the Canaries or the Azores next to a map aligned right)" },
         { key: "mapMinIsland", type: "range", min: 0, max: 2990, step: 10, def: 0, help: "Hide islands smaller than this, in km² (0 = show all; for scale: Mallorca is about 3,600, Rhodes 1,400)" },
         { key: "noDataShow",   type: "select", options: ["hidden", "BFF countries only", "all countries"], def: "hidden", help: "Countries without data, hidden: only countries with data; BFF countries only: also BFF countries with no data; all countries: neighbours too" },
         { key: "smallMode",    type: "select", options: ["as they are", "circle", "zoomed box"], def: "zoomed box", help: "Very small countries (list below), as they are: their real size; circle: a dot you can hover; zoomed box: an enlarged copy in a box" },
