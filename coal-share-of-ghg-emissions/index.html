@@ -49,7 +49,7 @@ var SETTINGS = {
   totalLabel: "Total",                         // Tooltip: total
   shareLabel: "Coal power share",              // Tooltip: share
   unitLabel: "Gt",                             // Unit after the numbers (axis and tooltip)
-  footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/data-and-maps/data/national-emissions-reported-to-the-unfccc-and-to-the-eu-greenhouse-gas-monitoring-mechanism-18), [UK Government](https://www.gov.uk/government/statistics/electricity-chapter-5-digest-of-united-kingdom-energy-statistics-dukes), [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
+  footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/data-and-maps/data/national-emissions-reported-to-the-unfccc-and-to-the-eu-greenhouse-gas-monitoring-mechanism-18), [UK Government](https://www.gov.uk/government/statistics/electricity-chapter-5-digest-of-united-kingdom-energy-statistics-dukes), [Beyond Fossil Fuels](https://beyondfossilfuels.org/data/coal-power-plant/) | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
   notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
   // Text sizes:
   titleSize: 23,                               // Main title size in px (shrinks on small screens)
@@ -139,7 +139,7 @@ var SETTINGS = {
     groups: [
       DV.chartTextGroup({
         title: "CO₂ from coal power and all other greenhouse gas emissions, EU+UK",
-        footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/data-and-maps/data/national-emissions-reported-to-the-unfccc-and-to-the-eu-greenhouse-gas-monitoring-mechanism-18), [UK Government](https://www.gov.uk/government/statistics/electricity-chapter-5-digest-of-united-kingdom-energy-statistics-dukes), [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: {timestamp}",
+        footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/data-and-maps/data/national-emissions-reported-to-the-unfccc-and-to-the-eu-greenhouse-gas-monitoring-mechanism-18), [UK Government](https://www.gov.uk/government/statistics/electricity-chapter-5-digest-of-united-kingdom-energy-statistics-dukes), [Beyond Fossil Fuels](https://beyondfossilfuels.org/data/coal-power-plant/) | Last update: {timestamp}",
         extra: [
           { key: "leftTitle",  type: "text", def: "{{Coal power CO₂ emissions}} in relation to {all other GHG emissions}", help: "Heading above the bars; words in {{double braces}} take the coal power colour, words in {braces} the colour of all other GHG emissions" },
           { key: "highlight",  type: "select", options: ["background", "text colour"], def: "background", help: "How the braced words stand out: background (coloured box, white text) or text colour" },
