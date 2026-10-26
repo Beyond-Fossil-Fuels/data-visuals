@@ -170,7 +170,8 @@
 
   // Number formatting, e.g. DV.fmt(12.345, "GW", 1) -> "12.3 GW"
   DV.fmt = function (v, unit, decimals) {
-    var s = (+v).toLocaleString("en-GB", { maximumFractionDigits: decimals == null ? 1 : decimals });
+    // EU style for every graphic: narrow non-breaking space (as the gas drafts) between thousands, point as decimal (1 000, 2 085.2)
+    var s = (+v).toLocaleString("en-GB", { maximumFractionDigits: decimals == null ? 1 : decimals }).replace(/,/g, "\u202f");
     return unit ? s + " " + unit : s;
   };
   // "24Q1" -> "Q1 2024" (tooltips); "24Q1" -> "2024 Q1" (footer)
