@@ -8,6 +8,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="../shared/v1/core.css">
 <link rel="stylesheet" href="../shared/v1/charts.css">
+<style>
+  /* room for the highlighted words in the chart headings (both panels, so the charts stay level) */
+  #dv .dvc-panel h2 { line-height: 1.45; margin-bottom: 12px; }
+</style>
 </head>
 <body>
 <div class="dv" id="dv">
@@ -37,7 +41,8 @@ var SETTINGS = {
   // ---- Text ----
   title: "CO₂ from coal power and all other greenhouse gas emissions, EU+UK", // Main title
   subtitle: "",                                // Subtitle under the title, one paragraph per line (empty = none)
-  leftTitle: "Coal power CO₂ emissions in relation to {all other GHG emissions}", // Heading above the bars; words in {braces} take the colour of all other GHG emissions
+  leftTitle: "{{Coal power CO₂ emissions}} in relation to {all other GHG emissions}", // Heading above the bars; words in {{double braces}} take the coal power colour, words in {braces} the colour of all other GHG emissions
+  highlight: "background",                     // How the braced words stand out: background (coloured box, white text) or text colour
   rightTitle: "Coal power CO₂ emissions as a share of all GHG emissions", // Heading above the area chart
   coalLabel: "Coal power CO₂",                 // Tooltip: coal power
   otherLabel: "All other GHG emissions",       // Tooltip: all other emissions
@@ -136,7 +141,8 @@ var SETTINGS = {
         title: "CO₂ from coal power and all other greenhouse gas emissions, EU+UK",
         footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/data-and-maps/data/national-emissions-reported-to-the-unfccc-and-to-the-eu-greenhouse-gas-monitoring-mechanism-18), [UK Government](https://www.gov.uk/government/statistics/electricity-chapter-5-digest-of-united-kingdom-energy-statistics-dukes), [Beyond Fossil Fuels](https://beyondfossilfuels.org/) | Last update: {timestamp}",
         extra: [
-          { key: "leftTitle",  type: "text", def: "Coal power CO₂ emissions in relation to {all other GHG emissions}", help: "Heading above the bars; words in {braces} take the colour of all other GHG emissions" },
+          { key: "leftTitle",  type: "text", def: "{{Coal power CO₂ emissions}} in relation to {all other GHG emissions}", help: "Heading above the bars; words in {{double braces}} take the coal power colour, words in {braces} the colour of all other GHG emissions" },
+          { key: "highlight",  type: "select", options: ["background", "text colour"], def: "background", help: "How the braced words stand out: background (coloured box, white text) or text colour" },
           { key: "rightTitle", type: "text", def: "Coal power CO₂ emissions as a share of all GHG emissions", help: "Heading above the area chart" },
           { key: "coalLabel",  type: "text", def: "Coal power CO₂", help: "Tooltip: coal power" },
           { key: "otherLabel", type: "text", def: "All other GHG emissions", help: "Tooltip: all other emissions" },
@@ -160,9 +166,19 @@ var SETTINGS = {
     ],
 
     build: function (ctx) {
+      // {{words}} in the coal power colour, {words} in the colour of all other GHG emissions,
+      // as a coloured box with white text or as coloured text (setting "highlight")
+      function highlightWords(text, S) {
+        function span(c, w) {
+          return S.highlight === "text colour" ? '<span style="color:' + c + '">' + w + '</span>'
+            : '<span style="background:' + c + ';color:#fff;padding:0 0.25em;border-radius:2px;-webkit-box-decoration-break:clone;box-decoration-break:clone">' + w + '</span>';
+        }
+        return DV.linkify(text).replace(/\{\{([^}]+)\}\}/g, function (m, w) { return span(S.coalPowerCo2, w); })
+          .replace(/\{([^}]+)\}/g, function (m, w) { return span(S.otherGhg, w); });
+      }
       var S = ctx.S;
       DV.chartText(S);
-      document.getElementById("h-left").innerHTML = DV.colorWords(S.leftTitle, S.otherGhg);
+      document.getElementById("h-left").innerHTML = highlightWords(S.leftTitle, S);
       document.getElementById("h-right").innerHTML = DV.linkify(S.rightTitle);
     },
 
