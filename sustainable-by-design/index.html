@@ -41,12 +41,12 @@
 var SETTINGS = {
   // ---- Text ----
   title: "Replacing imported fossil gas for electricity with solar panels could produce more than ten times the electricity, at the same import cost", // Main title
-  subtitle: "EU27, {year} import data: €30 billion of fossil gas burned once for electricity vs. €30 billion of solar panels over a 25-year lifetime.", // Subtitle under the title, one paragraph per line (empty = none); {year} = the Data year cell in the sheet (D1)
+  subtitle: "EU27, {year} import data: €30 billion of fossil gas burned once for electricity vs. €30 billion of solar panels over a 25-year lifetime.", // Subtitle under the title, one paragraph per line (empty = none); {year} = the year in cell C1 of the sheet ("Data year: 2025")
   unitLabel: "TWh",                            // Unit after the numbers
   iconNote: "",                                // Extra legend line, e.g. Each icon = {per} TWh (empty = none)
   tip1: "€30 billion of imported fossil gas, consumed in approximately one year, produces {value} of electricity.", // Tooltip text for the first group; {value}, {count} (icons) and {per} (TWh per icon) are filled in
   tip2: "€30 billion of imported solar panels produce {value} of electricity over their 25-year lifetime.", // Tooltip text for the second group (same placeholders)
-  tipTime: "The panels produce about {perYear} per year. They will match and overtake the {gas} within {yearsUp} years, and continue to generate electricity for at least another {rest} years.", // Tooltip line comparing time; {life}, {perYear} (second group ÷ lifetime), {gas} (first group), {years} (first ÷ per year, one decimal), {yearsUp} ({years} rounded up to whole years) and {rest} (lifetime minus {yearsUp}) are filled in. Empty = none
+  tipTime: "The panels produce about {perYear} per year. They will match and overtake the {gas} within {yearsUp} years, and continue to generate electricity for at least another {rest} years.", // Tooltip line comparing time; {life}, {perYear} (second group ÷ lifetime), {gas} (first group), {years} (first ÷ per year, one decimal), {yearsUp} ({years} rounded up to whole years) and {rest} (lifetime minus {yearsUp}); both in words up to ten are filled in. Empty = none
   tipIcons: "Each icon = {per} TWh", // Last tooltip line in the icon version (empty = none)
   footer: "Sources: [Eurostat](https://ec.europa.eu/eurostat/web/main/data/database), [European Commission (DG Energy)](https://energy.ec.europa.eu/document/download/73b16f0c-1c65-478f-a004-d991d8bd0b2f_en?filename=New%20Quarterly%20Report%20on%20European%20Gas%20Markets%20Q4%202025-AA.pdf), [SolarPower Europe](https://www.solarpowereurope.org/insights/outlooks/eu-solar-market-outlook-2025-2030/detail), [Bruegel](https://www.bruegel.org/dataset/eu-renewables-value-tracker) | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
   notes: "Methodology and data available [here](https://docs.google.com/spreadsheets/d/1ANQDv8u260Tr46DcU73rRMX0w7J1xuQjAoYO-KL_QPU/edit?usp=sharing).", // Notes under the footer, one paragraph per line; links as [text](https://…)
@@ -106,12 +106,12 @@ var SETTINGS = {
   /* ------------------------------------------------------------------
    * R2: electricity from €30 billion of gas imports vs solar panel imports (pictogram).
    * Sheet tab "R2": Imported asset, TWh (one row per group, left to right), and the data year
-   * beside the table: "Data year" in C1, the year in D1 (fills {year}; 2025 if missing).
+   * beside the table in C1, "Data year: 2025" (fills {year}; 2025 if missing).
    * Each icon stands for a fixed amount (setting "TWh per icon"); icons are the BFF icons.
    * ------------------------------------------------------------------ */
   var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
   var FALLBACK = [
-    "Imported asset\tTWh\tData year\t2025",
+    "Imported asset\tTWh\tData year: 2025",
     "Electricity from imported fossil gas\t457.2",
     "Electricity from imported solar panels\t5820.0"
   ].join("\n");
@@ -125,15 +125,18 @@ var SETTINGS = {
   // icon colours come from the brand palette: gas -> "gas", solar -> "solarIcon"
   var ICON_COLOR = { gas: "gas", solar: "solarIcon", circle: "headingColor" };
   function colorOf(S, i) { return S[ICON_COLOR[S["icon" + (i + 1)]]]; }
-  // the data year: the cell after "Data year" in the sheet's first row (C1, D1); 2025 if it isn't there
+  // the data year: cell C1 of the sheet tab, "Data year: 2025" ("Data year 2025" or "Data year | 2025" also work); 2025 if it isn't there
   var FALLBACK_YEAR = "2025";
   function dataYear(ctx) {
-    var h = ctx.headers || [];
-    for (var i = 0; i < h.length - 1; i++) {
-      if (/^data year$/i.test(String(h[i]).trim()) && /^\d{4}$/.test(String(h[i + 1]).trim())) return String(h[i + 1]).trim();
+    var h = ctx.headers || [], m;
+    for (var i = 0; i < h.length; i++) {
+      if ((m = /^\s*data year\s*[:|]?\s*(\d{4})\s*$/i.exec(String(h[i])))) return m[1];
     }
     return FALLBACK_YEAR;
   }
+  // whole numbers up to ten in words (EU style), larger ones in figures
+  var WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+  function inWords(n) { return n >= 0 && n <= 10 ? WORDS[n] : String(n); }
 
   DV.create({
     axes: false,   // no axes: design mode leaves out the axis label size
@@ -154,7 +157,7 @@ var SETTINGS = {
           { key: "iconNote",  type: "text", def: "", help: "Extra legend line, e.g. Each icon = {per} TWh (empty = none)" },
           { key: "tip1", type: "textarea", rows: 3, def: "€30 billion of imported fossil gas, consumed in approximately one year, produces {value} of electricity.", help: "Tooltip text for the first group; {value}, {count} (icons) and {per} (TWh per icon) are filled in" },
           { key: "tip2", type: "textarea", rows: 3, def: "€30 billion of imported solar panels produce {value} of electricity over their 25-year lifetime.", help: "Tooltip text for the second group (same placeholders)" },
-          { key: "tipTime", type: "textarea", rows: 3, def: "The panels produce about {perYear} per year. They will match and overtake the {gas} within {yearsUp} years, and continue to generate electricity for at least another {rest} years.", help: "Tooltip line comparing time; {life}, {perYear} (second group ÷ lifetime), {gas} (first group), {years} (first ÷ per year, one decimal), {yearsUp} ({years} rounded up to whole years) and {rest} (lifetime minus {yearsUp}) are filled in. Empty = none" },
+          { key: "tipTime", type: "textarea", rows: 3, def: "The panels produce about {perYear} per year. They will match and overtake the {gas} within {yearsUp} years, and continue to generate electricity for at least another {rest} years.", help: "Tooltip line comparing time; {life}, {perYear} (second group ÷ lifetime), {gas} (first group), {years} (first ÷ per year, one decimal), {yearsUp} ({years} rounded up to whole years) and {rest} (lifetime minus {yearsUp}); both in words up to ten are filled in. Empty = none" },
           { key: "tipIcons", type: "text", def: "Each icon = {per} TWh", help: "Last tooltip line in the icon version (empty = none)" }
         ]
       }),
@@ -216,7 +219,7 @@ var SETTINGS = {
           return String(t || "").replace(/\{value\}/g, DV.fmt(d.TWh, S.unitLabel, 0)).replace(/\{count\}/g, DV.fmt(counts[i], "", 0))
             .replace(/\{per\}/g, DV.fmt(S.perIcon, "", 0)).replace(/\{life\}/g, S.lifetime)
             .replace(/\{perYear\}/g, DV.fmt(perYear, S.unitLabel, 0)).replace(/\{gas\}/g, DV.fmt(rows[0].TWh, S.unitLabel, 0))
-            .replace(/\{years\}/g, DV.fmt(years, "", 1)).replace(/\{yearsUp\}/g, yearsUp).replace(/\{rest\}/g, rest)
+            .replace(/\{years\}/g, DV.fmt(years, "", 1)).replace(/\{yearsUp\}/g, inWords(yearsUp)).replace(/\{rest\}/g, inWords(rest))
             .replace(/\{year\}/g, year);
         };
         return '<b style="color:' + colorOf(S, i) + '">' + d[P] + "</b><div>" + fill(S["tip" + (i + 1)]) + "</div>" +
