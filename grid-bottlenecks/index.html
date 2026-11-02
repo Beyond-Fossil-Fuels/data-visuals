@@ -37,7 +37,7 @@ var SETTINGS = {
   totalName: "Total",                          // Name of the total bar (empty = no total bar)
   prefix: "€",                                 // Before each number
   suffix: "bn",                                // After each number
-  tipLabel: "Value of realistic buildable capacity", // Tooltip: label of the total (the only figure shown; the split by technology is read off the report's figure)
+  tipLabel: "Value of realistic buildable capacity", // Tooltip: label of the total, shown after the value of each technology
   footer: "Source: Report [\"Grid expectations: The distribution backlog stalling Europe's energy transition\"](https://beyondfossilfuels.org/2026/06/02/grid-expectations-the-distribution-backlog-stalling-europes-energy-transition/) prepared by AFRY for BFF, June 2026", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
   notes: "",                                   // Notes under the footer, one paragraph per line; links as [text](https://…)
   // Text sizes:
@@ -73,7 +73,7 @@ var SETTINGS = {
   legendPos: "center",                         // Legend alignment
   barGap: 0.2,                                 // Space between bars, as a share of each bar's slot
   sigFigs: 2,                                  // Labels above the bars: significant figures (2: 45, 7, 0.03, 100)
-  decimals: 2,                                 // Decimals in the tooltip
+  decimals: 1,                                 // Decimals in the tooltip (always shown, e.g. 2.0)
 
   // ---- Layout ----
   chartHeight: 0.62,                           // Chart height as a share of its width
@@ -94,14 +94,14 @@ var SETTINGS = {
   var SHEET_ID = "1pn2TOwSXL6ujuXxcuK5J7IdvVU25q-9BxPi6apM500w";
   var FALLBACK = [
     "Country\tWind\tSolar PV\tBESS",
-    "Germany\t17.1\t18\t9.9",
-    "UK\t4.86\t5.22\t7.92",
-    "Poland\t1.92\t4.32\t5.76",
-    "Italy\t0.72\t9.6\t1.68",
-    "Spain\t1.96\t3.29\t1.75",
-    "Czechia\t2.46\t2.1\t1.44",
-    "Greece\t0.06\t0.49\t0.45",
-    "Bulgaria\t0.003\t0.027\t0"
+    "Germany\t16.9\t17.7\t10.0",
+    "UK\t4.7\t5.1\t7.8",
+    "Poland\t2.0\t4.4\t5.8",
+    "Italy\t0.7\t9.3\t1.7",
+    "Spain\t2.0\t3.4\t1.8",
+    "Czechia\t2.3\t2.0\t1.3",
+    "Greece\t0.1\t0.5\t0.4",
+    "Bulgaria\t0.0\t0.0\t0.0"
   ].join("\n");
   var PALETTE_KEY = { "Wind": "wind", "Solar PV": "solar", "BESS": "bess" };
 
@@ -120,7 +120,7 @@ var SETTINGS = {
           { key: "totalName",  type: "text", def: "Total", help: "Name of the total bar (empty = no total bar)" },
           { key: "prefix",     type: "text", def: "€", help: "Before each number" },
           { key: "suffix",     type: "text", def: "bn", help: "After each number" },
-          { key: "tipLabel",   type: "text", def: "Value of realistic buildable capacity", help: "Tooltip: label of the total (the only figure shown; the split by technology is read off the report's figure)" }
+          { key: "tipLabel",   type: "text", def: "Value of realistic buildable capacity", help: "Tooltip: label of the total, shown after the value of each technology" }
         ]
       }),
       { name: "Bars", fields: [
@@ -128,7 +128,7 @@ var SETTINGS = {
         { key: "barGap",      type: "range", min: 0, max: 0.7, step: 0.02, def: 0.2, help: "Space between bars, as a share of each bar's slot" },
         { key: "sigFigs",     type: "range", min: 1, max: 4, step: 1, def: 2, help: "Labels above the bars: significant figures (2: 45, 7, 0.03, 100)" },
         { key: "topLabelSize", type: "range", min: 9, max: 32, step: 0.5, def: 20, help: "Size of the labels above the bars in px" },
-        { key: "decimals",    type: "range", min: 0, max: 3, step: 1, def: 2, help: "Decimals in the tooltip" }
+        { key: "decimals",    type: "range", min: 0, max: 3, step: 1, def: 1, help: "Decimals in the tooltip (always shown, e.g. 2.0)" }
       ]},
       { name: "Layout", fields: [
         { key: "chartHeight", type: "range", min: 0.3, max: 1.2, step: 0.02, def: 0.62, help: "Chart height as a share of its width" },
@@ -159,6 +159,10 @@ var SETTINGS = {
         rows = rows.concat([t]); bases.push(0);
       }
       var money = function (v, sig) { return S.prefix + DV.fmt(sig ? DV.sigFig(v, sig) : v, "", sig ? 4 : S.decimals) + S.suffix; };
+      // tooltip values: always the same number of decimals (2.0, 0.1), as in the sheet
+      var exact = function (v) {
+        return S.prefix + (+v).toLocaleString("en-GB", { minimumFractionDigits: S.decimals, maximumFractionDigits: S.decimals }) + S.suffix;
+      };
       var w = document.getElementById("panel").clientWidth, narrow = w < 560;
       var h = Math.max(S.minHeight, w * S.chartHeight);
       var ax = DV.niceAxis(acc, 5);
@@ -169,9 +173,10 @@ var SETTINGS = {
         topLabelSize: ctx.sz(S.topLabelSize, narrow ? 9 : 12), fs: narrow ? Math.max(9, S.axisSize * 0.75) : null,
         yMax: ax.max, tickStep: ax.step, fmtY: function (v) { return money(v); },
         tooltip: function (i) {
-          // only the total: the split by technology was read off the report's figure, so it isn't exact
-          var d = rows[i];
-          return "<b>" + d[P] + "</b>" + DV.tipRow("", S.tipLabel, money(sum(d), S.sigFigs));
+          // each technology (in legend order), then the total: the report's figures, with a fixed number of decimals
+          var d = rows[i], h = "<b>" + d[P] + "</b>";
+          keys.forEach(function (k) { h += DV.tipRow(S[PALETTE_KEY[k]], k, exact(d[k])); });
+          return h + DV.tipRow("", S.tipLabel, exact(sum(d)), "t");
         } });
     }
   });
