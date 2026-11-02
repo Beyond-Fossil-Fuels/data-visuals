@@ -185,8 +185,8 @@
     { id: "R1", name: "Europe power mix", section: "Renewables", slug: "europe-power-mix", tab: "R1",
       title: "Share of total electricity generation in Europe by source, 2015 to 2025", height: 800 },
     // one above the other is now the default layout (?type=rows still works; the side-by-side R2.1 is retired)
-    { id: "R2", name: "Gas vs solar investment", section: "Renewables", slug: "cheaper-by-design", tab: "R2",
-      title: "Spending €100 billion on solar panel imports instead of gas imports could produce 9x more electricity", height: 640 },
+    { id: "R2", name: "Gas vs solar investment", section: "Renewables", slug: "sustainable-by-design", tab: "R2",
+      title: "Replacing imported fossil gas for electricity with solar panels could produce more than ten times the electricity, at the same import cost", height: 640 },
     { id: "F1", name: "The grid bottleneck", section: "Clean flex", slug: "grid-bottlenecks", tab: "F1",
       title: "Value of clean energy projects currently stuck in grid connection queues in 8 countries", height: 860 },
     { id: "F2", name: "Growth outlook", section: "Clean flex", slug: "clean-flex-growth-outlook", tab: "F2",
@@ -209,7 +209,7 @@
     });
   });
   function bySlug(key) { return VERSIONS.filter(function (v) { return v.key === key; })[0]; }
-  // old addresses (#slug) from before the 22 Oct 2026 renames still open the right graphic
+  // old addresses (#slug) from before the 22 Oct 2026 renames (and R2's 2 Nov rename) still open the right graphic
   var OLD_SLUGS = {
     "coal-co2-map": "coal-emissions-by-country",
     "coal-co2-share": "coal-share-of-ghg-emissions",
@@ -222,11 +222,12 @@
     "gas-tracking-progress": "europes-gas-capacity",
     "gas-fleet-by-country-share": "gas-share-of-capacity-by-status",
     "power-mix": "europe-power-mix",
-    "gas-vs-solar-imports": "cheaper-by-design",
+    "gas-vs-solar-imports": "sustainable-by-design",
+    "cheaper-by-design": "sustainable-by-design",
     "grid-queue-value": "grid-bottlenecks",
     "clean-flex-outlook": "clean-flex-growth-outlook",
     "battery-storage": "batteries-and-storage",
-    "gas-vs-solar-imports~type=rows": "cheaper-by-design",
+    "gas-vs-solar-imports~type=rows": "sustainable-by-design",
     "gas-tracker-switch~view=capacity": "new-gas-projects"
   };
 
