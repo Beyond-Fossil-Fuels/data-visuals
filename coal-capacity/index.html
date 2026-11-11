@@ -56,7 +56,7 @@ var SETTINGS = {
   lProj: "Projected",                          // Legend of the country charts: projected
   unitLabel: "GW",                             // Unit after the numbers
   footer: "Source: [Beyond Fossil Fuels Coal Power Tracker dataset](https://beyondfossilfuels.org/data/#Coal-Power-Tracker-dataset) | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
-  notes: "Note: National coal phase-out commitments are only included if legally binding.", // Notes under the footer, one paragraph per line; links as [text](https://…)
+  notes: "Note: Europe covers the EU27, the UK, Norway, Switzerland, the Western Balkans, Moldova, Türkiye and Ukraine. National coal phase-out commitments are only included if legally binding.", // Notes under the footer, one paragraph per line; links as [text](https://…)
   // Text sizes:
   titleSize: 23,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
@@ -311,7 +311,7 @@ var SETTINGS = {
       DV.chartTextGroup({
         title: "Coal power capacity in Europe since 2016, and projections to 2030",
         footer: "Source: [Beyond Fossil Fuels Coal Power Tracker dataset](https://beyondfossilfuels.org/data/#Coal-Power-Tracker-dataset) | Last update: {timestamp}",
-        notes: "Note: National coal phase-out commitments are only included if legally binding.",
+        notes: "Note: Europe covers the EU27, the UK, Norway, Switzerland, the Western Balkans, Moldova, Türkiye and Ukraine. National coal phase-out commitments are only included if legally binding.",
         extra: [
           { key: "hint",        type: "text", def: "Move the slider or click play to see how historic and projected capacity has been decreasing between {first} and {last}.", help: "Line above the slider; {first} and {last} are the first and last projection years" },
           { key: "mainTitle",   type: "text", def: "", help: "Heading above the main chart (empty = none)" },

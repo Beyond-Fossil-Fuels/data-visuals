@@ -21,6 +21,10 @@
   .c3-note { margin-top: 8px; color: #555; }
   .c3-value.na { font-weight: 400; }
   .c3-value.na i { display: none; }
+  /* Notes under the footer (they fold behind "Show notes" on phones) */
+  .pg-notes { margin: 6px 0 0; font-size: var(--dv-footer-size); }
+  .pg-notes p { margin: 0 0 4px; }
+  .pg-notes:empty { display: none; }
 </style>
 </head>
 <body>
@@ -29,6 +33,7 @@
   <p class="c3-sub" id="subtitle"></p>
   <div id="map"></div>
   <p class="dv-footer" id="dv-footer"></p>
+  <div class="dv-footer pg-notes" id="notes"></div>
 </div>
 
 <script src="../shared/brand.js"></script>
@@ -49,6 +54,7 @@ var SETTINGS = {
   subtitle: "",                                // Text under the title (empty = none)
   hint: "Move the slider or press play to see how emissions changed over time since 2005. Hover over or tap a country for its figures.", // Instruction line above the map (empty = none)
   footer: "Sources: [European Environment Agency](https://www.eea.europa.eu/en/datahub/datahubitem-view/98f04097-26de-4fca-86c4-63834818c0c0), [Beyond Fossil Fuels Coal Power Tracker dataset](https://beyondfossilfuels.org/data/#Coal-Power-Tracker-dataset) | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
+  notes: "Note: Europe covers the EU27, the UK, Norway, Switzerland, the Western Balkans, Moldova, Türkiye and Ukraine.", // Notes under the footer, one paragraph per line; [text](https://…) makes a link
   legendTitle: "CO₂ emissions from coal power (Mt)", // Colour legend title (empty = none)
   valueText: "{value} Mt CO₂ in {year}",       // Popup value line; {value} and {year} are filled in
   noDataText: "CO₂ emissions from coal power in {year} were not available", // Popup line when there's no value; {year} is filled in
@@ -366,6 +372,7 @@ var SETTINGS = {
         { key: "hint",         type: "text", def: "Move the slider or press play to see how emissions changed over time since 2005. Hover over or tap a country for its figures.", help: "Instruction line above the map (empty = none)" },
         { key: "subtitleSize", type: "range", min: 11, max: 28, step: 0.5, def: 17, help: "Text under the title: size in px" },
         { key: "footer",       type: "text", def: "Sources: [European Environment Agency](https://www.eea.europa.eu/en/datahub/datahubitem-view/98f04097-26de-4fca-86c4-63834818c0c0), [Beyond Fossil Fuels Coal Power Tracker dataset](https://beyondfossilfuels.org/data/#Coal-Power-Tracker-dataset) | Last update: {timestamp}", help: "Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide" },
+        { key: "notes",  type: "textarea", rows: 3, def: "Note: Europe covers the EU27, the UK, Norway, Switzerland, the Western Balkans, Moldova, Türkiye and Ukraine.", help: "Notes under the footer, one paragraph per line; [text](https://…) makes a link" },
         { key: "legendTitle",  type: "text", def: "CO₂ emissions from coal power (Mt)", help: "Colour legend title (empty = none)" },
         { key: "valueText",    type: "text", def: "{value} Mt CO₂ in {year}", help: "Popup value line; {value} and {year} are filled in" },
         { key: "noDataText",   type: "text", def: "CO₂ emissions from coal power in {year} were not available", help: "Popup line when there's no value; {year} is filled in" },
@@ -398,6 +405,8 @@ var SETTINGS = {
     ].concat(DV.sliderGroup({ sliderPos: "above map" }), DV.mapGroups({ noDataFill: "#e3e4e6", smallSize: 3.25, smallPad: 3, smallDX: -4, smallDY: -0.5 })),
 
     build: function (ctx) {
+      document.getElementById("notes").innerHTML = String(ctx.S.notes || "").split(/\n/).filter(function (l) { return l.trim(); })
+        .map(function (l) { return "<p>" + DV.linkify(l) + "</p>"; }).join("");
       var S = ctx.S;
       prepare(ctx);
       if (!ui) makeUI(ctx);

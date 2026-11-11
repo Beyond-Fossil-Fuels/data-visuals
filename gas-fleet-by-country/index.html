@@ -52,7 +52,7 @@ var SETTINGS = {
   axisUnit: "GW",                              // Unit on the axis and after the bars (values divided by 1,000)
   totalLabel: "Total",                         // Tooltip: total
   footer: "Source: [Beyond Fossil Fuels Gas Power Tracker dataset](https://beyondfossilfuels.org/data/#Gas-Power-Tracker-dataset) | Gas power plants tracked since 2023 | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
-  notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.", // Notes under the footer, one paragraph per line; links as [text](https://…)
+  notes: "Note: Europe covers the EU27, the UK, Norway, Switzerland, the Western Balkans, Moldova, Türkiye and Ukraine. The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.", // Notes under the footer, one paragraph per line; links as [text](https://…)
   // Text sizes:
   titleSize: 23,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
@@ -238,7 +238,7 @@ var SETTINGS = {
       DV.chartTextGroup({
         title: "Europe’s existing gas fleet and new plant projects capacity",
         footer: "Source: [Beyond Fossil Fuels Gas Power Tracker dataset](https://beyondfossilfuels.org/data/#Gas-Power-Tracker-dataset) | Gas power plants tracked since 2023 | Last update: {timestamp}",
-        notes: "Note: The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.",
+        notes: "Note: Europe covers the EU27, the UK, Norway, Switzerland, the Western Balkans, Moldova, Türkiye and Ukraine. The status of Ukraine's gas units is as of 1 January 2022, prior to the full-scale Russian invasion of Ukraine. This information may not reflect their current status, as some units may have been damaged or destroyed in the war.",
         subtitleSize: 18,
         extra: [
           { key: "hint",       type: "text", def: "Switch between capacity in GW and shares by status. The share view shows, for each country, how much of its existing fleet has been retired and how much of its new plant projects has been cancelled.|Click the legend to switch each status on or off, and hover over bars to see capacity values.", help: "Instruction line under the title; | starts a new line (empty = none)" },

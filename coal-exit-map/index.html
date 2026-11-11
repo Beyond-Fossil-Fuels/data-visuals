@@ -23,6 +23,10 @@
   .c1-share .row { display: flex; align-items: center; gap: 8px; }
   .c1-share .bar { flex: 1; height: 10px; border-radius: 4px; background: #dbdbdb; overflow: hidden; }
   .c1-share .bar span { display: block; height: 100%; }
+  /* Notes under the footer (they fold behind "Show notes" on phones) */
+  .pg-notes { margin: 6px 0 0; font-size: var(--dv-footer-size); }
+  .pg-notes p { margin: 0 0 4px; }
+  .pg-notes:empty { display: none; }
 </style>
 </head>
 <body>
@@ -30,6 +34,7 @@
   <h1 class="dv-title" id="dv-title"></h1>
   <div id="map"></div>
   <p class="dv-footer" id="dv-footer"></p>
+  <div class="dv-footer pg-notes" id="notes"></div>
 </div>
 
 <script src="../shared/brand.js"></script>
@@ -48,6 +53,7 @@ var SETTINGS = {
   // ---- Text ----
   title: "Overview of country coal phase-out announcements and plans in Europe", // Main title
   footer: "Source: [Beyond Fossil Fuels Europe's coal exit tracker](https://beyondfossilfuels.org/data/national-coal-exit/) | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
+  notes: "Note: Europe covers the EU27, the UK, Norway, Switzerland, the Western Balkans, Moldova, Türkiye and Ukraine.", // Notes under the footer, one paragraph per line; [text](https://…) makes a link
   legendTitle: "",                             // Legend title (empty = none)
   statusLabels: "no-coal :: No coal in the electricity mix\nby-2030 :: Coal phase-out commitment by 2030 or earlier\nafter-2030 :: Coal phase-out commitment, but after 2030\ndiscussion :: Coal phase-out under official discussion\nno-discussion :: No official coal phase-out discussion", // Legend wording, one line per status: code :: wording. The line order is the legend order
   searchPlaceholder: "Select country",         // Search box placeholder
@@ -393,6 +399,7 @@ var SETTINGS = {
       { name: "Text", fields: [
         { key: "title",             type: "text", def: "Overview of country coal phase-out announcements and plans in Europe", help: "Main title" },
         { key: "footer",            type: "text", def: "Source: [Beyond Fossil Fuels Europe's coal exit tracker](https://beyondfossilfuels.org/data/national-coal-exit/) | Last update: {timestamp}", help: "Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide" },
+        { key: "notes",  type: "textarea", rows: 3, def: "Note: Europe covers the EU27, the UK, Norway, Switzerland, the Western Balkans, Moldova, Türkiye and Ukraine.", help: "Notes under the footer, one paragraph per line; [text](https://…) makes a link" },
         { key: "legendTitle",       type: "text", def: "", help: "Legend title (empty = none)" },
         { key: "statusLabels",      type: "textarea", rows: 5, def: [
             "no-coal :: No coal in the electricity mix",
@@ -429,6 +436,8 @@ var SETTINGS = {
     ].concat(DV.sliderGroup(), DV.mapGroups({ viewWest: -10, viewEast: 44.8, viewSouth: 34.3, viewNorth: 71.2, mapZoom: 1, mapAlign: "left", mapHideOutside: true, smallSize: 3.25, smallPad: 3, smallDX: -4, smallDY: -0.5 })),
 
     build: function (ctx) {
+      document.getElementById("notes").innerHTML = String(ctx.S.notes || "").split(/\n/).filter(function (l) { return l.trim(); })
+        .map(function (l) { return "<p>" + DV.linkify(l) + "</p>"; }).join("");
       var S = ctx.S;
       prepare(ctx);
       if (!ui) makeUI(ctx);
