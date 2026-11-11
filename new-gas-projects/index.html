@@ -75,12 +75,12 @@ var SETTINGS = {
   padTop: 0,                                   // Space above the graphic in px
   padSides: 0,                                 // Space left and right of the graphic in px
   padBottom: 0,                                // Space below the graphic in px
-  blockGap: 30,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
+  blockGap: 26,                                // Space between the title, subtitle, buttons, charts and footer, in px (the same everywhere)
   spaceTitle: -1,                              // Space under the title in px (-1 = the block gap)
   spaceSubtitle: -1,                           // Space under the subtitle and instruction lines in px (-1 = standard)
   spaceControls: -1,                           // Space between the legend, search box, time slider and buttons in px (-1 = standard)
-  spaceChart: -1,                              // Space between the legend or controls and the chart or map in px (-1 = standard)
-  spaceFooter: -1,                             // Space above the footer in px (-1 = the block gap)
+  spaceChart: 31,                              // Space between the legend or controls and the chart or map in px (-1 = standard)
+  spaceFooter: 25,                             // Space above the footer in px (-1 = the block gap)
   spaceHeading: -1,                            // Space under chart and panel headings, before their legend or chart, in px (-1 = standard, 10)
   notesPhone: "folded on phones",              // Notes under the footer (folded behind a Show notes button on phones only, at every width, or never; the source line always shows)
 
@@ -94,8 +94,8 @@ var SETTINGS = {
   // ---- Label on the dark area ----
   areaLabelShow: true,                         // Show the label inside the dark area
   areaLabelText: "Already left development",   // Label text; use | for a line break
-  areaLabelWeight: 700,                        // Label boldness
-  areaLabelColor: "#ffffff",                   // Label colour
+  areaLabelWeight: 500,                        // Label boldness
+  areaLabelColor: "#fef751",                   // Label colour
   areaLabelWidth: 0.8,                         // Widest a label line gets, as a share of the chart width
 
   // ---- Switch ----
@@ -107,16 +107,16 @@ var SETTINGS = {
   colorAlreadyLeftDots: "#000000",             // Line and dots on the dark area
 
   // ---- Layout ----
-  chartGap: 118,                               // Space between the two charts (where the arrow sits), in px
-  chartHeight: 0.88,                           // Chart height as a share of its width
+  chartGap: 208,                               // Space between the two charts (where the arrow sits), in px
+  chartHeight: 0.78,                           // Chart height as a share of its width
 
   // ---- Arrow position ----
   arrowShow: true,                             // Show the arrow
-  arrowCurve: 0,                               // Bend: 0 = straight, + curves up, - curves down
-  arrowLevel: 0.5,                             // Start height on the dark area (0 = bottom, 1 = top)
-  arrowOffsetY: 0,                             // Nudge the whole arrow up (-) or down (+), in px
+  arrowCurve: 92,                              // Bend: 0 = straight, + curves up, - curves down
+  arrowLevel: 0.55,                            // Start height on the dark area (0 = bottom, 1 = top)
+  arrowOffsetY: 3,                             // Nudge the whole arrow up (-) or down (+), in px
   arrowStartGap: 10,                           // Space between the left chart and the arrow start, in px
-  arrowEndGap: 4,                              // Space between the arrow tip and the right chart, in px
+  arrowEndGap: -40,                            // Space between the arrow tip and the right chart, in px
 };
 // ==== SETTINGS END ====
 </script>
