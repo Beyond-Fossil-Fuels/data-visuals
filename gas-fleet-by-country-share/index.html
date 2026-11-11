@@ -3,19 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="robots" content="noindex">
-<title>Moved to gas-share-of-capacity-by-status</title>
-<link rel="canonical" href="../gas-share-of-capacity-by-status/">
+<title>Moved to gas-fleet-by-country</title>
+<link rel="canonical" href="../gas-fleet-by-country/">
 <script>
-  /* This graphic has a new address: ../gas-share-of-capacity-by-status/ (renamed 22 Oct 2026). Old embeds keep working:
-   * the address options (?frame=card, ?type=rows, ?design…) come along, and dvfrom tells
-   * the graphic its old address, so the website's auto-height listener still finds this iframe. */
+  /* G6's first address (renamed 22 Oct 2026); G6 is now the share view of G5 (merged November 2026).
+   * The address options (?frame=card, ?design…) come along, and dvfrom tells the graphic its old address,
+   * so the website's auto-height listener still finds this iframe. */
   (function () {
     var q = location.search.replace(/^\?/, "").split("&").filter(function (p) { return p && !/^dvfrom=/.test(p); });
+    if (!q.some(function (p) { return /^view=/.test(p); })) q.push("view=share");
     q.push("dvfrom=" + encodeURIComponent(location.href));
-    window.location.replace("../gas-share-of-capacity-by-status/?" + q.join("&") + location.hash);
+    window.location.replace("../gas-fleet-by-country/?" + q.join("&") + location.hash);
   })();
 </script>
-<meta http-equiv="refresh" content="1; url=../gas-share-of-capacity-by-status/">
+<meta http-equiv="refresh" content="1; url=../gas-fleet-by-country/">
 </head>
-<body><p><a href="../gas-share-of-capacity-by-status/">This graphic has moved to a new address.</a></p></body>
+<body><p><a href="../gas-fleet-by-country/">This graphic has moved to a new address.</a></p></body>
 </html>
