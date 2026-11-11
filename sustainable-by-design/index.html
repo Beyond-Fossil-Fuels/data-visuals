@@ -41,19 +41,19 @@
 var SETTINGS = {
   // ---- Text ----
   title: "Replacing imported fossil gas for electricity with solar panels could produce more than ten times the electricity, at the same import cost", // Main title
-  subtitle: "EU27, {year} import data: €30 billion of fossil gas burned once for electricity vs. €30 billion of solar panels over a 25-year lifetime.", // Subtitle under the title, one paragraph per line (empty = none); {year} = the year in cell C1 of the sheet ("Data year: 2025")
+  subtitle: "EU27, {year} import data: €30 billion of fossil gas burned once for electricity vs. €30 billion of solar panels over a 25-year lifetime.", // Subtitle under the title, one paragraph per line (empty = none)
   unitLabel: "TWh",                            // Unit after the numbers
   iconNote: "",                                // Extra legend line, e.g. Each icon = {per} TWh (empty = none)
   tip1: "€30 billion of imported fossil gas, consumed in approximately one year, produces {value} of electricity.", // Tooltip text for the first group; {value}, {count} (icons) and {per} (TWh per icon) are filled in
   tip2: "€30 billion of imported solar panels produce {value} of electricity over their 25-year lifetime.", // Tooltip text for the second group (same placeholders)
   tipTime: "The panels produce about {perYear} per year. They will match and overtake the {gas} within {yearsUp} years, and continue to generate electricity for at least another {rest} years.", // Tooltip line comparing time; {life}, {perYear} (second group ÷ lifetime), {gas} (first group), {years} (first ÷ per year, one decimal), {yearsUp} ({years} rounded up to whole years) and {rest} (lifetime minus {yearsUp}); both in words up to ten are filled in. Empty = none
-  tipIcons: "Each icon = {per} TWh", // Last tooltip line in the icon version (empty = none)
+  tipIcons: "Each icon = {per} TWh",           // Last tooltip line in the icon version (empty = none)
   footer: "Sources: [Eurostat](https://ec.europa.eu/eurostat/web/main/data/database), [European Commission (DG Energy)](https://energy.ec.europa.eu/document/download/73b16f0c-1c65-478f-a004-d991d8bd0b2f_en?filename=New%20Quarterly%20Report%20on%20European%20Gas%20Markets%20Q4%202025-AA.pdf), [SolarPower Europe](https://www.solarpowereurope.org/insights/outlooks/eu-solar-market-outlook-2025-2030/detail), [Bruegel](https://www.bruegel.org/dataset/eu-renewables-value-tracker) | Last update: {timestamp}", // Footer; links as [text](https://…); {timestamp} = the date in the List of graphics tab (column timestamp). Leave empty to hide
   notes: "Methodology and data available [here](https://docs.google.com/spreadsheets/d/1ANQDv8u260Tr46DcU73rRMX0w7J1xuQjAoYO-KL_QPU/edit?usp=sharing).", // Notes under the footer, one paragraph per line; links as [text](https://…)
   // Text sizes:
   titleSize: 23,                               // Main title size in px (shrinks on small screens)
   headingSize: 21,                             // Chart heading (subtitle) size in px
-  footerSize: 10,                              // Footer (sources and notes) text size in px (never larger than the legend)
+  footerSize: 11,                              // Footer (sources and notes) text size in px (never larger than the legend)
   legendSize: 18,                              // Legend text size in px
   tooltipSize: 14,                             // Tooltip (popup) text size in px
   subtitleSize: 18,                            // Subtitle size in px (shrinks on small screens)
@@ -70,6 +70,7 @@ var SETTINGS = {
   spaceControls: -1,                           // Space between the legend, search box, time slider and buttons in px (-1 = standard)
   spaceChart: -1,                              // Space between the legend or controls and the chart or map in px (-1 = standard)
   spaceFooter: -1,                             // Space above the footer in px (-1 = the block gap)
+  spaceHeading: -1,                            // Space under chart and panel headings, before their legend or chart, in px (-1 = standard, 10)
   notesPhone: "folded on phones",              // Notes under the footer (folded behind a Show notes button on phones only, at every width, or never; the source line always shows)
 
   // ---- Background ----

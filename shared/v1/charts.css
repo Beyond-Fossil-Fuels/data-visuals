@@ -18,7 +18,7 @@
 .dvc-grid { display: grid; grid-template-columns: repeat(var(--dvc-cols, 2), minmax(0, 1fr)); gap: var(--dvc-gap-y, 18px) var(--dvc-gap-x, 28px); position: relative; }
 .dv-stacked .dvc-grid { grid-template-columns: repeat(var(--dvc-cols-phone, 1), minmax(0, 1fr)); }
 .dvc-panel { position: relative; min-width: 0; }
-.dvc-panel h2, .dvc-panel h3 { font-size: var(--dv-heading-size); font-weight: var(--dv-heading-weight); color: var(--dv-heading); margin: 0 0 6px; line-height: 1.2; }
+.dvc-panel h2, .dvc-panel h3 { font-size: var(--dv-heading-size); font-weight: var(--dv-heading-weight); color: var(--dv-heading); margin: 0 0 var(--dv-heading-gap, 10px); line-height: 1.2; }
 .dvc-panel h3 { font-size: var(--dvc-small-heading, 15px); margin: 0 0 2px; }
 .dvc-panel svg { display: block; width: 100%; overflow: visible; }
 .dvc-caption { font-size: var(--dv-legend-size); text-align: center; margin: 8px 0 0; color: var(--dv-heading); }

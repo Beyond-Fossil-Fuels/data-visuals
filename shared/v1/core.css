@@ -38,7 +38,7 @@ html.dv-exporting .dv-notes-folded, html.dv-print .dv-notes-folded { display: bl
   font-size: var(--dv-heading-size);
   font-weight: var(--dv-heading-weight);
   color: var(--dv-heading);
-  margin: 0 0 4px;
+  margin: 0 0 var(--dv-heading-gap, 10px);   /* space under chart headings (setting spaceHeading) */
   line-height: 1.2;
 }
 .dv-legend {

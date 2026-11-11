@@ -261,7 +261,8 @@
       el("rect", { x: m.left + edge + band * o.highlight.index, y: 0, width: band, height: y(0), fill: o.highlight.color }, g);
     }
     yt.forEach(function (v, i) {
-      if (v > 0 && S.showGrid && o.grid !== false) el("line", { x1: m.left, x2: W - m.right, y1: y(v), y2: y(v), stroke: S.gridColor }, g);
+      if (v > 0 && S.showGrid && o.grid !== false) el("line", { x1: m.left, x2: W - m.right, y1: y(v), y2: y(v), stroke: S.gridColor,
+        "stroke-dasharray": S.gridStyle === "dashed" ? "4 4" : "none" }, g);
       if (o.yAxis !== false) el("text", { x: m.left - padY, y: y(v), "text-anchor": "end", "dominant-baseline": "middle", "font-size": fs, fill: S.axisColor }, g)
         .textContent = tickText[i];
     });
@@ -458,7 +459,8 @@
 
     var g = el("g", {}, svg);
     yt.forEach(function (v, i) {
-      if (v > 0 && S.showGrid) el("line", { x1: m.left, x2: m.left + iw, y1: y(v), y2: y(v), stroke: S.gridColor }, g);
+      if (v > 0 && S.showGrid) el("line", { x1: m.left, x2: m.left + iw, y1: y(v), y2: y(v), stroke: S.gridColor,
+        "stroke-dasharray": S.gridStyle === "dashed" ? "4 4" : "none" }, g);
       el("text", { x: m.left - padY, y: y(v), "text-anchor": "end", "dominant-baseline": "middle", "font-size": fs, fill: S.axisColor }, g)
         .textContent = tickText[i];
     });

@@ -32,6 +32,7 @@ var BRAND = {
   showDots: false,                             // Show a dot at every data point
   dotSize: 5,                                  // Dot radius in px
   showGrid: true,                              // Show horizontal grid lines
+  gridStyle: "solid",                          // Grid line style (the axis line stays solid)
 
   // ---- Popups ----
   popupBg: "#ffffff",                          // Popup (tooltip) background

@@ -50,7 +50,8 @@
       { key: "lineWidth",   type: "range", min: 0, max: 6, step: 0.5, def: 2, help: "Line along the top of each area, in px (0 = none)" },
       { key: "showDots",    type: "check", def: true, help: "Show a dot at every data point" },
       { key: "dotSize",     type: "range", min: 1, max: 10, step: 0.5, def: 4.5, help: "Dot radius in px" },
-      { key: "showGrid",    type: "check", def: true, help: "Show horizontal grid lines" }
+      { key: "showGrid",    type: "check", def: true, help: "Show horizontal grid lines" },
+      { key: "gridStyle",   type: "select", options: ["solid", "dashed"], def: "solid", help: "Grid line style (the axis line stays solid)" }
     ]},
     { name: "Popups", fields: [
       { key: "popupBg",     type: "color", def: "#ffffff", help: "Popup (tooltip) background" },
@@ -76,7 +77,7 @@
     { name: "Text sizes", fields: [
       { key: "titleSize",   type: "range", min: 16, max: 72, step: 1, def: 23, help: "Main title size in px (shrinks on small screens)" },
       { key: "headingSize", type: "range", min: 11, max: 32, step: 0.5, def: 21, help: "Chart heading (subtitle) size in px" },
-      { key: "footerSize",  type: "range", min: 10, max: 32, step: 0.5, def: 10, help: "Footer (sources and notes) text size in px (never larger than the legend)" },
+      { key: "footerSize",  type: "range", min: 10, max: 32, step: 0.5, def: 11, help: "Footer (sources and notes) text size in px (never larger than the legend)" },
       { key: "legendSize",  type: "range", min: 10, max: 22, step: 0.5, def: 18, help: "Legend text size in px" },
       { key: "axisSize",    type: "range", min: 9, max: 22, step: 0.5, def: 14, help: "Axis label size in px" },
       { key: "tooltipSize", type: "range", min: 10, max: 18, step: 0.5, def: 14, help: "Tooltip (popup) text size in px" }
@@ -92,6 +93,7 @@
       { key: "spaceControls", type: "range", min: -1, max: 80, step: 1, def: -1, help: "Space between the legend, search box, time slider and buttons in px (-1 = standard)" },
       { key: "spaceChart",    type: "range", min: -1, max: 80, step: 1, def: -1, help: "Space between the legend or controls and the chart or map in px (-1 = standard)" },
       { key: "spaceFooter",   type: "range", min: -1, max: 80, step: 1, def: -1, help: "Space above the footer in px (-1 = the block gap)" },
+      { key: "spaceHeading",  type: "range", min: -1, max: 40, step: 1, def: -1, help: "Space under chart and panel headings, before their legend or chart, in px (-1 = standard, 10)" },
       { key: "notesPhone",    type: "select", options: ["folded on phones", "folded at every width", "always shown"], def: "folded on phones", help: "Notes under the footer (folded behind a Show notes button on phones only, at every width, or never; the source line always shows)" }
     ]},
     { name: "Axis labels", fields: [
@@ -502,7 +504,8 @@
     // grid + y labels
     var g = el("g", {}, svg);
     ticks.forEach(function (v, i) {
-      if (v > 0 && S.showGrid) el("line", { x1: m.left, x2: width - m.right, y1: y(v), y2: y(v), stroke: S.gridColor }, g);
+      if (v > 0 && S.showGrid) el("line", { x1: m.left, x2: width - m.right, y1: y(v), y2: y(v), stroke: S.gridColor,
+        "stroke-dasharray": S.gridStyle === "dashed" ? "4 4" : "none" }, g);
       el("text", { x: m.left - 8, y: y(v), "text-anchor": "end", "dominant-baseline": "middle", "font-size": fs, fill: S.axisColor }, g)
         .textContent = tickText[i];
     });
@@ -805,7 +808,8 @@
         st.setProperty("--dv-title-gap", (S.spaceTitle >= 0 ? S.spaceTitle : gap) + "px");
         st.setProperty("--dv-gap", gap + "px");
         // separate spaces, where set (-1 = standard)
-        [["spaceSubtitle", "--dv-sub-gap"], ["spaceControls", "--dv-controls-gap"], ["spaceChart", "--dv-chart-gap"], ["spaceFooter", "--dv-footer-gap"]]
+        [["spaceSubtitle", "--dv-sub-gap"], ["spaceControls", "--dv-controls-gap"], ["spaceChart", "--dv-chart-gap"], ["spaceFooter", "--dv-footer-gap"],
+          ["spaceHeading", "--dv-heading-gap"]]
           .forEach(function (p) { if (S[p[0]] >= 0) st.setProperty(p[1], S[p[0]] + "px"); else st.removeProperty(p[1]); });
         st.setProperty("--dv-heading-size", ctx.sz(S.headingSize, 15) + "px");
         st.setProperty("--dv-legend-size", ctx.sz(S.legendSize, 12) + "px");
